@@ -333,3 +333,8 @@ ASALocalRun/
 README.md
 
 *.dll
+
+Rekit/Rekit.sln
+Rekit/External/*
+Rekit/Rekit/Data/*
+Rekit/Rekit/Rekit.vcxproj.filters
