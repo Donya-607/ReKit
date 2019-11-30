@@ -1,7 +1,7 @@
 #include "FilePath.h"
 
-#include "Header/Constant.h"	// Use DEBUG_MODE.
-#include "Header/Useful.h"		// Use IsExistFile().
+#include "Donya/Constant.h"	// Use DEBUG_MODE.
+#include "Donya/Useful.h"	// Use IsExistFile().
 
 std::string GenerateSerializePath( std::string identifier, Donya::Serializer::Extension extension )
 {

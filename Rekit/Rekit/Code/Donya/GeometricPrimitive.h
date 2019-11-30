@@ -149,7 +149,7 @@ namespace Donya
 			/// Returns the matrix whose rotation follows "lookDirection". That direction will be normalize.<para></para>
 			/// The "freezeDirection" is specify a fixed direction(ex. if set to "Up", it up direction will not rotation).
 			/// </summary>
-			Donya::Vector4x4 CalcBillboardRotation( const Donya::Vector3 &lookDirection, float zRadian, Donya::Quaternion::Freeze freezeDirection = Donya::Quaternion::Freeze::None ) const;
+			Donya::Vector4x4 CalcBillboardRotation( const Donya::Vector3 &lookDirection, float zRadian, Donya::Quaternion::Freeze freezeDirection = Donya::Quaternion::Freeze::Front ) const;
 
 			/// <summary>
 			/// If the "pImmediateContext" is null, use default(library's) context.<para></para>

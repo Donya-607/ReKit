@@ -1,10 +1,10 @@
 #include <locale.h>
+#include <string>
 #include <time.h>
 #include <windows.h>
 
-#include "Donya/Constant.h"
+#include "Donya/Constant.h"	// Use DEBUG_MODE, scast macros.
 #include "Donya/Donya.h"
-#include "Donya/Sound.h"
 
 #include "Common.h"
 #include "Framework.h"
@@ -12,7 +12,7 @@
 
 INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPWSTR cmdLine, _In_ INT cmdShow )
 {
-#if defined( DEBUG ) | defined( _DEBUG )
+#if DEBUG_MODE
 	// reference:https://docs.microsoft.com/ja-jp/visualstudio/debugger/crt-debug-heap-details?view=vs-2015
 	_CrtSetDbgFlag
 	(
@@ -23,14 +23,20 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 	// When memory leak detected, if you assign the output number to "_crtBreakAlloc",
 	// program will be stop in that memory allocate place. ex : _crtBreakAlloc = 123;
 	// _crtBreakAlloc = ;
-#endif
+#endif // DEBUG_MODE
 
 	setlocale( LC_ALL, "JPN" );
 
 	srand( scast<unsigned int>( time( NULL ) ) );
 
-	std::string title{ "おゆうぎ" };
-	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), /* fullScreenMode = */ false );
+#if DEBUG_MODE
+	constexpr bool fullScreenMode = false;
+#else
+	constexpr bool fullScreenMode = true;
+#endif // DEBUG_MODE
+
+	std::string title{ "ウォーリング" };
+	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), fullScreenMode );
 
 	Donya::SetWindowIcon( instance, IDI_ICON );
 

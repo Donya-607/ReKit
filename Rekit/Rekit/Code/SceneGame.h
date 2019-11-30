@@ -1,14 +1,26 @@
 #pragma once
 
-#include <memory>
+#include "Donya/Camera.h"
+#include "Donya/GamepadXInput.h"
+#include "Donya/Vector.h"
+#include "Donya/UseImGui.h"
 
 #include "Scene.h"
 
 class SceneGame : public Scene
 {
+public:
+	struct DirectionalLight
+	{
+		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Donya::Vector4 dir	{ 0.0f,-1.0f, 1.0f, 0.0f };
+	};
 private:
-	struct Impl;
-	std::unique_ptr<Impl> pImpl;
+	DirectionalLight	dirLight;
+
+	Donya::ICamera		iCamera;
+
+	Donya::XInput		controller;
 public:
 	SceneGame();
 	~SceneGame();
@@ -20,9 +32,14 @@ public:
 
 	void	Draw( float elapsedTime ) override;
 private:
-	void	InitPerStage( int stageNo, bool resetTimeAndBGM, bool restartFromRespawnPoint = false );
-
-	void	DoCollisionDetection();
-
+	void	CameraInit();
+	void	CameraUpdate();
+private:
 	Result	ReturnResult();
+private:
+#if USE_IMGUI
+
+	void	UseImGui();
+
+#endif // USE_IMGUI
 };

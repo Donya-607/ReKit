@@ -3,9 +3,9 @@
 #include <queue>
 
 #include "Common.h"
-#include "Header/Sprite.h"
-#include "Header/Useful.h"
-#include "Header/Vector.h"
+#include "Donya/Sprite.h"
+#include "Donya/Useful.h"
+#include "Donya/Vector.h"
 
 class BaseFade
 {

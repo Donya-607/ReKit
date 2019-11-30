@@ -1,10 +1,10 @@
-#ifndef _INCLUDED_SCENE_MANAGER_H_
-#define _INCLUDED_SCENE_MANAGER_H_
+#ifndef INCLUDED_SCENE_MANAGER_H_
+#define INCLUDED_SCENE_MANAGER_H_
 
 #include <memory>
 #include <list>
 
-#include "Scene.h"	// For using Scene::Type.
+#include "Scene.h"	// Use Scene::Result, Scene::Type.
 
 /// <summary>
 /// You must call Init() when create.
@@ -28,7 +28,14 @@ public:
 
 	void Draw( float elapsedTime );
 private:
-	void ProcessMessage( Scene::Result message );
+	bool WillEmptyIfApplied( Scene::Result message ) const;
+	/// <summary>
+	/// Returns false if the message is wrong.
+	/// </summary>
+	bool ValidateMessage( Scene::Result message ) const;
+	Scene::Result ApplyFailSafe( Scene::Result wrongMessage ) const;
+
+	void ProcessMessage( Scene::Result message, int &refUpdateCount, int &refLoopIndex );
 
 	/// <summary>
 	/// Also doing scene initialize.
@@ -39,4 +46,4 @@ private:
 	void PopAll();
 };
 
-#endif // _INCLUDED_SCENE_MANAGER_H_
+#endif // INCLUDED_SCENE_MANAGER_H_

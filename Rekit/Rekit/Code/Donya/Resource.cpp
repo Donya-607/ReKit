@@ -537,7 +537,7 @@ namespace Donya
 			}
 
 			std::wstring dummyFileName = L"UnicolorTexture:[RGBA:" + std::to_wstring( RGBA ) + L"]";
-			auto &it = spriteCache.find( dummyFileName );
+			auto it =  spriteCache.find( dummyFileName );
 			if ( it != spriteCache.end() )
 			{
 				*pOutSRV = it->second.d3dShaderResourceView.Get();

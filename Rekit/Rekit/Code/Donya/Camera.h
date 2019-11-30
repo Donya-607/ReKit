@@ -1,90 +1,137 @@
-#pragma once
+#ifndef INCLUDED_LEX_CAMERA_H_
+#define INCLUDED_LEX_CAMERA_H_
 
-#include "Header/Serializer.h"
-#include "Header/UseImgui.h"
-#include "Header/Vector.h"
+#include <memory>
 
-class Camera
+#include "Constant.h"	// Use DEBUG_MODE macro.
+#include "Quaternion.h"
+#include "UseImGui.h"
+#include "Vector.h"
+
+namespace Donya
 {
-private:
-	int stageNo;
-	float stickMoveSpeed;				// Speed of move by input of stick.
-	float easePower;					// 0.0f ~ 1.0f
-	Donya::Vector2 pos;					// Left-Top. This will be subtract to pos of every object.
-	Donya::Vector2 prevTargetPos;
-	Donya::Vector2 screenSize;
-	Donya::Vector2 distanceFromEdge;	// The target's position place in screen.
-	Donya::Vector2 enableLerpBorder;
-	Donya::Vector2 mostEdgePos;
-	bool isReachedEdgeX;
-public:
-	Camera();
-private:
-	friend class cereal::access;
-	template<class Archive>
-	void serialize( Archive &archive, std::uint32_t version )
+	/// <summary>
+	/// The interface of camera.
+	/// </summary>
+	class ICamera
 	{
-		archive
-		(
-			CEREAL_NVP( easePower ),
-			CEREAL_NVP( enableLerpBorder )
-		);
-
-		if ( 1 <= version )
+	public:
+		/// <summary>
+		/// Specify the camera's movement.
+		/// </summary>
+		enum class Mode
 		{
-			archive( CEREAL_NVP( stickMoveSpeed ) );
-		}
-	}
-	static constexpr const char *SERIAL_ID = "Camera";
-public:
-	void Init( int stageNumber );
+			Free,		// The rotate origin is myself. The focus point will be invalid.
+			Look,		// Keep looking the focus point. The rotation is invalid.
+			Satellite,	// The movement is like satellite. Keep looking the focus point. The position and focus point will move by moveVelocity. The orientation will rotate by roll, pitch and yaw.
+		};
+		/// <summary>
+		/// Store information of drive the camera.<para></para>
+		/// The rotation order is roll->pitch->yaw.
+		/// </summary>
+		struct Controller
+		{
+			Donya::Vector3	moveVelocity{};				// Set move vector(contain speed).
+			float			roll{};						// Radian. Rotate with Z axis, Local space.
+			float			pitch{};					// Radian. Rotate with X axis, Local space.
+			float			yaw{};						// Radian. Rotate with Y axis, World space.
+			float			slerpPercent{ 1.0f };		// Set percentage of interpolation(0.0f ~ 1.0f). This affects the movement and the rotation.
+			bool			moveInLocalSpace{ true };	// Specify the space of movement(world-space or camera-space). If the Satellite mode, moving space is fixed to camera-space.
+		public:
+			// This condition is same as default constructed condition.
+			void SetNoOperation()
+			{
+				moveVelocity = Donya::Vector3::Zero();
+				roll = pitch = yaw = 0.0f;
+				slerpPercent = 0.0f;
+			}
+		};
+	// private:
+	public: // I want to hide the "Configuration" struct, but if hide it, a derived from "BaseCamera" class can not access. :(
+		/// <summary>
+		/// Use when change the mode. Store a user specified parameter, then change the mode and set the parameter.
+		/// </summary>
+		struct Configuration
+		{
+			float				FOV{};
+			float				zNear{};
+			float				zFar{};
+			Donya::Vector2		screenSize{};
+			Donya::Vector3		pos{};
+			Donya::Vector3		focus{};
+			Donya::Quaternion	orientation{};
+		};
+	public:
+		class BaseCamera;
+	private:
+		std::unique_ptr<BaseCamera> pCamera;
+		Mode currentMode;
+	public:
+		ICamera();
+		~ICamera();
+	public:
+		void Init( Mode initialMode );
+		void Uninit();
 
-	void Update( Donya::Vector2 inputVelocity );
+		void Update( Controller controller );
+	public:
+		void ChangeMode( Mode nextMode );
 
-	/// <summary>
-	/// The "targetMoveDirectionSide" specify the "targetPos" place of side in screen, 1 or -1.
-	/// </summary>
-	void Scroll( Donya::Vector2 targetPosition, Donya::Vector2 targetVelocity, int targetMoveDirectionSide );
-public:
-	void SetPosition( Donya::Vector2 wsPosition )
-	{
-		pos = wsPosition;
-		ClampPos();
-	}
-	void SetDistanceFromEdge( Donya::Vector2 distance )
-	{
-		distanceFromEdge = distance;
-	}
+		/// <summary>
+		/// This set only z-range(near, far), so you should call SetProjectionXXX() after this.
+		/// </summary>
+		void SetZRange					( float zNear, float zFar );
+		/// <summary>
+		/// This set only Field-Of-View, so you should call SetProjectionXXX() after this.
+		/// </summary>
+		void SetFOV						( float FOV );
+		/// <summary>
+		/// Please don't set zero to the height of screenSize. Because will be divided the width by height.<para></para>
+		/// This set only screen size, so you should call SetProjectionXXX() after this.
+		/// </summary>
+		void SetScreenSize				( const Donya::Vector2 &screenSize );
+		/// <summary>
+		/// The orientation will be also setting.
+		/// </summary>
+		void SetPosition				( const Donya::Vector3 &point );
+		/// <summary>
+		/// The orientation will be also setting.
+		/// </summary>
+		void SetFocusPoint				( const Donya::Vector3 &point );
+		/// <summary>
+		/// This method is valid when the camera's orientation is valid.
+		/// </summary>
+		void SetFocusToFront			( float distance );
+		void SetOrientation				( const Donya::Quaternion &orientation );
+		/// <summary>
+		/// If set { 0, 0 } to the "viewSize", use registered screen size.
+		/// </summary>
+		void SetProjectionOrthographic	( const Donya::Vector2 &viewSize = { 0.0f, 0.0f } );
+		/// <summary>
+		/// If set 0.0f to the "aspectRatio", calculate by registered screen size.
+		/// </summary>
+		void SetProjectionPerspective	( float aspectRatio = 0.0f );
 
-	bool IsReachedEdgeX() const
-	{
-		return isReachedEdgeX;
-	}
+		float				GetFOV()				const;
+		float				GetZNear()				const;
+		float				GetZFar()				const;
+		Donya::Vector2		GetScreenSize()			const;
+		Donya::Vector3		GetPosition()			const;
+		Donya::Vector3		GetFocusPoint()			const;
+		Donya::Quaternion	GetOrientation()		const;
+		Donya::Vector4x4	CalcViewMatrix()		const;
+		Donya::Vector4x4	GetProjectionMatrix()	const;
 
-	/// <summary>
-	/// Scroll value, offset.
-	/// </summary>
-	Donya::Vector2 GetPos() const
-	{
-		return pos;
-	}
-private:
-	void ClampPos();
+	#if USE_IMGUI
 
-	void HorizontalScroll( Donya::Vector2 targetPosition, Donya::Vector2 targetVelocity, int targetMoveDirectionSide );
-	void VerticalScroll( Donya::Vector2 targetPosition, Donya::Vector2 targetVelocity );
+		void ShowImGuiNode();
 
-	void ScrollToCenter( Donya::Vector2 targetPosition, Donya::Vector2 targetVelocity );
+	#endif // USE_IMGUI
+	private:
+		void AssertIfNullptr() const;
 
-	void LoadParameter( bool isBinary = true );
+		Configuration BuildCurrentConfiguration() const;
+	};
+}
 
-#if USE_IMGUI
-
-	void SaveParameter();
-
-	void UseImGui();
-
-#endif // USE_IMGUI
-};
-
-CEREAL_CLASS_VERSION( Camera, 1 )
+#endif // INCLUDED_LEX_CAMERA_H_

@@ -1,6 +1,6 @@
 #include "Common.h"
 
-#include "Header/Constant.h"
+#include "Donya/Constant.h"	// Use scast, DEBUG_MODE macros.
 
 namespace Common
 {
@@ -29,7 +29,7 @@ namespace Common
 	long	HalfScreenHeightL()		{ return SCREEN_HEIGHT_L >> 1;		}
 
 #if DEBUG_MODE
-	static bool showCollision = false;
+	static bool showCollision = true;
 #endif // DEBUG_MODE
 	void	SetShowCollision( bool newState )
 	{

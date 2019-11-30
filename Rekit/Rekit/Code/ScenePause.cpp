@@ -2,15 +2,15 @@
 
 #include <algorithm>
 
-#include "Header/Constant.h"
+#include "Donya/Constant.h"
+#include "Donya/Keyboard.h"
+#include "Donya/Sprite.h"
+#include "Donya/Sound.h"
+#include "Donya/Vector.h"
+
 #include "Common.h"
 #include "FilePath.h"
-#include "Header/Keyboard.h"
 #include "Music.h"
-#include "Header/Sprite.h"
-#include "Header/Sound.h"
-#include "UI.h"
-#include "Header/Vector.h"
 
 #undef max
 #undef min
@@ -19,13 +19,8 @@ ScenePause::ScenePause() :
 	choice( Choice::Resume ),
 	sprUI(),
 	controller( Donya::XInput::PadNumber::PAD_1 )
-{
-
-}
-ScenePause::~ScenePause()
-{
-
-}
+{}
+ScenePause::~ScenePause() = default;
 
 void ScenePause::Init()
 {
