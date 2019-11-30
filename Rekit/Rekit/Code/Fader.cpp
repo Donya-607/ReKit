@@ -193,23 +193,24 @@ public:
 
 void Fader::Configuration::SetDefault( Type fadeType )
 {
-	constexpr int DEFAULT_CLOSE_FRAME = 45;
+	const int DEFAULT_CLOSE_FRAME = GetDefaultCloseFrame();
 
 	switch ( fadeType )
 	{
 	case Fader::Type::Scroll:
-		type = fadeType;
+		type		= fadeType;
 		closeFrame	= DEFAULT_CLOSE_FRAME;
 		parameter	= Direction::LEFT;
 		break;
 	case Fader::Type::Gradually:
-		type = fadeType;
+		type		= fadeType;
 		closeFrame	= DEFAULT_CLOSE_FRAME;
 		parameter	= scast<unsigned int>( Donya::Color::Code::BLACK );
 		break;
 	default: break;
 	}
 }
+
 void Fader::Configuration::SetDirection( Direction dir )
 {
 	parameter = dir;
@@ -232,6 +233,22 @@ void Fader::Configuration::NormalizeDirection()
 		dir &= ~scast<int>(  RIGHT );
 	}
 }
+
+void Fader::Configuration::SetColor( Donya::Color::Code colorCode )
+{
+	parameter = scast<unsigned int>( colorCode );
+}
+void Fader::Configuration::SetColor( float R, float G, float B )
+{
+	unsigned int iR = scast<unsigned int>( R * 255.0f );
+	unsigned int iG = scast<unsigned int>( G * 255.0f );
+	unsigned int iB = scast<unsigned int>( B * 255.0f );
+	unsigned int iA = 255U;
+
+	// RGBA.
+	parameter = ( iR << 24 ) | ( iG << 16 ) | ( iB << 8 ) | ( iA << 0 );
+}
+
 Fader::Configuration Fader::Configuration::UseDefault( Type fadeType )
 {
 	Configuration def{};
@@ -378,4 +395,10 @@ bool Fader::IsClosed() const
 bool Fader::IsExist() const
 {
 	return ( pImpl->pFade || !pImpl->reserves.empty() ) ? true : false;
+}
+
+int Fader::GetDefaultCloseFrame()
+{
+	constexpr int DEFAULT_CLOSE_FRAME = 30;
+	return DEFAULT_CLOSE_FRAME;
 }

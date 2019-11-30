@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "Donya/Color.h"
 #include "Donya/Constant.h"
 #include "Donya/Template.h"
 
@@ -18,7 +19,7 @@ public:
 	enum class Type
 	{
 		Scroll,		// 
-		Gradually,	// 
+		Gradually,	// It will gradually become transparent.
 	};
 	/// <summary>
 	/// If set [DOWN|RIGHT] to parameter, the fade will move to right-bottom from left-top.<para></para>
@@ -46,9 +47,29 @@ public:
 		unsigned int	parameter{};	// [Type::Scroll : Used to judge direction(you can specify by Fader::Direction)] [Type::Gradually : Used to fill color. This is linking to Donya::Color::Code]
 	public:
 		void SetDefault( Type fadeType );
+
+		/// <summary>
+		/// Use when the type is Scroll.
+		/// </summary>
 		void SetDirection( Direction moveDirection );
+		/// <summary>
+		/// Use when the type is Scroll.
+		/// </summary>
 		void SetDirection( Direction dirX, Direction dirY );
+		/// <summary>
+		/// Use when the type is Scroll.
+		/// </summary>
 		void NormalizeDirection();
+
+		/// <summary>
+		/// Use when the type is Gradually.
+		/// </summary>
+		void SetColor( Donya::Color::Code colorCode );
+		/// <summary>
+		/// Use when the type is Gradually.<para></para>
+		/// These float value are expected to [0.0f ~ 1.0f].
+		/// </summary>
+		void SetColor( float R, float G, float B );
 	public:
 		static Configuration UseDefault( Type fadeType );
 	};
@@ -96,4 +117,6 @@ public:
 	/// Returns true when exist instance even one.
 	/// </summary>
 	bool IsExist() const;
+public:
+	static int GetDefaultCloseFrame();
 };

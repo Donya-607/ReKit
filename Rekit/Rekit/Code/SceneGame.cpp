@@ -13,7 +13,7 @@
 #include "Donya/Sound.h"
 #include "Donya/Sprite.h"
 #include "Donya/Useful.h"
-#include "Donya/UseImgui.h"
+#include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
 #include "Common.h"
@@ -31,11 +31,13 @@ SceneGame::~SceneGame() = default;
 
 void SceneGame::Init()
 {
+	Donya::Sound::Play( Music::BGM_Game );
+
 	CameraInit();
 }
 void SceneGame::Uninit()
 {
-	
+	Donya::Sound::Stop( Music::BGM_Game );
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -49,6 +51,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	controller.Update();
 
 	CameraUpdate();
+
+#if DEBUG_MODE
+	// Scene Transition Demo.
+	{
+		if ( Donya::Keyboard::Trigger( VK_RETURN ) || controller.Trigger( Donya::Gamepad::Button::A ) || controller.Trigger( Donya::Gamepad::Button::START ) )
+		{
+			if ( !Fader::Get().IsExist() )
+			{
+				StartFade();
+			}
+		}
+	}
+#endif // DEBUG_MODE
 
 	return ReturnResult();
 }
@@ -139,10 +154,13 @@ void SceneGame::CameraUpdate()
 {
 	auto MakeControlStructWithMouse = []()
 	{
-		auto NoOperation = []()
+		constexpr float SLERP_FACTOR = 0.2f;
+
+		auto NoOperation = [&SLERP_FACTOR]()
 		{
 			Donya::ICamera::Controller noop{};
 			noop.SetNoOperation();
+			noop.slerpPercent = SLERP_FACTOR;
 			return noop;
 		};
 
@@ -196,7 +214,7 @@ void SceneGame::CameraUpdate()
 		ctrl.yaw				= rotation.x;
 		ctrl.pitch				= rotation.y;
 		ctrl.roll				= 0.0f;
-		ctrl.slerpPercent		= 0.5f;
+		ctrl.slerpPercent		= SLERP_FACTOR;
 		ctrl.moveInLocalSpace	= true;
 
 		return ctrl;
@@ -214,21 +232,40 @@ void SceneGame::CameraUpdate()
 #endif // DEBUG_MODE
 }
 
+void SceneGame::StartFade() const
+{
+	Fader::Configuration config{};
+	config.type			= Fader::Type::Gradually;
+	config.closeFrame	= Fader::GetDefaultCloseFrame();;
+	config.SetColor( Donya::Color::Code::BLACK );
+	Fader::Get().StartFadeOut( config );
+}
+
 Scene::Result SceneGame::ReturnResult()
 {
 #if DEBUG_MODE
 
 	bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
-	if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) )
+	if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
 	{
+		Donya::Sound::Play( Music::ItemDecision );
+
 		Scene::Result change{};
 		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Game;
+		change.sceneType = Scene::Type::Title;
 		return change;
 	}
 	// else
 
 #endif // DEBUG_MODE
+
+	if ( Fader::Get().IsClosed() )
+	{
+		Scene::Result change{};
+		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
+		change.sceneType = Scene::Type::Clear;
+		return change;
+	}
 
 	bool requestPause	= controller.Trigger( Donya::Gamepad::Button::START ) || controller.Trigger( Donya::Gamepad::Button::SELECT ) || Donya::Keyboard::Trigger( 'P' );
 	bool allowPause		= !Fader::Get().IsExist();
@@ -253,7 +290,7 @@ void SceneGame::UseImGui()
 {
 	if ( ImGui::BeginIfAllowed() )
 	{
-		if ( ImGui::TreeNode( u8"設定" ) )
+		if ( ImGui::TreeNode( u8"ゲーム・設定" ) )
 		{
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );

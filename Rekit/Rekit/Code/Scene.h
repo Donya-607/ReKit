@@ -20,6 +20,7 @@ public:
 		Title,
 		Game,
 		Clear,
+		Over,
 		Pause,
 	};
 	struct Result

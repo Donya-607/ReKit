@@ -78,6 +78,7 @@ namespace Donya
 
 				std::wstring errorMessage = L"[Load Error] ";
 				errorMessage += Donya::MultiToWide( fileName );
+				errorMessage += L"\n";
 
 				Donya::OutputDebugStr( errorMessage.c_str() );
 

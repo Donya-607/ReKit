@@ -164,10 +164,13 @@
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\main.cpp" />
+    <ClCompile Include="Code\SceneClear.cpp" />
     <ClCompile Include="Code\SceneGame.cpp" />
     <ClCompile Include="Code\SceneLogo.cpp" />
     <ClCompile Include="Code\SceneManager.cpp" />
+    <ClCompile Include="Code\SceneOver.cpp" />
     <ClCompile Include="Code\ScenePause.cpp" />
+    <ClCompile Include="Code\SceneTitle.cpp" />
     <ClCompile Include="Code\StorageForScene.cpp" />
     <ClCompile Include="External\ImGui\imgui.cpp" />
     <ClCompile Include="External\ImGui\imgui_demo.cpp" />
@@ -220,10 +223,13 @@
     <ClInclude Include="Code\Icon.h" />
     <ClInclude Include="Code\Music.h" />
     <ClInclude Include="Code\Scene.h" />
+    <ClInclude Include="Code\SceneClear.h" />
     <ClInclude Include="Code\SceneGame.h" />
     <ClInclude Include="Code\SceneLogo.h" />
     <ClInclude Include="Code\SceneManager.h" />
+    <ClInclude Include="Code\SceneOver.h" />
     <ClInclude Include="Code\ScenePause.h" />
+    <ClInclude Include="Code\SceneTitle.h" />
     <ClInclude Include="Code\StorageForScene.h" />
     <ClInclude Include="Code\TexPart.h" />
     <ClInclude Include="External\Cereal\include\cereal\access.hpp" />
