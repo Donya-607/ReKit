@@ -164,6 +164,7 @@
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\main.cpp" />
+    <ClCompile Include="Code\Player.cpp" />
     <ClCompile Include="Code\SceneClear.cpp" />
     <ClCompile Include="Code\SceneGame.cpp" />
     <ClCompile Include="Code\SceneLogo.cpp" />
@@ -222,6 +223,7 @@
     <ClInclude Include="Code\Framework.h" />
     <ClInclude Include="Code\Icon.h" />
     <ClInclude Include="Code\Music.h" />
+    <ClInclude Include="Code\Player.h" />
     <ClInclude Include="Code\Scene.h" />
     <ClInclude Include="Code\SceneClear.h" />
     <ClInclude Include="Code\SceneGame.h" />
