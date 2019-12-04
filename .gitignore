@@ -334,6 +334,7 @@ README.md
 
 *.dll
 *.ini
+*.cod
 
 ReKit/ReKit.sln
 ReKit/ReKit/External/*
