@@ -94,6 +94,8 @@ namespace Donya
 		public:
 			Sphere( size_t horizontalSliceCount = 12U, size_t verticalSliceCount = 6U );
 			~Sphere();
+
+			Sphere( const Sphere & );
 		public:
 			void Init() override;
 			void Uninit() override;
@@ -140,6 +142,8 @@ namespace Donya
 		public:
 			TextureBoard( std::wstring filePath );
 			~TextureBoard();
+
+			TextureBoard( const TextureBoard & );
 		public:
 			void Init() override;
 			void Uninit() override;

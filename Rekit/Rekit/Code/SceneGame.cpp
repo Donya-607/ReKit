@@ -85,7 +85,7 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
 
-	player.Draw();
+	player.Draw( V * P, dirLight.dir, dirLight.color );
 
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )

@@ -23,3 +23,10 @@ enum class ModelAttribute
 };
 
 std::string GetModelPath( ModelAttribute modelAttribute );
+
+enum class ShaderAttribute
+{
+	Demo,
+};
+
+std::string GetShaderPath( ShaderAttribute shaderAttribute, bool wantVS );

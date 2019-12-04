@@ -1,6 +1,8 @@
 #include "Player.h"
 
+#include <array>
 #include <algorithm>		// Use std::min(), max().
+#include <vector>
 
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
@@ -138,13 +140,16 @@ CEREAL_CLASS_VERSION( Param::Member, 0 )
 
 Player::Player() :
 	remainJumpCount( 1 ),
-	pos(), velocity()
+	pos(), velocity(),
+	drawModel( Donya::Geometric::CreateSphere() ), cbuffer(), VSDemo(), PSDemo()
 {}
 Player::~Player() = default;
 
 void Player::Init()
 {
 	Param::Get().Init();
+
+	CreateRenderingObjects();
 }
 void Player::Uninit()
 {
@@ -163,9 +168,24 @@ void Player::Update( float elapsedTime, Input controller )
 	
 }
 
-void Player::Draw() const
+void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 
+}
+
+void Player::CreateRenderingObjects()
+{
+	cbuffer.Create();
+
+	constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 2> inputElements
+	{
+		D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		D3D11_INPUT_ELEMENT_DESC{ "NORMAL"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	// The function requires argument is std::vector, so convert.
+	const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementsVector{ inputElements.begin(), inputElements.end() };
+	VSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ true ), inputElementsVector );
+	PSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ false ) );
 }
 
 #if USE_IMGUI
