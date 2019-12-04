@@ -34,10 +34,14 @@ void SceneGame::Init()
 	Donya::Sound::Play( Music::BGM_Game );
 
 	CameraInit();
+
+	player.Init();
 }
 void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
+
+	player.Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -49,6 +53,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #endif // USE_IMGUI
 
 	controller.Update();
+
+	PlayerUpdate( elapsedTime );
 
 	CameraUpdate();
 
@@ -78,6 +84,8 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+
+	player.Draw();
 
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
@@ -230,6 +238,45 @@ void SceneGame::CameraUpdate()
 		}
 	}
 #endif // DEBUG_MODE
+}
+
+void SceneGame::PlayerUpdate( float elapsedTime )
+{
+	Player::Input input{};
+
+	bool moveLeft	= false;
+	bool moveRight	= false;
+	bool useJump	= false;
+	bool useHook	= false;
+
+	if ( controller.IsConnected() )
+	{
+		using Pad  = Donya::Gamepad;
+
+		bool left  = controller.Press( Pad::LEFT  ) || controller.PressStick( Pad::StickDirection::LEFT,  /* leftStick = */ true );
+		bool right = controller.Press( Pad::RIGHT ) || controller.PressStick( Pad::StickDirection::RIGHT, /* leftStick = */ true );
+
+		if ( left  ) { moveLeft  = true; }
+		if ( right ) { moveRight = true; }
+
+		if ( controller.Trigger( Pad::A  ) ) { useJump = true; }
+		if ( controller.Trigger( Pad::RT ) ) { useHook = true; }
+	}
+	else
+	{
+		if ( Donya::Keyboard::Press( VK_LEFT  ) )		{ moveLeft  = true; }
+		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
+
+		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
+		if ( Donya::Keyboard::Press( 'Z' ) )			{ useHook = true; }
+	}
+
+	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }
+	if ( moveRight ) { input.moveVelocity.x += 1.0f; }
+	if ( useJump   ) { input.useJump = true; }
+	if ( useHook   ) { input.useHook = true; }
+
+	player.Update( elapsedTime, input );
 }
 
 void SceneGame::StartFade() const
