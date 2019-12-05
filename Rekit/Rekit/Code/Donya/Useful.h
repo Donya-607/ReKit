@@ -122,11 +122,11 @@ namespace Donya
 	std::string		WideToUTF8( const std::wstring	&source );
 
 	/// <summary>
-	/// Convert std::string( UTF-8 ) to std::string( Shift_JIS( ANSI ) ).
+	/// Convert std::string( Shift_JIS( ANSI ) ) to std::string( UTF-8 ).
 	/// </summary>
 	std::string		MultiToUTF8( const std::string &source );
 	/// <summary>
-	/// Convert std::string( Shift_JIS( ANSI ) ). std::string( UTF-8 ).
+	/// Convert std::string( UTF-8 ) to std::string( Shift_JIS( ANSI ) ).
 	/// </summary>
 	std::string		UTF8ToMulti( const std::string &source );
 

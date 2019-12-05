@@ -170,6 +170,7 @@
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\main.cpp" />
+    <ClCompile Include="Code\Player.cpp" />
     <ClCompile Include="Code\SceneClear.cpp" />
     <ClCompile Include="Code\SceneGame.cpp" />
     <ClCompile Include="Code\SceneLogo.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="Code\Framework.h" />
     <ClInclude Include="Code\Icon.h" />
     <ClInclude Include="Code\Music.h" />
+    <ClInclude Include="Code\Player.h" />
     <ClInclude Include="Code\Scene.h" />
     <ClInclude Include="Code\SceneClear.h" />
     <ClInclude Include="Code\SceneGame.h" />
@@ -327,6 +329,7 @@
     <ClInclude Include="External\ImGui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Code\Shaders\DemoShader.hlsli" />
     <None Include="Configuration\Common.props" />
     <None Include="External\Cereal\include\cereal\external\rapidxml\manual.html" />
   </ItemGroup>
@@ -335,6 +338,32 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Code\Icon.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Code\Shaders\DemoShaderPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Data/Shaders/%(Filename).cso</ObjectFileOutput>
+      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AssemblyCode</AssemblerOutput>
+      <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Code/Shaders/%(Filename).cod</AssemblerOutputFile>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Data/Shaders/%(Filename).cso</ObjectFileOutput>
+      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyCode</AssemblerOutput>
+      <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Code/Shaders/%(Filename).cod</AssemblerOutputFile>
+    </FxCompile>
+    <FxCompile Include="Code\Shaders\DemoShaderVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Data/Shaders/%(Filename).cso</ObjectFileOutput>
+      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AssemblyCode</AssemblerOutput>
+      <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Code/Shaders/%(Filename).cod</AssemblerOutputFile>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Data/Shaders/%(Filename).cso</ObjectFileOutput>
+      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyCode</AssemblerOutput>
+      <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Code/Shaders/%(Filename).cod</AssemblerOutputFile>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

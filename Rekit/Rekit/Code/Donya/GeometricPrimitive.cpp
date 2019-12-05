@@ -448,6 +448,8 @@ namespace Donya
 		{}
 		Sphere::~Sphere() = default;
 
+		Sphere::Sphere( const Sphere & ) = default;
+
 		/// <summary>
 		/// The "Vertex" must has "pos" and "normal" at member! doing by duck-typing.<para></para>
 		/// The vertices is place at [-0.5f ~ +0.5f], the center is 0.0f.<para></para>
@@ -838,6 +840,8 @@ namespace Donya
 			vertices(), textureDesc(), iSRV(), iSampler()
 		{}
 		TextureBoard::~TextureBoard() = default;
+
+		TextureBoard::TextureBoard( const TextureBoard & ) = default;
 
 		/// <summary>
 		/// The vertices is place at [-0.5f ~ +0.5f], the center is 0.0f.

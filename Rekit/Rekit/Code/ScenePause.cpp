@@ -24,7 +24,7 @@ ScenePause::~ScenePause() = default;
 
 void ScenePause::Init()
 {
-	sprUI.LoadSheet( GetSpritePath( SpriteAttribute::UI ), 256U );
+	// sprUI.LoadSheet( GetSpritePath( SpriteAttribute::UI ), 256U );
 }
 
 void ScenePause::Uninit()
