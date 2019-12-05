@@ -174,7 +174,10 @@ void Player::Update( float elapsedTime, Input controller )
 
 #if DEBUG_MODE
 
-	velocity = controller.moveVelocity;
+	{
+		const float moveSpeed = Param::Get().Data().moveSpeed;
+		velocity = controller.moveVelocity * moveSpeed * elapsedTime;
+	}
 
 #endif // DEBUG_MODE
 }
@@ -231,7 +234,7 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 			Donya::Vector2 diff		= bodyEdge - wallEdge;
 			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
 			float collidingLength = axisDiff.Length();
-			collidingLength += 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+			collidingLength += fabsf( moveSpeed ) * 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
 
 			Donya::Vector2 xyCorrection
 			{
@@ -257,7 +260,25 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
+	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( Param::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
+	Donya::Vector4x4 W = S * T;
 
+	cbuffer.data.world					= W.XMFloat();
+	cbuffer.data.worldViewProjection	= ( W * matViewProjection ).XMFloat();
+	cbuffer.data.lightDirection			= lightDirection;
+	cbuffer.data.lightColor				= lightColor;
+	cbuffer.data.materialColor			= Donya::Vector4{ 1.0f, 0.6f, 0.8f, 1.0f };
+
+	cbuffer.Activate( 0, /* setVS = */ true, /* setPS = */ true );
+	VSDemo.Activate();
+	PSDemo.Activate();
+
+	drawModel.Render( nullptr, /* useDefaultShading = */ false );
+	
+	PSDemo.Deactivate();
+	VSDemo.Deactivate();
+	cbuffer.Deactivate();
 }
 
 Donya::Vector3 Player::GetPosition() const

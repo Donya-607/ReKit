@@ -43,7 +43,7 @@ std::string GetShaderPath( ShaderAttribute shaderAttribute, bool wantVS )
 	auto AddPostfix = []( const std::string &filePath, bool isVS )->std::string
 	{
 		const std::string type = ( isVS ) ? "VS" : "PS";
-		return filePath + type + "cso";
+		return filePath + type + ".cso";
 	};
 
 	std::string fileName{};

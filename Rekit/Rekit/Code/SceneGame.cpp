@@ -22,6 +22,13 @@
 
 using namespace DirectX;
 
+#if DEBUG_MODE
+namespace
+{
+	static std::vector<Donya::Box> debugTestTerrains{};
+}
+#endif // DEBUG_MODE
+
 SceneGame::SceneGame() :
 	dirLight(),
 	iCamera(),
@@ -54,14 +61,41 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	controller.Update();
 
+	// This update does not call PhysicUpdate().
 	PlayerUpdate( elapsedTime );
+
+#if DEBUG_MODE
+	// Collision Test.
+	{
+		constexpr float OFFSET	= 10.0f;
+		constexpr float SIZE	= 128.0f;
+
+		static Donya::Box top	{ 0.0f, -OFFSET, SIZE, 1.0f, true };
+		static Donya::Box bottom{ 0.0f,  OFFSET, SIZE, 1.0f, true };
+		static Donya::Box left	{ -OFFSET, 0.0f, 1.0f, SIZE, true };
+		static Donya::Box right	{  OFFSET, 0.0f, 1.0f, SIZE, true };
+
+		const std::vector<Donya::Box> terrainList
+		{
+			top,
+			bottom,
+			left,
+			right
+		};
+		debugTestTerrains = terrainList;
+
+		player.PhysicUpdate( debugTestTerrains );
+	}
+#endif // DEBUG_MODE
 
 	CameraUpdate();
 
 #if DEBUG_MODE
 	// Scene Transition Demo.
 	{
-		if ( Donya::Keyboard::Trigger( VK_RETURN ) || controller.Trigger( Donya::Gamepad::Button::A ) || controller.Trigger( Donya::Gamepad::Button::START ) )
+		bool pressCtrl = Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
+		bool triggerDebugButton = ( Donya::Keyboard::Trigger( VK_RETURN ) || controller.Trigger( Donya::Gamepad::Button::A ) || controller.Trigger( Donya::Gamepad::Button::START ) );
+		if ( pressCtrl && triggerDebugButton )
 		{
 			if ( !Fader::Get().IsExist() )
 			{
@@ -90,6 +124,36 @@ void SceneGame::Draw( float elapsedTime )
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
+		// Drawing Test Terrains that use to player's collision.
+		{
+			static auto cube = Donya::Geometric::CreateCube();
+
+			constexpr Donya::Vector4 cubeColor{ 1.0f, 0.8f, 0.0f, 0.6f };
+			Donya::Vector4x4 cubeT{};
+			Donya::Vector4x4 cubeS{};
+			Donya::Vector4x4 cubeW{};
+			for ( const auto &it : debugTestTerrains )
+			{
+				// The drawing size is whole size.
+				// But a collision class's size is half size.
+				// So we should to double it size.
+
+				cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } );
+				cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ it.size * 2.0f, 1.0f } );
+				cubeW = cubeS * cubeT;
+
+				cube.Render
+				(
+					nullptr,
+					/* useDefaultShading	= */ true,
+					/* isEnableFill			= */ true,
+					( cubeW * V * P ), cubeW,
+					dirLight.dir,
+					cubeColor
+				);
+			}
+		}
+
 		// Drawing TextureBoard Demo.
 		{
 			constexpr const wchar_t *texturePath	= L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
@@ -154,9 +218,18 @@ void SceneGame::CameraInit()
 	iCamera.SetZRange( 0.1f, 1000.0f );
 	iCamera.SetFOV( ToRadian( 30.0f ) );
 	iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-	iCamera.SetPosition( { 0.0f, 0.0f, -5.0f } );
+	iCamera.SetPosition( { 0.0f, 0.0f, -48.0f } );
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
+
+	// I can setting a configuration,
+	// but current data is not changed by this immediately.
+	// So update here.
+
+	Donya::ICamera::Controller moveInitPoint{};
+	moveInitPoint.SetNoOperation();
+	moveInitPoint.slerpPercent = 1.0f;
+	iCamera.Update( moveInitPoint );
 }
 void SceneGame::CameraUpdate()
 {
@@ -266,6 +339,11 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	{
 		if ( Donya::Keyboard::Press( VK_LEFT  ) )		{ moveLeft  = true; }
 		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
+		
+	#if DEBUG_MODE
+		if ( Donya::Keyboard::Press( VK_UP    ) )		{ input.moveVelocity.y += 1.0f; }
+		if ( Donya::Keyboard::Press( VK_DOWN  ) )		{ input.moveVelocity.y -= 1.0f; }
+	#endif // DEBUG_MODE
 
 		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
 		if ( Donya::Keyboard::Press( 'Z' ) )			{ useHook = true; }
@@ -290,22 +368,6 @@ void SceneGame::StartFade() const
 
 Scene::Result SceneGame::ReturnResult()
 {
-#if DEBUG_MODE
-
-	bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
-	if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
-	{
-		Donya::Sound::Play( Music::ItemDecision );
-
-		Scene::Result change{};
-		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Title;
-		return change;
-	}
-	// else
-
-#endif // DEBUG_MODE
-
 	if ( Fader::Get().IsClosed() )
 	{
 		Scene::Result change{};
