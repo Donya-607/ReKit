@@ -61,6 +61,11 @@ public:
 	{
 
 	}
+public:
+	Member Data() const
+	{
+		return m;
+	}
 private:
 	void LoadParameter( bool fromBinary = true )
 	{
@@ -165,12 +170,99 @@ void Player::Update( float elapsedTime, Input controller )
 
 #endif // USE_IMGUI
 
-	
+	// Calc velocity.
+
+#if DEBUG_MODE
+
+	velocity = controller.moveVelocity;
+
+#endif // DEBUG_MODE
+}
+
+void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+{
+	/// <summary>
+	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
+	/// </summary>
+	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed )->void
+	{
+		// Only either X or Y is valid.
+		const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
+		pos.x += xyVelocity.x;
+		pos.y += xyVelocity.y;
+
+		// Take a value of +1 or -1.
+		const float moveSign   = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
+		const auto  actualBody = Param::Get().Data().hitBoxPhysic;
+
+		// This process require the current move velocity(because using to calculate the repulse direction).
+		if ( ZeroEqual( moveSign ) ) { return; }
+		// else
+
+		// The player's hit box of stage is circle, but doing with rectangle for easily correction.
+		Donya::Box xyBody{};
+		{
+			xyBody.pos.x	= GetPosition().x;
+			xyBody.pos.y	= GetPosition().y;
+			xyBody.size.x	= actualBody.size.x * xyNAxis.x; // Only either X or Y is valid.
+			xyBody.size.y	= actualBody.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.exist	= true;
+		}
+		Donya::Vector2 xyBodyCenter = xyBody.pos;
+		const float bodyWidth = xyBody.size.Length(); // Extract valid member by Length().
+
+		for ( const auto &wall : terrains )
+		{
+			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
+			// else
+
+			Donya::Vector2 xyWallCenter = wall.pos;
+			Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
+			float wallWidth = wallSize.Length(); // Extract valid member by Length().
+
+			// Calculate colliding length.
+			// First, calculate body's edge of moving side.
+			// Then, calculate wall's edge of inverse moving side.
+			// After that, calculate colliding length from two edges.
+			// Finally, correct the position to inverse moving side only that length.
+
+			Donya::Vector2 bodyEdge	= xyBodyCenter + ( xyNAxis * bodyWidth *  moveSign );
+			Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
+			Donya::Vector2 diff		= bodyEdge - wallEdge;
+			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
+			float collidingLength = axisDiff.Length();
+			collidingLength += 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+			Donya::Vector2 xyCorrection
+			{
+				xyNAxis.x * ( collidingLength * -moveSign ),
+				xyNAxis.y * ( collidingLength * -moveSign )
+			};
+			pos.x += xyCorrection.x;
+			pos.y += xyCorrection.y;
+
+			// We must apply the repulsed position to hit-box for next collision.
+			xyBody.pos.x = GetPosition().x;
+			xyBody.pos.y = GetPosition().y;
+		}
+	};
+
+	// Move to X-axis with collision.
+	MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x );
+	// Move to Y-axis with collision.
+	MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y );
+	// Move to Z-axis only.
+	pos.z += velocity.z;
 }
 
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 
+}
+
+Donya::Vector3 Player::GetPosition() const
+{
+	return pos;
 }
 
 void Player::CreateRenderingObjects()

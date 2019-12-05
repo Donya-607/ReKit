@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Donya/CBuffer.h"
 #include "Donya/Collision.h"
 #include "Donya/GeometricPrimitive.h"
@@ -42,8 +44,14 @@ public:
 	void Uninit();
 
 	void Update( float elpasedTime, Input controller );
+	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const;
+public:
+	/// <summary>
+	/// Returns position is world space.
+	/// </summary>
+	Donya::Vector3 GetPosition() const;
 private:
 	void CreateRenderingObjects();
 
