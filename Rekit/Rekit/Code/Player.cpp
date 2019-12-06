@@ -175,6 +175,16 @@ void Player::Update( float elapsedTime, Input controller )
 
 #endif // USE_IMGUI
 
+#if DEBUG_MODE
+	if ( Donya::Keyboard::Press( VK_MENU ) )
+	{
+		if ( Donya::Keyboard::Trigger( 'J' ) )
+		{
+			remainJumpCount = 65535;
+		}
+	}
+#endif // DEBUG_MODE
+
 	Move( elapsedTime, controller );
 
 	Fall( elapsedTime, controller );
@@ -333,13 +343,6 @@ void Player::Fall( float elapsedTime, Input controller )
 }
 void Player::JumpIfUsed( float elapsedTime, Input controller )
 {
-#if DEBUG_MODE
-	if ( Donya::Keyboard::Press( VK_MENU ) && Donya::Keyboard::Trigger( VK_SPACE ) )
-	{
-		remainJumpCount = 65535;
-	}
-#endif // DEBUG_MODE
-
 	if ( !controller.useJump || remainJumpCount <= 0 ) { return; }
 	// else
 	
