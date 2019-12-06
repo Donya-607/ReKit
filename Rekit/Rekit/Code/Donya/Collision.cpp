@@ -344,16 +344,125 @@ namespace Donya
 		if ( !ignoreExistFlag && ( !L.exist || !R.exist ) ) { return false; }
 		// else
 
-		// TODO : Implpement this.
-
 		// see http://marupeke296.com/COL_3D_No13_OBBvsOBB.html
 
-		auto CalcLengthOfProjectionLineSeg = []()
+		/// <summary>
+		/// Returns projecected line-segment length is half.
+		/// </summary>
+		auto CalcLengthOfProjectionLineSeg = []( const Donya::Vector3 &nSeparateAxis, const Donya::Vector3 &nDirX, const Donya::Vector3 &nDirY, const Donya::Vector3 *pDirZ/* If needed */ = nullptr )
 		{
-
+			float  projLengthX = fabsf( Dot( nSeparateAxis, nDirX ) );
+			float  projLengthY = fabsf( Dot( nSeparateAxis, nDirY ) );
+			float  projLengthZ = ( !pDirZ ) ? 0.0f : fabsf( Dot( nSeparateAxis, *pDirZ ) );
+			return projLengthX + projLengthY + projLengthZ;
 		};
 
-		return false;
+		const Donya::Vector3 nDirLX = L.orientation.LocalRight(),	dirLX = nDirLX * L.size.x;
+		const Donya::Vector3 nDirLY = L.orientation.LocalUp(),		dirLY = nDirLY * L.size.y;
+		const Donya::Vector3 nDirLZ = L.orientation.LocalFront(),	dirLZ = nDirLZ * L.size.z;
+		const Donya::Vector3 nDirRX = R.orientation.LocalRight(),	dirRX = nDirRX * R.size.x;
+		const Donya::Vector3 nDirRY = R.orientation.LocalUp(),		dirRY = nDirRY * R.size.y;
+		const Donya::Vector3 nDirRZ = R.orientation.LocalFront(),	dirRZ = nDirRZ * R.size.z;
+		const Donya::Vector3 between = L.pos - R.pos;
+
+		float projLenL{}, projLenR{}, distance{};
+		auto IsOverlapping = [&projLenL, &projLenR, &distance]()->bool
+		{
+			return ( distance <= projLenL + projLenR ) ? true : false;
+		};
+
+		projLenL = dirLX.Length();
+		projLenR = CalcLengthOfProjectionLineSeg( nDirLX, dirRX, dirRY, &dirRZ );
+		distance = fabsf( Dot( between, nDirLX ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+		projLenL = dirLY.Length();
+		projLenR = CalcLengthOfProjectionLineSeg( nDirLY, dirRX, dirRY, &dirRZ );
+		distance = fabsf( Dot( between, nDirLY ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+		projLenL = dirLZ.Length();
+		projLenR = CalcLengthOfProjectionLineSeg( nDirLZ, dirRX, dirRY, &dirRZ );
+		distance = fabsf( Dot( between, nDirLZ ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+
+		projLenL = CalcLengthOfProjectionLineSeg( nDirRX, dirLX, dirLY, &dirLZ );
+		projLenR = dirRX.Length();
+		distance = fabsf( Dot( between, nDirRX ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+		projLenL = CalcLengthOfProjectionLineSeg( nDirRY, dirLX, dirLY, &dirLZ );
+		projLenR = dirRY.Length();
+		distance = fabsf( Dot( between, nDirRY ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+		projLenL = CalcLengthOfProjectionLineSeg( nDirRZ, dirLX, dirLY, &dirLZ );
+		projLenR = dirRZ.Length();
+		distance = fabsf( Dot( between, nDirRZ ) );
+		if ( !IsOverlapping() ) { return false; }
+		// else
+
+		Donya::Vector3 cross{}; // Should I normalize this at every result?
+
+		cross = Cross( nDirLX, nDirRX );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLY, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRY, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLX, nDirRY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLY, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLX, nDirRZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLY, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRY );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+
+		cross = Cross( nDirLY, nDirRX );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRY, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLY, nDirRY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLY, nDirRZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRY );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+
+		cross = Cross( nDirLZ, nDirRX );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRY, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLZ, nDirRY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRZ );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+		cross = Cross( nDirLZ, nDirRZ );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirLX, dirLY );
+		projLenL = CalcLengthOfProjectionLineSeg( cross, dirRX, dirRY );
+		distance = Dot( between, cross );
+		if ( !IsOverlapping() ) { return false; }
+		// elee
+
+		return true;
 	}
 
 	float CalcShortestDistance( const OBB &L, const Donya::Vector3 &point )

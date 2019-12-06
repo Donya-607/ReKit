@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -98,7 +98,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)Rekit\External\DirectXTK\inc\;$(ProjectDir)Rekit\External\FMOD\LowLevel\lib\;$(ProjectDir)Rekit\External\FMOD\Studio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\DirectXTK\inc\;$(ProjectDir)ExternalFMOD\LowLevel\lib\;$(ProjectDir)External\FMOD\Stdio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d11.lib;dxgi.lib;DirectXTK_d.lib;fmodL_vc.lib;fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -134,7 +134,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)Rekit\External\DirectXTK\inc\;$(ProjectDir)Rekit\External\FMOD\LowLevel\lib\;$(ProjectDir)Rekit\External\FMOD\Studio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\DirectXTK\inc\;$(ProjectDir)ExternalFMOD\LowLevel\lib\;$(ProjectDir)External\FMOD\Stdio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d11.lib;dxgi.lib;DirectXTK.lib;fmod_vc.lib;fmodstudio_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -169,7 +169,6 @@
     <ClCompile Include="Code\Fader.cpp" />
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
-    <ClCompile Include="Code\Hook.cpp" />
     <ClCompile Include="Code\main.cpp" />
     <ClCompile Include="Code\Player.cpp" />
     <ClCompile Include="Code\SceneClear.cpp" />
@@ -228,7 +227,6 @@
     <ClInclude Include="Code\Fader.h" />
     <ClInclude Include="Code\FilePath.h" />
     <ClInclude Include="Code\Framework.h" />
-    <ClInclude Include="Code\Hook.h" />
     <ClInclude Include="Code\Icon.h" />
     <ClInclude Include="Code\Music.h" />
     <ClInclude Include="Code\Player.h" />

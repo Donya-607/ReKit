@@ -74,7 +74,7 @@ void SceneTitle::StartFade() const
 {
 	Fader::Configuration config{};
 	config.type			= Fader::Type::Gradually;
-	config.closeFrame	= Fader::GetDefaultCloseFrame();;
+	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
 }
@@ -122,7 +122,7 @@ void SceneTitle::UseImGui()
 
 			ImGui::TreePop();
 		}
-
+		ImGui::Text(u8"ÉQÅ[ÉÄÇ÷êiÇﬁ : <Press Enter>");
 		ImGui::End();
 	}
 }

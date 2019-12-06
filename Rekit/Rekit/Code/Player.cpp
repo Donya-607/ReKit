@@ -4,8 +4,13 @@
 #include <algorithm>		// Use std::min(), max().
 #include <vector>
 
+#include "Donya/Constant.h"	// Use DEBUG_MODE, scast macros.
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
+
+#if DEBUG_MODE
+#include "Donya/Keyboard.h"
+#endif // DEBUG_MODE
 
 #include "FilePath.h"
 
@@ -170,16 +175,20 @@ void Player::Update( float elapsedTime, Input controller )
 
 #endif // USE_IMGUI
 
-	// Calc velocity.
-
 #if DEBUG_MODE
-
+	if ( Donya::Keyboard::Press( VK_MENU ) )
 	{
-		const float moveSpeed = Param::Get().Data().moveSpeed;
-		velocity = controller.moveVelocity * moveSpeed * elapsedTime;
+		if ( Donya::Keyboard::Trigger( 'J' ) )
+		{
+			remainJumpCount = 65535;
+		}
 	}
-
 #endif // DEBUG_MODE
+
+	Move( elapsedTime, controller );
+
+	Fall( elapsedTime, controller );
+	JumpIfUsed( elapsedTime, controller );
 }
 
 void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
@@ -187,8 +196,10 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 	/// <summary>
 	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
 	/// </summary>
-	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed )->void
+	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed )->bool
 	{
+		bool corrected = false;
+
 		// Only either X or Y is valid.
 		const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
 		pos.x += xyVelocity.x;
@@ -199,7 +210,7 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 		const auto  actualBody = Param::Get().Data().hitBoxPhysic;
 
 		// This process require the current move velocity(because using to calculate the repulse direction).
-		if ( ZeroEqual( moveSign ) ) { return; }
+		if ( ZeroEqual( moveSign ) ) { return corrected; }
 		// else
 
 		// The player's hit box of stage is circle, but doing with rectangle for easily correction.
@@ -247,13 +258,31 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 			// We must apply the repulsed position to hit-box for next collision.
 			xyBody.pos.x = GetPosition().x;
 			xyBody.pos.y = GetPosition().y;
+
+			corrected = true;
 		}
+
+		return corrected;
 	};
 
 	// Move to X-axis with collision.
 	MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x );
 	// Move to Y-axis with collision.
-	MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y );
+	bool wasCorrected = MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y );
+	if ( wasCorrected )
+	{
+		enum Dir { Up = 1, Down = -1 };
+		int  moveSign =  Donya::SignBit( velocity.y );
+		if ( moveSign == Up )
+		{
+			velocity.y = 0.0f;
+		}
+		else
+		if ( moveSign == Down )
+		{
+			Landing();
+		}
+	}
 	// Move to Z-axis only.
 	pos.z += velocity.z;
 }
@@ -297,8 +326,34 @@ void Player::CreateRenderingObjects()
 	};
 	// The function requires argument is std::vector, so convert.
 	const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementsVector{ inputElements.begin(), inputElements.end() };
-	VSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ true ), inputElementsVector );
+	VSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ true  ), inputElementsVector );
 	PSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ false ) );
+}
+
+void Player::Move( float elapsedTime, Input controller )
+{
+	const float moveSpeed = Param::Get().Data().moveSpeed;
+	velocity.x = controller.moveVelocity.x * moveSpeed * elapsedTime;
+}
+
+void Player::Fall( float elapsedTime, Input controller )
+{
+	velocity.y -= Param::Get().Data().gravity * elapsedTime;
+	velocity.y =  std::max( -Param::Get().Data().maxFallSpeed, velocity.y );
+}
+void Player::JumpIfUsed( float elapsedTime, Input controller )
+{
+	if ( !controller.useJump || remainJumpCount <= 0 ) { return; }
+	// else
+	
+	remainJumpCount--;
+	velocity.y = Param::Get().Data().jumpPower;
+}
+
+void Player::Landing()
+{
+	remainJumpCount = Param::Get().Data().maxJumpCount;
+	velocity.y = 0.0f;
 }
 
 #if USE_IMGUI

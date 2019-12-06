@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Donya/GamepadXInput.h"
+#include "Donya/UseImgui.h"
+
 
 #include "Animation.h"
 #include "Scene.h"
@@ -19,6 +21,8 @@ private:
 	Choice			choice;
 	SpriteSheet		sprUI;
 	Donya::XInput	controller;
+
+	Scene::Type		nextSceneType;
 public:
 	ScenePause();
 	~ScenePause();
@@ -31,6 +35,11 @@ public:
 	void	Draw( float elapsedTime );
 private:
 	void	UpdateChooseItem();
+	void	StartFade() const;
 
 	Result	ReturnResult();
+
+#if USE_IMGUI
+	void UseImGui();
+#endif
 };
