@@ -397,7 +397,8 @@ void SceneGame::UseImGui()
 
 			ImGui::TreePop();
 		}
-
+		ImGui::Text(u8"ポーズ画面へ : <Press P>");
+		ImGui::Text(u8"クリア画面へ : <Press Ctrl + Enter>");
 		ImGui::End();
 	}
 }

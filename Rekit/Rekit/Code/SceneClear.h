@@ -9,6 +9,8 @@ class SceneClear : public Scene
 {
 private:
 	Donya::XInput	controller;
+
+	Scene::Type		nextSceneType;
 public:
 	SceneClear();
 	~SceneClear();
