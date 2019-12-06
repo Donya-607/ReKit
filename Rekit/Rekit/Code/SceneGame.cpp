@@ -320,7 +320,6 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	bool moveLeft	= false;
 	bool moveRight	= false;
 	bool useJump	= false;
-	bool useHook	= false;
 
 	if ( controller.IsConnected() )
 	{
@@ -333,26 +332,18 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 		if ( right ) { moveRight = true; }
 
 		if ( controller.Trigger( Pad::A  ) ) { useJump = true; }
-		if ( controller.Trigger( Pad::RT ) ) { useHook = true; }
 	}
 	else
 	{
 		if ( Donya::Keyboard::Press( VK_LEFT  ) )		{ moveLeft  = true; }
 		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
 		
-	#if DEBUG_MODE
-		if ( Donya::Keyboard::Press( VK_UP    ) )		{ input.moveVelocity.y += 1.0f; }
-		if ( Donya::Keyboard::Press( VK_DOWN  ) )		{ input.moveVelocity.y -= 1.0f; }
-	#endif // DEBUG_MODE
-
 		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
-		if ( Donya::Keyboard::Press( 'Z' ) )			{ useHook = true; }
 	}
 
 	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }
 	if ( moveRight ) { input.moveVelocity.x += 1.0f; }
 	if ( useJump   ) { input.useJump = true; }
-	if ( useHook   ) { input.useHook = true; }
 
 	player.Update( elapsedTime, input );
 }

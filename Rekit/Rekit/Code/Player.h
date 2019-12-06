@@ -16,7 +16,6 @@ public:
 	{
 		Donya::Vector3 moveVelocity{};
 		bool useJump{ false };
-		bool useHook{ false };
 	};
 private:
 	struct Constants
@@ -54,6 +53,13 @@ public:
 	Donya::Vector3 GetPosition() const;
 private:
 	void CreateRenderingObjects();
+
+	void Move( float elapsedTime, Input controller );
+
+	void Fall( float elapsedTime, Input controller );
+	void JumpIfUsed( float elapsedTime, Input controller );
+
+	void Landing();
 
 #if USE_IMGUI
 private:
