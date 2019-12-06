@@ -334,8 +334,9 @@ README.md
 
 *.dll
 *.ini
+*.cod
 
-Rekit/Rekit.sln
-Rekit/Rekit/External/*
-Rekit/Rekit/Data/*
-Rekit/Rekit/Rekit.vcxproj.filters
+ReKit/ReKit.sln
+ReKit/ReKit/External/*
+ReKit/ReKit/Data/*
+ReKit/ReKit/ReKit.vcxproj.filters
