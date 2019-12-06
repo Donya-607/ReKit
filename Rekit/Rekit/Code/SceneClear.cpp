@@ -50,10 +50,19 @@ Scene::Result SceneClear::Update( float elapsedTime )
 #if DEBUG_MODE
 	// Scene Transition Demo.
 	{
-		if ( Donya::Keyboard::Trigger( VK_RETURN ) || controller.Trigger( Donya::Gamepad::Button::A ) || controller.Trigger( Donya::Gamepad::Button::START ) )
+		if ( Donya::Keyboard::Trigger( 'R' ) )
 		{
 			if ( !Fader::Get().IsExist() )
 			{
+				nextSceneType = Scene::Type::Game;
+				StartFade();
+			}
+		}
+		else if ( Donya::Keyboard::Trigger( 'T' ) )
+		{
+			if (!Fader::Get().IsExist())
+			{
+				nextSceneType = Scene::Type::Title;
 				StartFade();
 			}
 		}
@@ -102,7 +111,7 @@ Scene::Result SceneClear::ReturnResult()
 	{
 		Scene::Result change{};
 		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Title;
+		change.sceneType = nextSceneType;
 		return change;
 	}
 	// else
@@ -123,6 +132,9 @@ void SceneClear::UseImGui()
 
 			ImGui::TreePop();
 		}
+
+		ImGui::Text(u8"リトライ画面へ : <Press R>");
+		ImGui::Text(u8"タイトル画面へ : <Press T>");
 
 		ImGui::End();
 	}
