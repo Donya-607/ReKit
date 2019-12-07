@@ -67,22 +67,37 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #if DEBUG_MODE
 	// Collision Test.
 	{
-		constexpr float OFFSET	= 10.0f;
+		constexpr float OFFSET	= 15.0f;
 		constexpr float SIZE	= 128.0f;
-
-		static Donya::Box top	{ 0.0f, -OFFSET, SIZE, 1.0f, true };
-		static Donya::Box bottom{ 0.0f,  OFFSET, SIZE, 1.0f, true };
-		static Donya::Box left	{ -OFFSET, 0.0f, 1.0f, SIZE, true };
-		static Donya::Box right	{  OFFSET, 0.0f, 1.0f, SIZE, true };
 
 		const std::vector<Donya::Box> terrainList
 		{
-			top,
-			bottom,
-			left,
-			right
+			Donya::Box{ 0.0f,-OFFSET, SIZE, 1.0f, true },
+			Donya::Box{ 0.0f, OFFSET, SIZE, 1.0f, true },
+			Donya::Box{-OFFSET, 0.0f, 1.0f, SIZE, true },
+			Donya::Box{ OFFSET, 0.0f, 1.0f, SIZE, true },
+			Donya::Box{ 0.0f,   0.0f, 1.0f, 1.0f, true },
+			Donya::Box{ 2.0f,  -2.0f, 1.0f, 1.0f, true },
+			Donya::Box{ 4.0f,  -4.0f, 1.0f, 1.0f, true },
 		};
 		debugTestTerrains = terrainList;
+
+		static Donya::Box changeable{ -4.0f, 0.0f, 2.0f, 2.0f, true };
+	#if USE_IMGUI
+		if ( ImGui::BeginIfAllowed() )
+		{
+			if ( ImGui::TreeNode( u8"当たり判定テスト" ) )
+			{
+				ImGui::DragFloat2( u8"位置", &changeable.pos.x );
+				ImGui::DragFloat2( u8"半分のサイズ", &changeable.size.x );
+
+				ImGui::TreePop();
+			}
+			ImGui::End();
+		}
+	#endif // USE_IMGUI
+		debugTestTerrains.emplace_back( changeable );
+
 
 		player.PhysicUpdate( debugTestTerrains );
 	}
