@@ -123,15 +123,17 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			auto ToBox = []( const Donya::AABB &aabb )
 			{
 				Donya::Box box{};
-				box.pos.x  = aabb.pos.x;
-				box.pos.y  = aabb.pos.y;
-				box.size.x = aabb.size.x;
-				box.size.y = aabb.size.y;
-				box.exist  = aabb.exist;
+				box.pos.x		= aabb.pos.x;
+				box.pos.y		= aabb.pos.y;
+				box.size.x		= aabb.size.x;
+				box.size.y		= aabb.size.y;
+				box.exist		= aabb.exist;
+				box.velocity.x	= aabb.velocity.x;
+				box.velocity.y	= aabb.velocity.y;
 				return box;
 			};
 
-			const auto boxes = gimmicks.RequireHItBoxes();
+			const auto boxes = gimmicks.RequireHitBoxes();
 			for ( const auto &it : boxes )
 			{
 				debugTestTerrains.emplace_back( ToBox( it ) );

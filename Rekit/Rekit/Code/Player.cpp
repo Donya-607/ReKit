@@ -198,6 +198,124 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 	/// <summary>
 	/// The collision detective and resolving a penetrate process.
 	/// </summary>
+	auto Version_2 = [&]()
+	{
+		/// <summary>
+		/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
+		/// </summary>
+		auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed )->bool
+		{
+			bool corrected = false;
+
+			// Only either X or Y is valid.
+			const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
+			pos.x += xyVelocity.x;
+			pos.y += xyVelocity.y;
+
+			const auto actualBody = Param::Get().Data().hitBoxPhysic;
+
+			// Take a value of +1 or -1.
+			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
+
+			/*
+			// This process require the current move velocity(because using to calculate the repulse direction).
+			if ( ZeroEqual( moveSign ) ) { return corrected; }
+			// else
+			*/
+
+			// The player's hit box of stage is circle, but doing with rectangle for easily correction.
+			Donya::Box xyBody{};
+			{
+				xyBody.pos.x	= GetPosition().x;
+				xyBody.pos.y	= GetPosition().y;
+				xyBody.size.x	= actualBody.size.x;// * xyNAxis.x; // Only either X or Y is valid.
+				xyBody.size.y	= actualBody.size.y;// * xyNAxis.y; // Only either X or Y is valid.
+				xyBody.exist	= true;
+			}
+			Donya::Vector2 xyBodyCenter = xyBody.pos;
+			Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
+			const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
+
+			for ( const auto &wall : terrains )
+			{
+				if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
+				// else
+
+				Donya::Vector2 xyWallCenter = wall.pos;
+				Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
+				Donya::Vector2 wallVelocity{ wall.velocity.x * xyNAxis.x, wall.velocity.y * xyNAxis.y }; // Only either X or Y is valid.
+				float wallWidth = wallSize.Length();		// Extract valid member by Length().
+				float wallSpeed = wallVelocity.Length();	// Extract valid member by Length().
+
+				if ( ZeroEqual( moveSign ) )
+				{
+					// Each other does not move, it is not colliding movement of now axis.
+					if ( ZeroEqual( wallSpeed ) ) { continue; }
+					// else
+
+					// Correct to wall's moving side.
+					if ( !ZeroEqual( wallVelocity.x ) ) { moveSign = scast<float>( Donya::SignBit( wallVelocity.x ) ); }
+					else
+					if ( !ZeroEqual( wallVelocity.y ) ) { moveSign = scast<float>( Donya::SignBit( wallVelocity.y ) ); }
+					
+					moveSpeed = wallSpeed;
+				}
+
+				// Calculate colliding length.
+				// First, calculate body's edge of moving side.
+				// Then, calculate wall's edge of inverse moving side.
+				// After that, calculate colliding length from two edges.
+				// Finally, correct the position to inverse moving side only that length.
+
+				Donya::Vector2 bodyEdge	= xyBodyCenter + ( xyNAxis * bodyWidth *  moveSign );
+				Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
+				Donya::Vector2 diff		= bodyEdge - wallEdge;
+				Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
+				float collidingLength = axisDiff.Length();
+				collidingLength += fabsf( moveSpeed ) * 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+				Donya::Vector2 xyCorrection
+				{
+					xyNAxis.x * ( collidingLength * -moveSign ),
+					xyNAxis.y * ( collidingLength * -moveSign )
+				};
+				pos.x += xyCorrection.x;
+				pos.y += xyCorrection.y;
+
+				// We must apply the repulsed position to hit-box for next collision.
+				xyBody.pos.x = GetPosition().x;
+				xyBody.pos.y = GetPosition().y;
+
+				corrected = true;
+			}
+
+			return corrected;
+		};
+
+		// Move to X-axis with collision.
+		MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x );
+		// Move to Y-axis with collision.
+		bool wasCorrected = MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y );
+		if ( wasCorrected )
+		{
+			enum Dir { Up = 1, Down = -1 };
+			int  moveSign =  Donya::SignBit( velocity.y );
+			if ( moveSign == Up )
+			{
+				velocity.y = 0.0f;
+			}
+			else
+			if ( moveSign == Down )
+			{
+				Landing();
+			}
+		}
+		// Move to Z-axis only.
+		pos.z += velocity.z;
+	};
+	/// <summary>
+	/// The collision detective and resolving a penetrate process.
+	/// </summary>
 	auto Version_1 = [&]()
 	{
 		/// <summary>
@@ -313,7 +431,8 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 		pos.z += velocity.z;
 	};
 
-	Version_1();
+	// Version_1();
+	Version_2();
 }
 
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const

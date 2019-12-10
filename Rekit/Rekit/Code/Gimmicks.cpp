@@ -190,7 +190,8 @@ Donya::Vector3 HeavyBlock::GetPosition() const
 Donya::AABB HeavyBlock::GetHitBox() const
 {
 	Donya::AABB base = ParamHeavyBlock::Get().Data().hitBox;
-	base.pos += pos;
+	base.pos		+= pos;
+	base.velocity	=  velocity;
 	return base;
 }
 
@@ -366,7 +367,7 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 	}
 }
 
-std::vector<Donya::AABB> Gimmick::RequireHItBoxes() const
+std::vector<Donya::AABB> Gimmick::RequireHitBoxes() const
 {
 	std::vector<Donya::AABB> boxes{};
 	for ( const auto &it : heavyBlocks )

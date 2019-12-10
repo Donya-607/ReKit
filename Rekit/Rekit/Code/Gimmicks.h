@@ -92,7 +92,7 @@ public:
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
-	std::vector<Donya::AABB> RequireHItBoxes() const;
+	std::vector<Donya::AABB> RequireHitBoxes() const;
 private:
 	void LoadParameter( bool fromBinary = true );
 #if USE_IMGUI
