@@ -7,6 +7,9 @@
 #include "Common.h"
 #include "FilePath.h"
 
+#undef max
+#undef min
+
 #pragma region HeavyBlock
 
 struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
@@ -15,6 +18,8 @@ struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
 public:
 	struct Member
 	{
+		float		gravity{};
+		float		maxFallSpeed{};
 		Donya::AABB	hitBox{};	// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -27,7 +32,15 @@ public:
 			);
 			if ( 1 <= version )
 			{
-				// CEREAL_NVP( x )
+				archive
+				(
+					CEREAL_NVP( gravity ),
+					CEREAL_NVP( maxFallSpeed )
+				);
+			}
+			if ( 2 <= version )
+			{
+				// archive( CEREAL_NVP( x ) );
 			}
 		}
 	};
@@ -89,6 +102,9 @@ public:
 					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"重力加速度", &m.gravity );
+				ImGui::DragFloat( u8"最大落下速度", &m.maxFallSpeed );
+
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
@@ -120,9 +136,10 @@ public:
 
 #endif // USE_IMGUI
 };
+CEREAL_CLASS_VERSION( ParamHeavyBlock::Member, 1 )
 
 HeavyBlock::HeavyBlock() :
-	pos()
+	pos(), velocity()
 {}
 HeavyBlock::~HeavyBlock() = default;
 
@@ -137,7 +154,11 @@ void HeavyBlock::Uninit()
 
 void HeavyBlock::Update( float elapsedTime )
 {
-
+	Fall( elapsedTime );
+}
+void HeavyBlock::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+{
+	AssignVelocity( terrains );
 }
 
 void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -162,6 +183,10 @@ void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, con
 #endif // DEBUG_MODE
 }
 
+Donya::Vector3 HeavyBlock::GetPosition() const
+{
+	return pos;
+}
 Donya::AABB HeavyBlock::GetHitBox() const
 {
 	Donya::AABB base = ParamHeavyBlock::Get().Data().hitBox;
@@ -188,6 +213,99 @@ Donya::Vector4x4 HeavyBlock::GetWorldMatrix( bool useDrawing ) const
 	return mat;
 }
 
+void HeavyBlock::Fall( float elapsedTime )
+{
+	const auto DATA = ParamHeavyBlock::Get().Data();
+	velocity.y -= DATA.gravity * elapsedTime;
+	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
+}
+
+void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
+{
+	/// <summary>
+	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
+	/// </summary>
+	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed, const Donya::AABB &baseHitBox )->bool
+	{
+		bool corrected = false;
+
+		// Only either X or Y is valid.
+		const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
+		pos.x += xyVelocity.x;
+		pos.y += xyVelocity.y;
+
+		// Take a value of +1 or -1.
+		float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
+
+		// This process require the current move velocity(because using to calculate the repulse direction).
+		if ( ZeroEqual( moveSign ) ) { return corrected; }
+		// else
+
+		// The player's hit box of stage is circle, but doing with rectangle for easily correction.
+		Donya::Box xyBody{};
+		{
+			xyBody.pos.x  = GetPosition().x;
+			xyBody.pos.y  = GetPosition().y;
+			xyBody.size.x = baseHitBox.size.x * xyNAxis.x; // Only either X or Y is valid.
+			xyBody.size.y = baseHitBox.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.exist  = true;
+		}
+		Donya::Vector2 xyBodyCenter = xyBody.pos;
+		const float bodyWidth = xyBody.size.Length(); // Extract valid member by Length().
+
+		for ( const auto &wall : terrains )
+		{
+			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
+			// else
+
+			Donya::Vector2 xyWallCenter = wall.pos;
+			Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
+			float wallWidth = wallSize.Length(); // Extract valid member by Length().
+
+			// Calculate colliding length.
+			// First, calculate body's edge of moving side.
+			// Then, calculate wall's edge of inverse moving side.
+			// After that, calculate colliding length from two edges.
+			// Finally, correct the position to inverse moving side only that length.
+
+			Donya::Vector2 bodyEdge	= xyBodyCenter + ( xyNAxis * bodyWidth *  moveSign );
+			Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
+			Donya::Vector2 diff		= bodyEdge - wallEdge;
+			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
+			float collidingLength	= axisDiff.Length();
+			collidingLength += fabsf( moveSpeed ) * 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+			Donya::Vector2 xyCorrection
+			{
+				xyNAxis.x * ( collidingLength * -moveSign ),
+				xyNAxis.y * ( collidingLength * -moveSign )
+			};
+			pos.x += xyCorrection.x;
+			pos.y += xyCorrection.y;
+
+			// We must apply the repulsed position to hit-box for next collision.
+			xyBody.pos.x = GetPosition().x;
+			xyBody.pos.y = GetPosition().y;
+
+			corrected = true;
+		}
+
+		return corrected;
+	};
+
+	Donya::AABB actualBody = ParamHeavyBlock::Get().Data().hitBox;
+
+	// Move to X-axis with collision.
+	MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x, actualBody );
+	// Move to Y-axis with collision.
+	bool wasCorrected = MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y, actualBody );
+	if ( wasCorrected )
+	{
+		velocity.y = 0.0f;
+	}
+	// Move to Z-axis only.
+	pos.z += velocity.z;
+}
 
 #if USE_IMGUI
 
@@ -230,6 +348,13 @@ void Gimmick::Update( float elapsedTime )
 	for ( auto &it : heavyBlocks )
 	{
 		it.Update( elapsedTime );
+	}
+}
+void Gimmick::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+{
+	for ( auto &it : heavyBlocks )
+	{
+		it.PhysicUpdate( terrains );
 	}
 }
 

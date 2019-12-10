@@ -70,13 +70,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	controller.Update();
 
-	gimmicks.Update( elapsedTime );
-
-	// This update does not call PhysicUpdate().
-	PlayerUpdate( elapsedTime );
-
 #if DEBUG_MODE
-	// Collision Test.
+	// Make terrain.
 	{
 		constexpr float OFFSET	= 15.0f;
 		constexpr float SIZE	= 128.0f;
@@ -108,7 +103,21 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		}
 	#endif // USE_IMGUI
 		debugTestTerrains.emplace_back( changeable );
+	}
+#endif // DEBUG_MODE
 
+	gimmicks.Update( elapsedTime );
+
+#if DEBUG_MODE
+	gimmicks.PhysicUpdate( debugTestTerrains );
+#endif // DEBUG_MODE
+
+	// This update does not call PhysicUpdate().
+	PlayerUpdate( elapsedTime );
+
+#if DEBUG_MODE
+	// Collision Test.
+	{
 		// Add the gimmicks block.
 		{
 			auto ToBox = []( const Donya::AABB &aabb )

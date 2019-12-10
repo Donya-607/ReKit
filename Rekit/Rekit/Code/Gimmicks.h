@@ -12,7 +12,8 @@
 class HeavyBlock
 {
 private:
-	Donya::Vector3	pos;	// World space.
+	Donya::Vector3	pos;		// World space.
+	Donya::Vector3	velocity;
 public:
 	HeavyBlock();
 	~HeavyBlock();
@@ -35,15 +36,24 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
+	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
+	/// <summary>
+	/// Returns world space position.
+	/// </summary>
+	Donya::Vector3 GetPosition() const;
 	/// <summary>
 	/// Returns world space hit-box.
 	/// </summary>
 	Donya::AABB GetHitBox() const;
 private:
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
+
+	void Fall( float elapsedTime );
+
+	void AssignVelocity( const std::vector<Donya::Box> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode();
@@ -78,6 +88,7 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
+	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
