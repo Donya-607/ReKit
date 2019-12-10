@@ -29,6 +29,7 @@ private:
 	Donya::ICamera		iCamera;
 
 	Donya::XInput		controller;
+
 public:
 	SceneGame();
 	~SceneGame();
