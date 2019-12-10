@@ -193,8 +193,6 @@ void Player::Update( float elapsedTime, Input controller )
 
 void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 {
-	// TODO : Fix the resolving a penetrate.
-
 	/// <summary>
 	/// The collision detective and resolving a penetrate process.
 	/// </summary>
@@ -216,12 +214,6 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 
 			// Take a value of +1 or -1.
 			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
-
-			/*
-			// This process require the current move velocity(because using to calculate the repulse direction).
-			if ( ZeroEqual( moveSign ) ) { return corrected; }
-			// else
-			*/
 
 			// The player's hit box of stage is circle, but doing with rectangle for easily correction.
 			Donya::Box xyBody{};
@@ -431,7 +423,6 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 		pos.z += velocity.z;
 	};
 
-	// Version_1();
 	Version_2();
 }
 
