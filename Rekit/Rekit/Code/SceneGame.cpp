@@ -31,6 +31,7 @@ namespace
 
 SceneGame::SceneGame() :
 	dirLight(),
+	player(), gimmicks(),
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 )
 {}
@@ -42,12 +43,18 @@ void SceneGame::Init()
 
 	CameraInit();
 
+#if DEBUG_MODE
+	gimmicks.Init( NULL );
+#endif // DEBUG_MODE
+
 	player.Init();
 //	hook.Init();
 }
 void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
+
+	gimmicks.Uninit();
 
 	player.Uninit();
 //	hook.Uninit();
@@ -62,6 +69,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #endif // USE_IMGUI
 
 	controller.Update();
+
+	gimmicks.Update( elapsedTime );
 
 	// This update does not call PhysicUpdate().
 	PlayerUpdate( elapsedTime );
@@ -136,6 +145,8 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+
+	gimmicks.Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
 //	hook.Draw( V * P, dirLight.dir, dirLight.color );

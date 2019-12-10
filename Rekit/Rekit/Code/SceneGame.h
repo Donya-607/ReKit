@@ -5,6 +5,7 @@
 #include "Donya/Vector.h"
 #include "Donya/UseImGui.h"
 
+#include "Gimmicks.h"
 #include "Player.h"
 //#include "Hook.h"
 #include "Scene.h"
@@ -22,6 +23,8 @@ private:
 
 	Player				player;
 //	Hook				hook;
+
+	Gimmick				gimmicks;
 
 	Donya::ICamera		iCamera;
 
