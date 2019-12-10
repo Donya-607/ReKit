@@ -25,14 +25,6 @@
 
 using namespace DirectX;
 
-//#if DEBUG_MODE
-//namespace
-//{
-//	static std::vector<Donya::Box> debugTestTerrains{};
-//}
-//#endif // DEBUG_MODE
-
-
 #pragma region AlphaParam
 class AlphaParam final : public Donya::Singleton<AlphaParam>
 {
