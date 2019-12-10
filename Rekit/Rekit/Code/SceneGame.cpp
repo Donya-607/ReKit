@@ -110,12 +110,24 @@ private:
 public:
 	void UseImGui()
 	{
+
 		if (ImGui::BeginIfAllowed())
 		{
 			if (ImGui::TreeNode(u8"ブロックの移動関係"))
 			{
 				if (ImGui::TreeNode(u8"パラメーター関係"))
 				{
+					// ブロック生成
+					bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL) || Donya::Keyboard::Press(VK_RCONTROL);
+					bool triggerDebugButton = Donya::Keyboard::Trigger('G');
+					if (pressCtrl && triggerDebugButton || ImGui::Button(u8"ブロック生成"))
+					{
+						Donya::Box changeable{ 0.0f,0.0f,2.0f,2.0f,true };
+						AlphaParam::Get().DataRef().debugTestTerrains.emplace_back(changeable);
+					}
+					ImGui::Text("");
+
+
 					int count = 0;
 					for (auto itr = m.debugTestTerrains.begin(); itr!=m.debugTestTerrains.end(); /*unknown*/)
 					{
@@ -214,13 +226,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #if DEBUG_MODE
 	// Collision Test.
 	{
-		bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL) || Donya::Keyboard::Press(VK_RCONTROL);
-		bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
-		if (pressCtrl && triggerDebugButton)
-		{
-			Donya::Box changeable{ -4.0f,0.0f,2.0f,2.0f,true };
-			AlphaParam::Get().DataRef().debugTestTerrains.emplace_back(changeable);
-		}
 	#if USE_IMGUI
 		AlphaParam::Get().UseImGui();
 	#endif // USE_IMGUI
