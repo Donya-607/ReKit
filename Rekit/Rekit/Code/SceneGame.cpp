@@ -43,12 +43,14 @@ void SceneGame::Init()
 	CameraInit();
 
 	player.Init();
+//	hook.Init();
 }
 void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
 
 	player.Uninit();
+//	hook.Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -100,6 +102,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 
 		player.PhysicUpdate( debugTestTerrains );
+//		hook.PhysicUpdate( debugTestTerrains );
 	}
 #endif // DEBUG_MODE
 
@@ -135,6 +138,7 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
+//	hook.Draw( V * P, dirLight.dir, dirLight.color );
 
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )

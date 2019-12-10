@@ -6,6 +6,7 @@
 #include "Donya/UseImGui.h"
 
 #include "Player.h"
+//#include "Hook.h"
 #include "Scene.h"
 
 class SceneGame : public Scene
@@ -20,6 +21,7 @@ private:
 	DirectionalLight	dirLight;
 
 	Player				player;
+//	Hook				hook;
 
 	Donya::ICamera		iCamera;
 
