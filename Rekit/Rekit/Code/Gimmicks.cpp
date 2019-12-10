@@ -241,6 +241,16 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 	}
 }
 
+std::vector<Donya::AABB> Gimmick::RequireHItBoxes() const
+{
+	std::vector<Donya::AABB> boxes{};
+	for ( const auto &it : heavyBlocks )
+	{
+		boxes.emplace_back( it.GetHitBox() );
+	}
+	return boxes;
+}
+
 void Gimmick::LoadParameter( bool fromBinary )
 {
 	std::string filePath = GenerateSerializePath( SERIAL_ID, fromBinary );

@@ -109,6 +109,25 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	#endif // USE_IMGUI
 		debugTestTerrains.emplace_back( changeable );
 
+		// Add the gimmicks block.
+		{
+			auto ToBox = []( const Donya::AABB &aabb )
+			{
+				Donya::Box box{};
+				box.pos.x  = aabb.pos.x;
+				box.pos.y  = aabb.pos.y;
+				box.size.x = aabb.size.x;
+				box.size.y = aabb.size.y;
+				box.exist  = aabb.exist;
+				return box;
+			};
+
+			const auto boxes = gimmicks.RequireHItBoxes();
+			for ( const auto &it : boxes )
+			{
+				debugTestTerrains.emplace_back( ToBox( it ) );
+			}
+		}
 
 		player.PhysicUpdate( debugTestTerrains );
 //		hook.PhysicUpdate( debugTestTerrains );
