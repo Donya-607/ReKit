@@ -278,7 +278,7 @@ void SceneGame::CameraInit()
 	iCamera.SetZRange( 0.1f, 1000.0f );
 	iCamera.SetFOV( ToRadian( 30.0f ) );
 	iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-	iCamera.SetPosition( { 0.0f, 0.0f, -48.0f } );
+	iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
 

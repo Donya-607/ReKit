@@ -169,7 +169,7 @@ void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, con
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
-		static auto cube = Donya::Geometric::CreateCube();
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
 		constexpr Donya::Vector4 color{ 0.8f, 0.8f, 0.0f, 0.8f };
 		cube.Render
