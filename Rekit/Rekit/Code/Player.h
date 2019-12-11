@@ -9,6 +9,8 @@
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
+#include "DerivedCollision.h"
+
 class Player
 {
 public:
@@ -43,7 +45,7 @@ public:
 	void Uninit();
 
 	void Update( float elpasedTime, Input controller );
-	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
+	void PhysicUpdate( const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const;
 public:

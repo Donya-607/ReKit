@@ -9,14 +9,16 @@
 #include "Donya/Serializer.h"
 #include "Donya/Vector.h"
 
-class HeavyBlock
+#include "DerivedCollision.h"
+
+class FragileBlock
 {
 private:
 	Donya::Vector3	pos;		// World space.
 	Donya::Vector3	velocity;
 public:
-	HeavyBlock();
-	~HeavyBlock();
+	FragileBlock();
+	~FragileBlock();
 private:
 	friend class cereal::access;
 	template<class Archive>
@@ -36,7 +38,7 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
-	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
+	void PhysicUpdate( const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
@@ -47,13 +49,13 @@ public:
 	/// <summary>
 	/// Returns world space hit-box.
 	/// </summary>
-	Donya::AABB GetHitBox() const;
+	AABBEx GetHitBox() const;
 private:
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
 
 	void Fall( float elapsedTime );
 
-	void AssignVelocity( const std::vector<Donya::Box> &terrains );
+	void AssignVelocity( const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode();
@@ -64,7 +66,7 @@ class Gimmick
 {
 private:
 	int stageNo;
-	std::vector<HeavyBlock> heavyBlocks;
+	std::vector<FragileBlock> fragileBlocks;
 private:
 	friend class cereal::access;
 	template<class Archive>
@@ -72,7 +74,7 @@ private:
 	{
 		archive
 		(
-			CEREAL_NVP( heavyBlocks )
+			CEREAL_NVP( fragileBlocks )
 		);
 		if ( 1 <= version )
 		{
@@ -88,11 +90,11 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
-	void PhysicUpdate( const std::vector<Donya::Box> &terrains );
+	void PhysicUpdate( const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
-	std::vector<Donya::AABB> RequireHitBoxes() const;
+	std::vector<AABBEx> RequireHitBoxes() const;
 private:
 	void LoadParameter( bool fromBinary = true );
 #if USE_IMGUI

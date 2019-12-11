@@ -33,8 +33,8 @@ public:
 	struct Member
 	{
 	public:
-		std::vector<Donya::Box> debugTerrains{};
-		std::vector<Donya::Box> debugAllTerrains{};		// Use for collision and drawing.
+		std::vector<BoxEx> debugTerrains{};
+		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -125,9 +125,11 @@ public:
 
 							std::string strPos	= u8"座標"   + std::to_string( index );
 							std::string strSize	= u8"サイズ" + std::to_string( index );
+							std::string strMass	= u8"質量"   + std::to_string( index );
 
-							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x );
+							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x  );
 							ImGui::DragFloat2( strSize.c_str(), &itr->size.x );
+							ImGui::DragInt   ( strMass.c_str(), &itr->mass   );
 
 							std::string strErase = u8"削除"  + std::to_string( index );
 
@@ -241,9 +243,9 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 		// Add the gimmicks block.
 		{
-			auto ToBox = []( const Donya::AABB &aabb )
+			auto ToBox = []( const AABBEx &aabb )
 			{
-				Donya::Box box{};
+				BoxEx box{};
 				box.pos.x		= aabb.pos.x;
 				box.pos.y		= aabb.pos.y;
 				box.size.x		= aabb.size.x;
@@ -251,6 +253,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 				box.exist		= aabb.exist;
 				box.velocity.x	= aabb.velocity.x;
 				box.velocity.y	= aabb.velocity.y;
+				box.mass		= aabb.mass;
 				return box;
 			};
 

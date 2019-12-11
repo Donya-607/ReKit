@@ -190,6 +190,7 @@
   <ItemGroup>
     <ClInclude Include="Code\Animation.h" />
     <ClInclude Include="Code\Common.h" />
+    <ClInclude Include="Code\DerivedCollision.h" />
     <ClInclude Include="Code\Donya\AudioSystem.h" />
     <ClInclude Include="Code\Donya\Benchmark.h" />
     <ClInclude Include="Code\Donya\Blend.h" />

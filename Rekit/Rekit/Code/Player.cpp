@@ -23,13 +23,13 @@ class Param final : public Donya::Singleton<Param>
 public:
 	struct Member
 	{
-		int			maxJumpCount{};	// 0 is can not jump, 1 ~ is can jump.
-		float		moveSpeed{};	// Use for a horizontal move. It will influenced by "elapsedTime".
-		float		jumpPower{};	// Use for a just moment of using a jump.
-		float		maxFallSpeed{};	// Use for a limit of falling speed.
-		float		gravity{};		// Always use to fall. It will influenced by "elapsedTime".
+		int		maxJumpCount{};	// 0 is can not jump, 1 ~ is can jump.
+		float	moveSpeed{};	// Use for a horizontal move. It will influenced by "elapsedTime".
+		float	jumpPower{};	// Use for a just moment of using a jump.
+		float	maxFallSpeed{};	// Use for a limit of falling speed.
+		float	gravity{};		// Always use to fall. It will influenced by "elapsedTime".
 
-		Donya::AABB	hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
+		AABBEx	hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -101,11 +101,12 @@ public:
 		{
 			if ( ImGui::TreeNode( u8"プレイヤー・調整データ" ) )
 			{
-				auto AdjustAABB = []( const std::string &prefix, Donya::AABB *pHitBox )
+				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
 					ImGui::DragFloat2( ( prefix + u8"中心位置のオフセット" ).c_str(), &pHitBox->pos.x  );
 					ImGui::DragFloat2( ( prefix + u8"サイズ（半分を指定）" ).c_str(), &pHitBox->size.x );
-					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か"   ).c_str(), &pHitBox->exist );
+					ImGui::DragInt   ( ( prefix + u8"質量"                ).c_str(), &pHitBox->mass   );
+					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か"   ).c_str(), &pHitBox->exist  );
 				};
 
 				ImGui::DragInt( u8"最大ジャンプ回数",		&m.maxJumpCount,	1.0f, 0		);
@@ -191,7 +192,7 @@ void Player::Update( float elapsedTime, Input controller )
 	JumpIfUsed( elapsedTime, controller );
 }
 
-void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
 	/// <summary>
 	/// The collision detective and resolving a penetrate process.
@@ -216,13 +217,14 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
 
 			// The player's hit box of stage is circle, but doing with rectangle for easily correction.
-			Donya::Box xyBody{};
+			BoxEx xyBody{};
 			{
 				xyBody.pos.x	= GetPosition().x;
 				xyBody.pos.y	= GetPosition().y;
 				xyBody.size.x	= actualBody.size.x;// * xyNAxis.x; // Only either X or Y is valid.
 				xyBody.size.y	= actualBody.size.y;// * xyNAxis.y; // Only either X or Y is valid.
 				xyBody.exist	= true;
+				xyBody.mass		= actualBody.mass;
 			}
 			Donya::Vector2 xyBodyCenter = xyBody.pos;
 			Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
