@@ -368,11 +368,6 @@ void Gimmick::Update( float elapsedTime )
 }
 void Gimmick::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 {
-	//for ( auto &it : heavyBlocks )
-	//{
-	//	it.PhysicUpdate( terrains );
-	//}
-
 	const size_t blockCount = heavyBlocks.size();
 
 	auto ToBox = []( const Donya::AABB &aabb )
