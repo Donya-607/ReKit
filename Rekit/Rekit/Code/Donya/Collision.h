@@ -16,6 +16,7 @@ namespace Donya
 	/// Hit-Box of rectangle.<para></para>
 	/// Vector2 pos : Center-position. The calculate method regards the belong space is the same.<para></para>
 	/// Vector2 size : Half-size(like radius). the left is pos.x - size.x. please set to only positive value.<para></para>
+	/// Vector2 velocity : This is not serialzie.<para></para>
 	/// bool exist : Is enable collision ?
 	/// </summary>
 	class Box
@@ -23,9 +24,10 @@ namespace Donya
 	public:
 		Donya::Vector2 pos;		// Position of center.
 		Donya::Vector2 size;	// Half size.
+		Donya::Vector2 velocity;// This is not serialize.
 		bool	exist;			// Is enable collision ?
 	public:
-		Box() : pos(), size(), exist( true ) {}
+		Box() : pos(), size(), velocity(), exist( true ) {}
 		Box
 		(
 			float centerX, float centerY,
@@ -34,6 +36,7 @@ namespace Donya
 		) :
 			pos( centerX, centerY ),
 			size( halfWidth, halfHeight ),
+			velocity(),
 			exist( isExist )
 		{}
 	private:
@@ -81,16 +84,18 @@ namespace Donya
 	/// Hit-Box of circle.<para></para>
 	/// Vector2 pos : Center-position. The calculate method regards the belong space is the same.<para></para>
 	/// float radius : Specify radius.<para></para>
+	/// Vector2 velocity : This is not serialize..<para></para>
 	/// bool exist :  Is enable collision ?
 	/// </summary>
 	class Circle
 	{
 	public:
-		Donya::Vector2	pos;	// Position of center.
+		Donya::Vector2	pos;		// Position of center.
+		Donya::Vector2	velocity;	// This is not serialize.
 		float			radius;
-		bool			exist;	// Is enable collision ?
+		bool			exist;		// Is enable collision ?
 	public:
-		Circle() : pos(), radius(), exist( true ) {}
+		Circle() : pos(), velocity(), radius(), exist( true ) {}
 		Circle
 		(
 			float centerX, float centerY,
@@ -98,6 +103,7 @@ namespace Donya
 			bool  isExist = true
 		) :
 			pos( centerX, centerY ),
+			velocity(),
 			radius( rad ),
 			exist( isExist )
 		{}
@@ -148,6 +154,7 @@ namespace Donya
 	/// Hit-Box of AABB.<para></para>
 	/// Vector3 pos : Center-position. The calculate method regards the belong space is the same.<para></para>
 	/// Vector3 size : Half-size(like radius). the left is pos.x - size.x. please set to only positive value.<para></para>
+	/// Vector3 velocity : This is not serialize.<para></para>
 	/// bool exist : Is enable collision ?
 	/// </summary>
 	class AABB
@@ -155,6 +162,7 @@ namespace Donya
 	public:
 		Donya::Vector3 pos{};	// Center-position. The calculate method regards the belong space is the same.
 		Donya::Vector3 size{};	// Half-size(like radius). the left is pos.x - size.x. please set to only positive value.
+		Donya::Vector3 velocity{};// This is not serialize.
 		bool exist{ true };		// Is enable collision ?
 	private:
 		friend class cereal::access;
@@ -195,6 +203,7 @@ namespace Donya
 			{
 				Donya::Vector3{ 0.0f, 0.0f, 0.0f },
 				Donya::Vector3{ 0.0f, 0.0f, 0.0f },
+				Donya::Vector3{ 0.0f, 0.0f, 0.0f },
 				false
 			};
 		}
@@ -203,6 +212,7 @@ namespace Donya
 	/// <summary>
 	/// Hit-Box of Sphere.<para></para>
 	/// Vector3 pos : Center-position. The calculate method regards the belong space is the same..<para></para>
+	/// Vector3 velocity : This is not serialize.<para></para>
 	/// float radius : Radius of sphere in world-space. please set to only positive value.<para></para>
 	/// bool exist : Is enable collision ?
 	/// </summary>
@@ -210,6 +220,7 @@ namespace Donya
 	{
 	public:
 		Donya::Vector3	pos{};			// Center-position. The calculate method regards the belong space is the same.
+		Donya::Vector3	velocity{};		// This is not serialize.
 		float			radius{};		// Radius of sphere in world-space. please set to only positive value.
 		bool			exist{ true };	// Is enable collision ?
 	private:
@@ -244,12 +255,18 @@ namespace Donya
 		/// The "ignoreExistFlag" is specify disable of exist flag.
 		/// </summary>
 		static bool IsHitAABB( const Sphere &worldSpaceSphere, const AABB &worldSpaceBox, bool ignoreExistFlag = false );
+	public:
+		static Sphere Nil()
+		{
+			return Sphere{ {}, {}, 0.0f, false };
+		}
 	};
 
 	/// <summary>
 	/// Hit-Box of AABB.<para></para>
 	/// Vector3 pos : Center-position. The calculate method regards the belong space is the same.<para></para>
 	/// Vector3 size : Half-size(like radius). the left is pos.x - size.x. please set to only positive value.<para></para>
+	/// Vector3 velocity : This is not serialize.<para></para>
 	/// Quaternion orientation : Represent a rotation. The "size" vector will rotate by "orientation" at the calculate method.<para></para>
 	/// bool exist : Is enable collision ?
 	/// </summary>
@@ -258,6 +275,7 @@ namespace Donya
 	public:
 		Donya::Vector3		pos{};			// Center-position. The calculate method regards the belong space is the same.
 		Donya::Vector3		size{};			// Half-size(like radius). the left is pos.x - size.x. please set to only positive value.
+		Donya::Vector3		velocity{};		// This is not serialize.
 		Donya::Quaternion	orientation{};	// Represent a rotation. The "size" vector will rotate by "orientation" at the calculate method.
 		bool exist{ true };					// Is enable collision ?
 	private:
@@ -283,7 +301,7 @@ namespace Donya
 	public:
 		static OBB Nil()
 		{
-			return OBB{ {}, {}, {}, false };
+			return OBB{ {}, {}, {}, {}, false };
 		}
 	};
 

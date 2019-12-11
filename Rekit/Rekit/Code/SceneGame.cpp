@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <cereal/types/vector.hpp>
+
 #include "Donya/Camera.h"
 #include "Donya/CBuffer.h"
 #include "Donya/Constant.h"
@@ -18,19 +20,170 @@
 
 #include "Common.h"
 #include "Fader.h"
+#include "FilePath.h"
 #include "Music.h"
 
 using namespace DirectX;
 
-#if DEBUG_MODE
-namespace
+#pragma region AlphaParam
+class AlphaParam final : public Donya::Singleton<AlphaParam>
 {
-	static std::vector<Donya::Box> debugTestTerrains{};
-}
-#endif // DEBUG_MODE
+	friend Donya::Singleton<AlphaParam>;
+public:
+	struct Member
+	{
+	public:
+		std::vector<Donya::Box> debugTerrains{};
+		std::vector<Donya::Box> debugAllTerrains{};		// Use for collision and drawing.
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, std::uint32_t version )
+		{
+			archive
+			(
+				CEREAL_NVP( debugTerrains )
+			);
+			if ( 1 <= version )
+			{
+				// CEREAL_NVP( x )
+			}
+		}
+	};
+private:
+	static constexpr const char* SERIAL_ID = "AlphaStageBlocks";
+	Member m;
+private:
+	AlphaParam() : m() {}
+public:
+	~AlphaParam() = default;
+public:
+	void Init()
+	{
+		LoadParameter();
+	}
+	void Uninit()
+	{
+
+	}
+public:
+	Member Data() const
+	{
+		return m;
+	}
+	Member& DataRef()
+	{
+		return m;
+	}
+private:
+	void LoadParameter(bool fromBinary = true)
+	{
+		std::string filePath = GenerateSerializePath( SERIAL_ID, fromBinary );
+		Donya::Serializer::Load( m, filePath.c_str(), SERIAL_ID, fromBinary );
+	}
+
+#if USE_IMGUI
+
+	void SaveParameter()
+	{
+		bool useBinary = true;
+		std::string filePath{};
+
+		filePath = GenerateSerializePath( SERIAL_ID, useBinary );
+		Donya::Serializer::Save( m, filePath.c_str(), SERIAL_ID, useBinary );
+
+		useBinary = false;
+
+		filePath = GenerateSerializePath( SERIAL_ID, useBinary );
+		Donya::Serializer::Save( m, filePath.c_str(), SERIAL_ID, useBinary );
+	}
+
+public:
+	void UseImGui()
+	{
+		if ( ImGui::BeginIfAllowed() )
+		{
+			if ( ImGui::TreeNode( u8"ブロックの移動関係" ) )
+			{
+				if ( ImGui::TreeNode( u8"パラメーター関係" ) )
+				{
+					bool pressCtrl = Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
+					bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
+					if ( ( pressCtrl && triggerDebugButton ) || ImGui::Button( u8"ブロック生成" ) )
+					{
+						Donya::Box changeable{ 0.0f, 0.0f, 2.0f, 2.0f, true };
+						AlphaParam::Get().DataRef().debugTerrains.emplace_back( changeable );
+					}
+					ImGui::Text( "" );
+
+					if ( ImGui::TreeNode( u8"ブロックの設定" ) )
+					{
+						int index = 0;
+						for ( auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
+						{
+							index++;
+
+							std::string strPos	= u8"座標"   + std::to_string( index );
+							std::string strSize	= u8"サイズ" + std::to_string( index );
+
+							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x );
+							ImGui::DragFloat2( strSize.c_str(), &itr->size.x );
+
+							std::string strErase = u8"削除"  + std::to_string( index );
+
+							if ( ImGui::Button( strErase.c_str() ) )
+							{
+								itr = m.debugTerrains.erase( itr );
+							}
+							else
+							{
+								itr++;
+							}
+							ImGui::Text( "" );
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( u8"ファイル" ) )
+				{
+					static bool isBinary = true;
+					if ( ImGui::RadioButton( "Binary", isBinary ) ) { isBinary = true; }
+					if ( ImGui::RadioButton( "JSON", !isBinary ) ) { isBinary = false; }
+					std::string loadStr{ "読み込み " };
+					loadStr += ( isBinary ) ? "Binary" : "JSON";
+
+					if ( ImGui::Button( u8"保存" ) )
+					{
+						SaveParameter();
+					}
+					if ( ImGui::Button( Donya::MultiToUTF8( loadStr ).c_str() ) )
+					{
+						LoadParameter( isBinary );
+					}
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+
+			ImGui::End();
+		}
+	}
+
+#endif // USE_IMGUI
+};
+
+CEREAL_CLASS_VERSION( AlphaParam::Member, 0 )
+#pragma endregion
 
 SceneGame::SceneGame() :
 	dirLight(),
+	player(), gimmicks(),
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 )
 {}
@@ -42,12 +195,18 @@ void SceneGame::Init()
 
 	CameraInit();
 
+	gimmicks.Init( NULL );
+	AlphaParam::Get().Init();
+
 	player.Init();
 //	hook.Init();
 }
 void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
+
+	gimmicks.Uninit();
+	AlphaParam::Get().Uninit();
 
 	player.Uninit();
 //	hook.Uninit();
@@ -58,10 +217,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #if USE_IMGUI
 
 	UseImGui();
+	AlphaParam::Get().UseImGui();
+
+	auto &refStage = AlphaParam::Get().DataRef();
 
 #endif // USE_IMGUI
 
 	controller.Update();
+
+	gimmicks.Update( elapsedTime );
+
+#if DEBUG_MODE
+	gimmicks.PhysicUpdate( refStage.debugTerrains );
+#endif // DEBUG_MODE
 
 	// This update does not call PhysicUpdate().
 	PlayerUpdate( elapsedTime );
@@ -69,25 +237,32 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #if DEBUG_MODE
 	// Collision Test.
 	{
-		constexpr float OFFSET	= 10.0f;
-		constexpr float SIZE	= 128.0f;
+		refStage.debugAllTerrains = refStage.debugTerrains;
 
-		static Donya::Box top	{ 0.0f, -OFFSET, SIZE, 1.0f, true };
-		static Donya::Box bottom{ 0.0f,  OFFSET, SIZE, 1.0f, true };
-		static Donya::Box left	{ -OFFSET, 0.0f, 1.0f, SIZE, true };
-		static Donya::Box right	{  OFFSET, 0.0f, 1.0f, SIZE, true };
-
-		const std::vector<Donya::Box> terrainList
+		// Add the gimmicks block.
 		{
-			top,
-			bottom,
-			left,
-			right
-		};
-		debugTestTerrains = terrainList;
+			auto ToBox = []( const Donya::AABB &aabb )
+			{
+				Donya::Box box{};
+				box.pos.x		= aabb.pos.x;
+				box.pos.y		= aabb.pos.y;
+				box.size.x		= aabb.size.x;
+				box.size.y		= aabb.size.y;
+				box.exist		= aabb.exist;
+				box.velocity.x	= aabb.velocity.x;
+				box.velocity.y	= aabb.velocity.y;
+				return box;
+			};
 
-		player.PhysicUpdate( debugTestTerrains );
-//		hook.PhysicUpdate( debugTestTerrains );
+			const auto boxes = gimmicks.RequireHitBoxes();
+			for ( const auto &it : boxes )
+			{
+				refStage.debugAllTerrains.emplace_back( ToBox( it ) );
+			}
+		}
+
+		player.PhysicUpdate( refStage.debugAllTerrains );
+//		hook.PhysicUpdate( refStage.debugAllTerrains );
 	}
 #endif // DEBUG_MODE
 
@@ -122,6 +297,8 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
 
+	gimmicks.Draw( V, P, dirLight.dir );
+
 	player.Draw( V * P, dirLight.dir, dirLight.color );
 //	hook.Draw( V * P, dirLight.dir, dirLight.color );
 
@@ -136,7 +313,7 @@ void SceneGame::Draw( float elapsedTime )
 			Donya::Vector4x4 cubeT{};
 			Donya::Vector4x4 cubeS{};
 			Donya::Vector4x4 cubeW{};
-			for ( const auto &it : debugTestTerrains )
+			for ( const auto &it : AlphaParam::Get().Data().debugAllTerrains )
 			{
 				// The drawing size is whole size.
 				// But a collision class's size is half size.
@@ -222,7 +399,7 @@ void SceneGame::CameraInit()
 	iCamera.SetZRange( 0.1f, 1000.0f );
 	iCamera.SetFOV( ToRadian( 30.0f ) );
 	iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-	iCamera.SetPosition( { 0.0f, 0.0f, -48.0f } );
+	iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
 
@@ -438,13 +615,15 @@ void SceneGame::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"ゲーム・設定" ) )
 		{
+			ImGui::Text( u8"ポーズ画面へ : <Press P>" );
+			ImGui::Text( u8"クリア画面へ : <Press Ctrl + Enter>" );
+
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
 
 			ImGui::TreePop();
 		}
-		ImGui::Text(u8"ポーズ画面へ : <Press P>");
-		ImGui::Text(u8"クリア画面へ : <Press Ctrl + Enter>");
+		
 		ImGui::End();
 	}
 }

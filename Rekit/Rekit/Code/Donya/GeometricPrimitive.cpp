@@ -392,6 +392,18 @@ namespace Donya
 				pImmediateContext = Donya::GetImmediateContext();
 			}
 
+			// For PostProcessing.
+			Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
+			Microsoft::WRL::ComPtr<ID3D11VertexShader>		prevVS;
+			Microsoft::WRL::ComPtr<ID3D11PixelShader>		prevPS;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
+			{
+				pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
+				pImmediateContext->VSGetShader( prevVS.GetAddressOf(), 0, 0 );
+				pImmediateContext->PSGetShader( prevPS.GetAddressOf(), 0, 0 );
+				pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
+			}
+
 			if ( useDefaultShading )
 			{
 				ConstantBuffer cb;
@@ -436,6 +448,23 @@ namespace Donya
 			}
 
 			pImmediateContext->DrawIndexed( indicesCount, 0, 0 );
+
+			// PostProcessing.
+			{
+				pImmediateContext->RSSetState( prevRasterizerState.Get() );
+				pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
+
+				if ( useDefaultShading )
+				{
+					pImmediateContext->IASetInputLayout( 0 );
+					pImmediateContext->VSSetShader( prevVS.Get(), nullptr, 0 );
+					pImmediateContext->PSSetShader( prevPS.Get(), nullptr, 0 );
+
+					ID3D11Buffer *nullBuffer{};
+					pImmediateContext->VSSetConstantBuffers( 0, 1, &nullBuffer );
+					pImmediateContext->PSSetConstantBuffers( 0, 1, &nullBuffer );
+				}
+			}
 		}
 
 	// region Cube
@@ -694,6 +723,18 @@ namespace Donya
 				pImmediateContext = Donya::GetImmediateContext();
 			}
 
+			// For PostProcessing.
+			Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
+			Microsoft::WRL::ComPtr<ID3D11VertexShader>		prevVS;
+			Microsoft::WRL::ComPtr<ID3D11PixelShader>		prevPS;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
+			{
+				pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
+				pImmediateContext->VSGetShader( prevVS.GetAddressOf(), 0, 0 );
+				pImmediateContext->PSGetShader( prevPS.GetAddressOf(), 0, 0 );
+				pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
+			}
+
 			if ( useDefaultShading )
 			{
 				ConstantBuffer cb;
@@ -737,6 +778,23 @@ namespace Donya
 			}
 
 			pImmediateContext->DrawIndexed( indicesCount, 0, 0 );
+
+			// PostProcessing.
+			{
+				pImmediateContext->RSSetState( prevRasterizerState.Get() );
+				pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
+
+				if ( useDefaultShading )
+				{
+					pImmediateContext->IASetInputLayout( 0 );
+					pImmediateContext->VSSetShader( prevVS.Get(), nullptr, 0 );
+					pImmediateContext->PSSetShader( prevPS.Get(), nullptr, 0 );
+
+					ID3D11Buffer *nullBuffer{};
+					pImmediateContext->VSSetConstantBuffers( 0, 1, &nullBuffer );
+					pImmediateContext->PSSetConstantBuffers( 0, 1, &nullBuffer );
+				}
+			}
 		}
 
 	// region Sphere
@@ -1083,6 +1141,20 @@ namespace Donya
 				pImmediateContext = Donya::GetImmediateContext();
 			}
 
+			// For PostProcessing.
+			Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
+			Microsoft::WRL::ComPtr<ID3D11VertexShader>		prevVS;
+			Microsoft::WRL::ComPtr<ID3D11PixelShader>		prevPS;
+			Microsoft::WRL::ComPtr<ID3D11SamplerState>		prevSamplerState;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
+			{
+				pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
+				pImmediateContext->VSGetShader( prevVS.GetAddressOf(), 0, 0 );
+				pImmediateContext->PSGetShader( prevPS.GetAddressOf(), 0, 0 );
+				pImmediateContext->PSGetSamplers( 0, 1, prevSamplerState.ReleaseAndGetAddressOf() );
+				pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
+			}
+
 			// Mapping
 			{
 				const Donya::Vector2 wholeSize = GetTextureSize( textureDesc );
@@ -1162,6 +1234,26 @@ namespace Donya
 			}
 
 			pImmediateContext->Draw( VERTEX_COUNT, 0 );
+
+			// PostProcessing.
+			{
+				ID3D11ShaderResourceView *pNullSRV = nullptr;
+				pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
+				pImmediateContext->PSSetSamplers( 0, 1, prevSamplerState.GetAddressOf() );
+				pImmediateContext->RSSetState( prevRasterizerState.Get() );
+				pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
+
+				if ( useDefaultShading )
+				{
+					pImmediateContext->IASetInputLayout( 0 );
+					pImmediateContext->VSSetShader( prevVS.Get(), nullptr, 0 );
+					pImmediateContext->PSSetShader( prevPS.Get(), nullptr, 0 );
+
+					ID3D11Buffer *nullBuffer{};
+					pImmediateContext->VSSetConstantBuffers( 0, 1, &nullBuffer );
+					pImmediateContext->PSSetConstantBuffers( 0, 1, &nullBuffer );
+				}
+			}
 		}
 
 	// region TextureBoard
