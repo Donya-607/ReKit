@@ -352,6 +352,48 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	player.Update( elapsedTime, input );
 }
 
+void SceneGame::HookUpdate(float elapsedTime)
+{
+	Hook::Input input{};
+
+	int state;
+
+	if (controller.IsConnected())
+	{
+		using Pad = Donya::Gamepad;
+
+		state = scast<int>(hook.GetState());
+//		input.stick;	// stick vector ‚ð“n‚·
+
+		switch (state)
+		{
+		case Hook::ActionState::Throw:
+			if (controller.Release(Pad::RT)) { state++; }
+			break;
+		case Hook::ActionState::Stay:
+			if (controller.Press(Pad::RT)) { state++; }
+			break;
+		case Hook::ActionState::Pull:
+			break;
+		case Hook::ActionState::Erase:
+			break;
+		case Hook::ActionState::End:
+			break;
+		}
+	}
+	else
+	{
+		if (Donya::Keyboard::Press(VK_LEFT)) { moveLeft = true; }
+		if (Donya::Keyboard::Press(VK_RIGHT)) { moveRight = true; }
+
+		if (Donya::Keyboard::Trigger(VK_LSHIFT)) { useJump = true; }
+	}
+
+	input.playerPos = player.GetPosition();
+
+	hook.Update(elapsedTime, input);
+}
+
 void SceneGame::StartFade() const
 {
 	Fader::Configuration config{};
