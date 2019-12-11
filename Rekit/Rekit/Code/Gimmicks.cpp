@@ -230,6 +230,17 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 	{
 		bool corrected = false;
 
+		Donya::Box previousXYBody{}; // Use for check "a wall is myself?".
+		{
+			previousXYBody.pos.x		= baseHitBox.pos.x;
+			previousXYBody.pos.y		= baseHitBox.pos.y;
+			previousXYBody.size.x		= baseHitBox.size.x;
+			previousXYBody.size.y		= baseHitBox.size.y;
+			previousXYBody.velocity.x	= baseHitBox.velocity.x;
+			previousXYBody.velocity.y	= baseHitBox.velocity.y;
+			previousXYBody.exist		= true;
+		}
+
 		// Only either X or Y is valid.
 		const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
 		pos.x += xyVelocity.x;
@@ -247,16 +258,18 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 		{
 			xyBody.pos.x  = GetPosition().x;
 			xyBody.pos.y  = GetPosition().y;
-			xyBody.size.x = baseHitBox.size.x * xyNAxis.x; // Only either X or Y is valid.
-			xyBody.size.y = baseHitBox.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.size.x = baseHitBox.size.x;
+			xyBody.size.y = baseHitBox.size.y;
 			xyBody.exist  = true;
 		}
 		Donya::Vector2 xyBodyCenter = xyBody.pos;
-		const float bodyWidth = xyBody.size.Length(); // Extract valid member by Length().
+		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
+		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
 		for ( const auto &wall : terrains )
 		{
 			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
+			if ( previousXYBody == wall ) { continue; } // The terrains contain also myself.
 			// else
 
 			Donya::Vector2 xyWallCenter = wall.pos;
@@ -280,8 +293,8 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 			pos.y += xyCorrection.y;
 
 			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
-			pos.x += EPSILON * scast<float>( Donya::SignBit( xyCorrection.x ) );
-			pos.y += EPSILON * scast<float>( Donya::SignBit( xyCorrection.y ) );
+			pos.x += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.x ) );
+			pos.y += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.y ) );
 
 			// We must apply the repulsed position to hit-box for next collision.
 			xyBody.pos.x = GetPosition().x;
@@ -293,16 +306,18 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 		return corrected;
 	};
 
-	Donya::AABB actualBody = ParamHeavyBlock::Get().Data().hitBox;
+	const Donya::AABB actualBody = GetHitBox();
 
 	// Move to X-axis with collision.
 	MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x, actualBody );
+
 	// Move to Y-axis with collision.
 	bool wasCorrected = MoveSpecifiedAxis( Donya::Vector2{ 0.0f, 1.0f }, velocity.y, actualBody );
 	if ( wasCorrected )
 	{
 		velocity.y = 0.0f;
 	}
+
 	// Move to Z-axis only.
 	pos.z += velocity.z;
 }
@@ -353,9 +368,42 @@ void Gimmick::Update( float elapsedTime )
 }
 void Gimmick::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 {
-	for ( auto &it : heavyBlocks )
+	//for ( auto &it : heavyBlocks )
+	//{
+	//	it.PhysicUpdate( terrains );
+	//}
+
+	const size_t blockCount = heavyBlocks.size();
+
+	auto ToBox = []( const Donya::AABB &aabb )
 	{
-		it.PhysicUpdate( terrains );
+		Donya::Box box{};
+		box.pos.x		= aabb.pos.x;
+		box.pos.y		= aabb.pos.y;
+		box.size.x		= aabb.size.x;
+		box.size.y		= aabb.size.y;
+		box.velocity.x	= aabb.velocity.x;
+		box.velocity.y	= aabb.velocity.y;
+		box.exist		= aabb.exist;
+		return box;
+	};
+
+	// The "heavyBlocks" will update at PhysicUpdate().
+	// So I prepare a temporary vector of terrains and update this every time update elements.
+	std::vector<Donya::Box> boxes{ blockCount }; // Necessary for AABB to Box.
+	for ( size_t i = 0; i < blockCount; ++i )
+	{
+		boxes[i] = ToBox( heavyBlocks[i].GetHitBox() );
+	}
+
+	std::vector<Donya::Box> allTerrains = boxes; // [blocks][terrains]
+	allTerrains.insert( allTerrains.end(), terrains.begin(), terrains.end() );
+
+	for ( size_t i = 0; i < blockCount; ++i )
+	{
+		heavyBlocks[i].PhysicUpdate( allTerrains );
+
+		allTerrains[i] = ToBox( heavyBlocks[i].GetHitBox() );
 	}
 }
 
