@@ -37,9 +37,9 @@ namespace Donya
 
 	/// <summary>
 	/// Returns:<para></para>
-	/// value ~ 0 : -1, <para></para>
+	/// value &lt; 0 : -1, <para></para>
 	/// value = 0 : 0, <para></para>
-	/// 0 ~ value : 1.
+	/// value &gt; 0 : 1.
 	/// </summary>
 	constexpr int SignBit( int value )
 	{
@@ -49,9 +49,9 @@ namespace Donya
 	}
 	/// <summary>
 	/// Returns:<para></para>
-	/// value ~ 0 : -1, <para></para>
+	/// value &lt; 0 : -1, <para></para>
 	/// value = 0 : 0, <para></para>
-	/// 0 ~ value : 1.
+	/// value &gt; 0 : 1.
 	/// </summary>
 	constexpr int SignBit( float value )
 	{

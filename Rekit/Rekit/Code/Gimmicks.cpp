@@ -274,15 +274,14 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 			Donya::Vector2 diff		= bodyEdge - wallEdge;
 			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
 			float collidingLength	= axisDiff.Length();
-			collidingLength += fabsf( moveSpeed ) * 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
-
-			Donya::Vector2 xyCorrection
-			{
-				xyNAxis.x * ( collidingLength * -moveSign ),
-				xyNAxis.y * ( collidingLength * -moveSign )
-			};
+		
+			Donya::Vector2 xyCorrection = xyNAxis * ( collidingLength * -moveSign );
 			pos.x += xyCorrection.x;
 			pos.y += xyCorrection.y;
+
+			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
+			pos.x += EPSILON * scast<float>( Donya::SignBit( xyCorrection.x ) );
+			pos.y += EPSILON * scast<float>( Donya::SignBit( xyCorrection.y ) );
 
 			// We must apply the repulsed position to hit-box for next collision.
 			xyBody.pos.x = GetPosition().x;
@@ -312,7 +311,8 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 
 void HeavyBlock::ShowImGuiNode()
 {
-	ImGui::DragFloat3( u8"ワールド座標", &pos.x );
+	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
+	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
 }
 
 #endif // USE_IMGUI

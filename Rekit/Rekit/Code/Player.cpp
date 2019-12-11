@@ -212,7 +212,7 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 
 			const auto actualBody = Param::Get().Data().hitBoxPhysic;
 
-			// Take a value of +1 or -1.
+			// A moveing direction of myself. Take a value of +1.0f or -1.0f.
 			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
 
 			// The player's hit box of stage is circle, but doing with rectangle for easily correction.
@@ -241,16 +241,17 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 
 				if ( ZeroEqual( moveSign ) )
 				{
+					// Usually I decide a repulse direction by moving direction("moveSign") of myself.
+					// But I can not decide a repulse direction when the myself does not moving.
+					// So use the other("wall")'s moving direction.
+
 					// Each other does not move, it is not colliding movement of now axis.
 					if ( ZeroEqual( wallSpeed ) ) { continue; }
 					// else
 
-					// Correct to wall's moving side.
-					if ( !ZeroEqual( wallVelocity.x ) ) { moveSign = scast<float>( Donya::SignBit( wallVelocity.x ) ); }
-					else
-					if ( !ZeroEqual( wallVelocity.y ) ) { moveSign = scast<float>( Donya::SignBit( wallVelocity.y ) ); }
-					
-					moveSpeed = wallSpeed;
+					moveSign  = scast<float>( Donya::SignBit( wallVelocity.x ) + Donya::SignBit( wallVelocity.y ) );
+					moveSign *= -1.0f;		// This "moveSign" represent the moving direction of myself, so I should reverse.
+					moveSpeed = wallSpeed * moveSign;
 				}
 
 				// Calculate colliding length.
@@ -263,16 +264,15 @@ void Player::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 				Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
 				Donya::Vector2 diff		= bodyEdge - wallEdge;
 				Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
-				float collidingLength = axisDiff.Length();
-				collidingLength += fabsf( moveSpeed ) * 0.1f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+				float collidingLength	= axisDiff.Length(); // Extract valid member by Length().
 
-				Donya::Vector2 xyCorrection
-				{
-					xyNAxis.x * ( collidingLength * -moveSign ),
-					xyNAxis.y * ( collidingLength * -moveSign )
-				};
+				Donya::Vector2 xyCorrection = xyNAxis * ( collidingLength * -moveSign );
 				pos.x += xyCorrection.x;
 				pos.y += xyCorrection.y;
+
+				// Prevent the two edges onto same place(the collision detective allows same(equal) value).
+				pos.x += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.x ) );
+				pos.y += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.y ) );
 
 				// We must apply the repulsed position to hit-box for next collision.
 				xyBody.pos.x = GetPosition().x;
