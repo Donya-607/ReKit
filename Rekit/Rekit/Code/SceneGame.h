@@ -1,13 +1,15 @@
 #pragma once
 
+#include <memory>
+
 #include "Donya/Camera.h"
 #include "Donya/GamepadXInput.h"
 #include "Donya/Vector.h"
 #include "Donya/UseImGui.h"
 
 #include "Gimmicks.h"
+#include "Hook.h"
 #include "Player.h"
-//#include "Hook.h"
 #include "Scene.h"
 
 class SceneGame : public Scene
@@ -19,17 +21,14 @@ public:
 		Donya::Vector4 dir	{ 0.0f,-1.0f, 1.0f, 0.0f };
 	};
 private:
-	DirectionalLight	dirLight;
+	DirectionalLight		dirLight;
+	Donya::ICamera			iCamera;
+	Donya::XInput			controller;
 
-	Player				player;
-//	Hook				hook;
+	Player					player;
+	Gimmick					gimmicks;
 
-	Gimmick				gimmicks;
-
-	Donya::ICamera		iCamera;
-
-	Donya::XInput		controller;
-
+	std::unique_ptr<Hook>	pHook;
 public:
 	SceneGame();
 	~SceneGame();
@@ -44,7 +43,8 @@ private:
 	void	CameraInit();
 	void	CameraUpdate();
 
-	void	PlayerUpdate( float elapsedTime );
+	void	PlayerUpdate(float elapsedTime);
+	void	HookUpdate( float elapsedTime );
 
 	void	StartFade() const;
 private:

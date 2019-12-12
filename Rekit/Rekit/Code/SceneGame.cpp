@@ -196,10 +196,10 @@ CEREAL_CLASS_VERSION( AlphaParam::Member, 0 )
 #pragma endregion
 
 SceneGame::SceneGame() :
-	dirLight(),
+	dirLight(), iCamera(),
+	controller( Donya::Gamepad::PAD_1 ),
 	player(), gimmicks(),
-	iCamera(),
-	controller( Donya::Gamepad::PAD_1 )
+	pHook( nullptr )
 {}
 SceneGame::~SceneGame() = default;
 
@@ -213,7 +213,7 @@ void SceneGame::Init()
 	AlphaParam::Get().Init();
 
 	player.Init();
-//	hook.Init();
+	Hook::Init();
 }
 void SceneGame::Uninit()
 {
@@ -223,7 +223,7 @@ void SceneGame::Uninit()
 	AlphaParam::Get().Uninit();
 
 	player.Uninit();
-//	hook.Uninit();
+	Hook::Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -261,6 +261,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	*/
 
 // #if DEBUG_MODE
+	// 1.
 	auto &refStage = AlphaParam::Get().DataRef();
 	// Reset the terrains.
 	refStage.debugAllTerrains.clear();
@@ -268,16 +269,14 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
 // #endif // DEBUG_MODE
 
+	// 2.
 	gimmicks.Update( elapsedTime );
+	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
+	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 
-	// This update call only the PhysicUpdate().
-	PlayerUpdate( elapsedTime );
-
-	// The gimmicks PhysicUpdate().
+	// 3. The gimmicks PhysicUpdate().
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
-		// // I want to the moved hit-box of player.
-		// wsPlayerAABB.pos += wsPlayerAABB.velocity;
 
 		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
 		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
@@ -288,7 +287,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	}
 
 // #if DEBUG_MODE
-	// Add the gimmicks block.
+	// 4. Add the gimmicks block.
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : boxes )
@@ -299,6 +298,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 // #endif // DEBUG_MODE
 	
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
+	if ( pHook )
+	{
+		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
+	}
 
 //	hook.PhysicUpdate( refStage.debugAllTerrains );
 
@@ -336,7 +339,10 @@ void SceneGame::Draw( float elapsedTime )
 	gimmicks.Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
-//	hook.Draw( V * P, dirLight.dir, dirLight.color );
+	if (pHook)
+	{
+		pHook->Draw(V * P, dirLight.dir, dirLight.color);
+	}
 
 // #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
@@ -571,11 +577,67 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	player.Update( elapsedTime, input );
 }
 
+void SceneGame::HookUpdate(float elapsedTime)
+{
+#if USE_IMGUI
+	Hook::UseImGui();
+#endif // USE_IMGUI
+
+	Hook::Input input{};
+
+	Donya::Vector2		stick;
+	bool				useAction	= false;
+	bool				trigger		= false;
+
+	if (controller.IsConnected())
+	{
+		using Pad = Donya::Gamepad;
+
+		stick = controller.RightStick();
+
+		if (controller.Press(Pad::RT)) { useAction = true; }
+		if (controller.Trigger(Pad::RT)) { trigger = true; }
+	}
+	else
+	{
+		POINT mousePoint = Donya::Mouse::Coordinate();
+		stick.x = scast<float>(mousePoint.x) - player.GetPosition().x;
+		stick.y = scast<float>(mousePoint.y) - player.GetPosition().y;
+
+		if (Donya::Mouse::Press(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			useAction = true;
+		}
+		if (Donya::Mouse::Trigger(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			trigger = true;
+		}
+	}
+
+	if (!pHook)
+	{
+		if (trigger)	{ pHook = std::make_unique<Hook>(player.GetPosition()); }
+		else			{ return; }
+	}
+
+	if (!pHook->IsExist())
+	{
+		pHook.reset();
+		return;
+	}
+
+	input.playerPos = player.GetPosition();
+	input.currPress = useAction;
+	input.stickVec  = stick.Normalized();	// stick vector(e)‚ð“n‚·
+
+	pHook->Update(elapsedTime, input);
+}
+
 void SceneGame::StartFade() const
 {
 	Fader::Configuration config{};
 	config.type			= Fader::Type::Gradually;
-	config.closeFrame	= Fader::GetDefaultCloseFrame();;
+	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
 }
