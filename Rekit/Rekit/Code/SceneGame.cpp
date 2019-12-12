@@ -199,7 +199,7 @@ void SceneGame::Init()
 	AlphaParam::Get().Init();
 
 	player.Init();
-//	hook.Init();
+	Hook::Init();
 }
 void SceneGame::Uninit()
 {
@@ -209,7 +209,7 @@ void SceneGame::Uninit()
 	AlphaParam::Get().Uninit();
 
 	player.Uninit();
-//	hook.Uninit();
+	Hook::Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -232,7 +232,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #endif // DEBUG_MODE
 
 	// This update does not call PhysicUpdate().
-	PlayerUpdate( elapsedTime );
+	PlayerUpdate(elapsedTime);
+	HookUpdate( elapsedTime );
 
 #if DEBUG_MODE
 	// Collision Test.
@@ -262,7 +263,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		}
 
 		player.PhysicUpdate( refStage.debugAllTerrains );
-//		hook.PhysicUpdate( refStage.debugAllTerrains );
+		if (hook)
+		{
+			hook->PhysicUpdate(refStage.debugAllTerrains, player.GetPosition());
+		}
 	}
 #endif // DEBUG_MODE
 
@@ -300,7 +304,10 @@ void SceneGame::Draw( float elapsedTime )
 	gimmicks.Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
-//	hook.Draw( V * P, dirLight.dir, dirLight.color );
+	if (hook)
+	{
+		hook->Draw(V * P, dirLight.dir, dirLight.color);
+	}
 
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
@@ -531,51 +538,65 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 
 void SceneGame::HookUpdate(float elapsedTime)
 {
+#if USE_IMGUI
+	Hook::UseImGui();
+#endif // USE_IMGUI
+
 	Hook::Input input{};
 
-	int state;
+	Donya::Vector2		stick;
+	bool				useAction = false;
+	bool				trigger = false;
 
 	if (controller.IsConnected())
 	{
 		using Pad = Donya::Gamepad;
 
-		state = scast<int>(hook.GetState());
-//		input.stick;	// stick vector ‚ð“n‚·
+		stick = controller.RightStick();
 
-		switch (state)
-		{
-		case Hook::ActionState::Throw:
-			if (controller.Release(Pad::RT)) { state++; }
-			break;
-		case Hook::ActionState::Stay:
-			if (controller.Press(Pad::RT)) { state++; }
-			break;
-		case Hook::ActionState::Pull:
-			break;
-		case Hook::ActionState::Erase:
-			break;
-		case Hook::ActionState::End:
-			break;
-		}
+		if (controller.Press(Pad::RT)) { useAction = true; }
+		if (controller.Trigger(Pad::RT)) { trigger = true; }
 	}
 	else
 	{
-		if (Donya::Keyboard::Press(VK_LEFT)) { moveLeft = true; }
-		if (Donya::Keyboard::Press(VK_RIGHT)) { moveRight = true; }
+		POINT mousePoint = Donya::Mouse::Coordinate();
+		stick.x = scast<float>(mousePoint.x) - player.GetPosition().x;
+		stick.y = scast<float>(mousePoint.y) - player.GetPosition().y;
 
-		if (Donya::Keyboard::Trigger(VK_LSHIFT)) { useJump = true; }
+		if (Donya::Mouse::Press(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			useAction = true;
+		}
+		if (Donya::Mouse::Trigger(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			trigger = true;
+		}
+	}
+
+	if (!hook)
+	{
+		if (trigger)	{ hook = std::make_unique<Hook>(player.GetPosition()); }
+		else			{ return; }
+	}
+
+	if (!hook->exist)
+	{
+		hook.reset();
+		return;
 	}
 
 	input.playerPos = player.GetPosition();
+	input.currPress = useAction;
+	input.stickVec = stick.Normalized();	// stick vector(e)‚ð“n‚·
 
-	hook.Update(elapsedTime, input);
+	hook->Update(elapsedTime, input);
 }
 
 void SceneGame::StartFade() const
 {
 	Fader::Configuration config{};
 	config.type			= Fader::Type::Gradually;
-	config.closeFrame	= Fader::GetDefaultCloseFrame();;
+	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
 }

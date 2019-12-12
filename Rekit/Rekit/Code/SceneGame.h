@@ -22,7 +22,7 @@ private:
 	DirectionalLight	dirLight;
 
 	Player				player;
-	Hook				hook;
+	std::unique_ptr<Hook>	hook;
 
 	Gimmick				gimmicks;
 
