@@ -51,6 +51,7 @@ public:
 	/// Returns position is world space.
 	/// </summary>
 	Donya::Vector3 GetPosition() const;
+	Donya::Vector3 GetVelocity() const;
 private:
 	void CreateRenderingObjects();
 
