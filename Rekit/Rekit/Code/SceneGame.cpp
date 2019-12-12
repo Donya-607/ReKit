@@ -505,7 +505,10 @@ void SceneGame::CameraUpdate()
 
 		return ctrl;
 	};
-	iCamera.Update( MakeControlStructWithMouse() );
+	auto input = MakeControlStructWithMouse();
+	input.moveVelocity.x *= -1.0f;
+	input.moveVelocity.y *= -1.0f;
+	iCamera.Update( input );
 
 #if DEBUG_MODE
 	if ( Donya::Keyboard::Press( VK_MENU ) )
