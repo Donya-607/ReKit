@@ -53,6 +53,10 @@ public:
 	/// Returns position is world space.
 	/// </summary>
 	Donya::Vector3 GetPosition() const;
+	/// <summary>
+	/// Returns hit-box is world space.
+	/// </summary>
+	AABBEx GetHitBox() const;
 private:
 	void CreateRenderingObjects();
 

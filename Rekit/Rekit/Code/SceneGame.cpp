@@ -111,7 +111,7 @@ public:
 					bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
 					if ( ( pressCtrl && triggerDebugButton ) || ImGui::Button( u8"ÉuÉçÉbÉNê∂ê¨" ) )
 					{
-						Donya::Box changeable{ 0.0f, 0.0f, 2.0f, 2.0f, true };
+						BoxEx changeable{ { 0.0f, 0.0f, 2.0f, 2.0f, true }, 1 };
 						AlphaParam::Get().DataRef().debugTerrains.emplace_back( changeable );
 					}
 					ImGui::Text( "" );
@@ -221,53 +221,72 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	UseImGui();
 	AlphaParam::Get().UseImGui();
 
-	auto &refStage = AlphaParam::Get().DataRef();
-
 #endif // USE_IMGUI
+
+	auto ToBox = []( const AABBEx &aabb )
+	{
+		BoxEx box{};
+		box.pos.x		= aabb.pos.x;
+		box.pos.y		= aabb.pos.y;
+		box.size.x		= aabb.size.x;
+		box.size.y		= aabb.size.y;
+		box.exist		= aabb.exist;
+		box.velocity.x	= aabb.velocity.x;
+		box.velocity.y	= aabb.velocity.y;
+		box.mass		= aabb.mass;
+		return box;
+	};
 
 	controller.Update();
 
+	/*
+	Update-order memo:
+	1.	Prepare and reset "debugAllTerrains" with "debugTerrains". This way prevent continuously emplace_back to "debugAllTerrains" every frame. You do not add or remove the "debugTerrains".
+	2.	Update only a velocity(a position does not update) of all objects.
+	3.	Update a position(PhysicUpdate) of the gimmicks with the player's hit-box that contain calculated velocity. That hit-box of the player is not latest, but I want to update the gimmicks before the update of the player.
+	4.	Register the updated hit-boxes of the gimmicks to "debugAllTerrains".
+	5.	Update a position(PhysicUpdate) of the player with updated "debugAllTerrains".
+	*/
+
+// #if DEBUG_MODE
+	auto &refStage = AlphaParam::Get().DataRef();
+	// Reset the terrains.
+	refStage.debugAllTerrains = refStage.debugTerrains;
+// #endif // DEBUG_MODE
+
 	gimmicks.Update( elapsedTime );
 
-#if DEBUG_MODE
-	gimmicks.PhysicUpdate( refStage.debugTerrains );
-#endif // DEBUG_MODE
-
-	// This update does not call PhysicUpdate().
+	// This update call only the PhysicUpdate().
 	PlayerUpdate( elapsedTime );
 
-#if DEBUG_MODE
-	// Collision Test.
+	// The gimmicks PhysicUpdate().
 	{
-		refStage.debugAllTerrains = refStage.debugTerrains;
+		AABBEx wsPlayerAABB = player.GetHitBox();
+		// I want to the moved hit-box of player.
+		// wsPlayerAABB.pos += wsPlayerAABB.velocity;
 
-		// Add the gimmicks block.
-		{
-			auto ToBox = []( const AABBEx &aabb )
-			{
-				BoxEx box{};
-				box.pos.x		= aabb.pos.x;
-				box.pos.y		= aabb.pos.y;
-				box.size.x		= aabb.size.x;
-				box.size.y		= aabb.size.y;
-				box.exist		= aabb.exist;
-				box.velocity.x	= aabb.velocity.x;
-				box.velocity.y	= aabb.velocity.y;
-				box.mass		= aabb.mass;
-				return box;
-			};
+		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
+		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
 
-			const auto boxes = gimmicks.RequireHitBoxes();
-			for ( const auto &it : boxes )
-			{
-				refStage.debugAllTerrains.emplace_back( ToBox( it ) );
-			}
-		}
-
-		player.PhysicUpdate( refStage.debugAllTerrains );
-//		hook.PhysicUpdate( refStage.debugAllTerrains );
+	// #if DEBUG_MODE
+		gimmicks.PhysicUpdate( terrainsForGimmicks );
+	// #endif // DEBUG_MODE
 	}
-#endif // DEBUG_MODE
+
+// #if DEBUG_MODE
+	// Add the gimmicks block.
+	{
+		const auto boxes = gimmicks.RequireHitBoxes();
+		for ( const auto &it : boxes )
+		{
+			refStage.debugAllTerrains.emplace_back( ToBox( it ) );
+		}
+	}
+// #endif // DEBUG_MODE
+	
+	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
+
+//	hook.PhysicUpdate( refStage.debugAllTerrains );
 
 	CameraUpdate();
 
@@ -305,7 +324,7 @@ void SceneGame::Draw( float elapsedTime )
 	player.Draw( V * P, dirLight.dir, dirLight.color );
 //	hook.Draw( V * P, dirLight.dir, dirLight.color );
 
-#if DEBUG_MODE
+// #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
 		// Drawing Test Terrains that use to player's collision.
@@ -338,6 +357,7 @@ void SceneGame::Draw( float elapsedTime )
 			}
 		}
 
+	#if DEBUG_MODE
 		// Drawing TextureBoard Demo.
 		{
 			constexpr const wchar_t *texturePath	= L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
@@ -392,8 +412,9 @@ void SceneGame::Draw( float elapsedTime )
 				lightDir, boardColor
 			);
 		}
+	#endif // DEBUG_MODE
 	}
-#endif // DEBUG_MODE
+// #endif // DEBUG_MODE
 }
 
 void SceneGame::CameraInit()

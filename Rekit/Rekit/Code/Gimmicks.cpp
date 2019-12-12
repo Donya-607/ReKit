@@ -271,8 +271,9 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 
 		for ( const auto &wall : terrains )
 		{
-			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
-			if ( previousXYBody == wall ) { continue; } // The terrains contain also myself.
+			if ( wall.mass < xyBody.mass )					{ continue; }
+			if ( !Donya::Box::IsHitBox( xyBody, wall ) )	{ continue; }
+			if ( previousXYBody == wall )					{ continue; } // The terrains contain also myself.
 			// else
 
 			Donya::Vector2 xyWallCenter = wall.pos;

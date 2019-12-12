@@ -247,6 +247,10 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 					// But I can not decide a repulse direction when the myself does not moving.
 					// So use the other("wall")'s moving direction.
 
+					// If the myself is heavier than wall, so the myself does not repulse.
+					if ( wall.mass < xyBody.mass ) { continue; }
+					// else
+					
 					// Each other does not move, it is not colliding movement of now axis.
 					if ( ZeroEqual( wallSpeed ) ) { continue; }
 					// else
@@ -454,6 +458,13 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 Donya::Vector3 Player::GetPosition() const
 {
 	return pos;
+}
+AABBEx Player::GetHitBox() const
+{
+	AABBEx wsAABB	=  Param::Get().Data().hitBoxPhysic;
+	wsAABB.pos		+= GetPosition();
+	wsAABB.velocity	=  velocity;
+	return wsAABB;
 }
 
 void Player::CreateRenderingObjects()

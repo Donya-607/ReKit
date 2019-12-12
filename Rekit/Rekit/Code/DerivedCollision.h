@@ -7,12 +7,19 @@ class BoxEx : public Donya::Box
 {
 public:
 	int mass{};	// Will used for consider an object will be compressed.
+public:
+	BoxEx() : Box(), mass() {}
+	BoxEx( const Donya::Box &box, int mass ) : Box( box ), mass( mass ) {}
 private:
 	friend class cereal::access;
 	template<class Archive>
 	void serialize( Archive &archive, std::uint32_t version )
 	{
-		archive( CEREAL_NVP( mass ) );
+		archive
+		(
+			cereal::base_class<Donya::Box>( this ),
+			CEREAL_NVP( mass )
+		);
 
 		if ( 1 <= version )
 		{
@@ -35,7 +42,11 @@ private:
 	template<class Archive>
 	void serialize( Archive &archive, std::uint32_t version )
 	{
-		archive( CEREAL_NVP( mass ) );
+		archive
+		(
+			cereal::base_class<Donya::AABB>( this ),
+			CEREAL_NVP( mass )
+		);
 
 		if ( 1 <= version )
 		{
