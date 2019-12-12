@@ -256,13 +256,6 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		pos.x += xyVelocity.x;
 		pos.y += xyVelocity.y;
 
-		// Take a value of +1 or -1.
-		float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
-
-		// This process require the current move velocity(because using to calculate the repulse direction).
-		if ( ZeroEqual( moveSign ) ) { return corrected; }
-		// else
-
 		// The player's hit box of stage is circle, but doing with rectangle for easily correction.
 		BoxEx xyBody{};
 		{
@@ -277,18 +270,71 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
 		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
-		bool pushedNow = false;
-		Donya::Vector2 pushedDirection{};
-		for ( const auto &wall : terrains )
+		// The moving direction of myself. Take a value of +1 or -1.
+		float moveSign{};
+		bool  pushedNow = false;
+		Donya::Vector2 pushedDirection{}; // Store a vector of [wall->myself].
+		const size_t wallCount = terrains.size();
+		for ( size_t i = 0; i < wallCount; ++i )
 		{
-			if ( wall.mass < xyBody.mass )					{ continue; }
-			if ( !Donya::Box::IsHitBox( xyBody, wall ) )	{ continue; }
-			if ( previousXYBody == wall )					{ continue; } // The terrains contain also myself.
+			const BoxEx &wall = terrains[i];
+
+			if ( previousXYBody == wall ) { continue; } // The terrains contain also myself.
+			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
 			// else
+
+			moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
 
 			Donya::Vector2 xyWallCenter = wall.pos;
 			Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
-			float wallWidth = wallSize.Length(); // Extract valid member by Length().
+			Donya::Vector2 wallVelocity{ wall.velocity.x * xyNAxis.x, wall.velocity.y * xyNAxis.y }; // Only either X or Y is valid.
+			float wallWidth = wallSize.Length();		// Extract valid member by Length().
+			float wallSpeed = wallVelocity.Length();	// Extract valid member by Length().
+
+			if ( ZeroEqual( moveSign ) )
+			{
+				// Usually I decide a repulse direction by moving direction("moveSign") of myself.
+				// But I can not decide a repulse direction when the myself does not moving.
+				// So use the other("wall")'s moving direction.
+
+				// If the myself is heavier than wall, so the myself does not repulse.
+				if ( wall.mass < xyBody.mass ) { continue; }
+				// else
+
+				// Each other does not move, it is not colliding movement of now axis.
+				if ( ZeroEqual( wallSpeed )  )
+				{
+					// Only store a direction of [wall->myself].
+					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					continue;
+				}
+				// else
+
+				moveSign  = scast<float>( Donya::SignBit( wallVelocity.x ) + Donya::SignBit( wallVelocity.y ) );
+				moveSign *= -1.0f; // This "moveSign" represent the moving direction of myself, so I should reverse.
+				moveSpeed = wallSpeed * -moveSign;
+			}
+
+			// Calculate the myself will complessed?
+			if ( xyBody.mass <= wall.mass )
+			{
+				if ( pushedNow )
+				{
+					Donya::Vector2 currentPushedDir = ( xyBody.pos - wall.pos ).Normalized();
+
+					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
+					if (  angle < 0.0f ) // If these direction is against.
+					{
+						wasBroken = true;
+						break;
+					}
+				}
+				else
+				{
+					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					pushedNow = true;
+				}
+			}
 
 			// Calculate colliding length.
 			// First, calculate body's edge of moving side.
@@ -300,41 +346,22 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 			Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
 			Donya::Vector2 diff		= bodyEdge - wallEdge;
 			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
-			float collidingLength	= axisDiff.Length();
+			float collidingLength	= axisDiff.Length(); // Extract valid member by Length().
 		
 			Donya::Vector2 xyCorrection = xyNAxis * ( collidingLength * -moveSign );
 			pos.x += xyCorrection.x;
 			pos.y += xyCorrection.y;
-
 			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
 			pos.x += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.x ) );
 			pos.y += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.y ) );
-
 			// We must apply the repulsed position to hit-box for next collision.
 			xyBody.pos.x = GetPosition().x;
 			xyBody.pos.y = GetPosition().y;
 
 			corrected = true;
 
-			// Calc the myself will complessed?
-			if ( !wall.velocity.IsZero() )
-			{
-				if ( pushedNow )
-				{
-					Donya::Vector2 currentPushedDir = wall.velocity;
-
-					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
-					if (  angle < 0.0f ) // If these direction is against.
-					{
-						wasBroken = true;
-					}
-				}
-				else
-				{
-					pushedDirection = wall.velocity;
-					pushedNow = true;
-				}
-			}
+			// Recheck from the beginning with updated position.
+			i = 0;
 		}
 
 		return corrected;

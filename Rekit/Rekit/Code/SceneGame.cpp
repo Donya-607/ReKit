@@ -35,6 +35,7 @@ public:
 	public:
 		std::vector<BoxEx> debugTerrains{};
 		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
+		BoxEx debugCompressor{ { 0.0f, 0.0f, 1.5f, 1.5f, true }, 30 };
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -101,11 +102,12 @@ private:
 public:
 	void UseImGui()
 	{
+		m.debugCompressor.pos += m.debugCompressor.velocity;
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ブロックの移動関係" ) )
+			if ( ImGui::TreeNode( u8"地形エディタ" ) )
 			{
-				if ( ImGui::TreeNode( u8"パラメーター関係" ) )
+				if ( ImGui::TreeNode( u8"パラメーター設定" ) )
 				{
 					bool pressCtrl = Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
 					bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
@@ -116,7 +118,7 @@ public:
 					}
 					ImGui::Text( "" );
 
-					if ( ImGui::TreeNode( u8"ブロックの設定" ) )
+					if ( ImGui::TreeNode( u8"設定" ) )
 					{
 						int index = 0;
 						for ( auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
@@ -143,6 +145,16 @@ public:
 							}
 							ImGui::Text( "" );
 						}
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( u8"コンプレッサ" ) )
+					{
+						ImGui::DragFloat2( u8"座標",				&m.debugCompressor.pos.x				);
+						ImGui::DragFloat2( u8"サイズ（半分）",	&m.debugCompressor.size.x				);
+						ImGui::DragFloat2( u8"速度",				&m.debugCompressor.velocity.x,	0.001f	);
+						ImGui::DragInt   ( u8"質量",				&m.debugCompressor.mass,		1.0f, 0	);
 
 						ImGui::TreePop();
 					}
@@ -251,7 +263,9 @@ Scene::Result SceneGame::Update( float elapsedTime )
 // #if DEBUG_MODE
 	auto &refStage = AlphaParam::Get().DataRef();
 	// Reset the terrains.
-	refStage.debugAllTerrains = refStage.debugTerrains;
+	refStage.debugAllTerrains.clear();
+	refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
+	refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
 // #endif // DEBUG_MODE
 
 	gimmicks.Update( elapsedTime );
