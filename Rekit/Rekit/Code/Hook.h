@@ -9,16 +9,17 @@
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
+#include "DerivedCollision.h"
+
 class Hook
 {
 public:
 	struct Input
 	{
 		Donya::Vector3	playerPos{};	// World space.
-		bool			currPress;		// Current button state : [TRUE:Pressed] [FALSE:Not pressed]
-		Donya::Vector2	stickVec;		// スティック前に倒したら上行く(Y+ == ↑)
+		Donya::Vector2	stickVec{};		// スティック前に倒したら上行く(Y+ == ↑)
+		bool			currPress{};	// Current button state : [TRUE:Pressed] [FALSE:Not pressed]
 	};
-	bool				exist;
 private:
 	struct Constants
 	{
@@ -38,15 +39,16 @@ private:
 		End				// delete
 	};
 
-	Donya::Vector3				pos;				// World space.
-	Donya::Vector3				velocity;
-	Donya::Vector3				direction;
-	ActionState					state;
+	Donya::Vector3						pos;				// World space.
+	Donya::Vector3						velocity;
+	Donya::Vector3						direction;
+	ActionState							state;
 
-	float						easingTime;
-	float						distance;			// playerとhookの距離
-	float						momentPullDist;		// 引かれた瞬間のplayerとhookの距離
-	bool						prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
+	float								easingTime;
+	float								distance;			// playerとhookの距離
+	float								momentPullDist;		// 引かれた瞬間のplayerとhookの距離
+	bool								prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
+	bool								exist;
 
 	static Donya::Geometric::Cube		drawModel;
 	static Donya::CBuffer<Constants>	cbuffer;
@@ -60,10 +62,12 @@ public:
 	static void Uninit();
 
 	void Update(float elpasedTime, Input controller);
-	void PhysicUpdate(const std::vector<Donya::Box>& terrains,const Donya::Vector3& playerPos);
+	void PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos);
 
 	void Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const;
 public:
+	bool IsExist() const { return exist; }
+
 	/// <summary>
 	/// Returns position is world space.
 	/// </summary>

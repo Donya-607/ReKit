@@ -1,5 +1,7 @@
 #include "Gimmicks.h"
 
+#include <algorithm>		// Use std::remove_if.
+
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
@@ -10,7 +12,7 @@
 #undef max
 #undef min
 
-#pragma region HeavyBlock
+#pragma region FragileBlock
 
 struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
 {
@@ -18,9 +20,9 @@ struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
 public:
 	struct Member
 	{
-		float		gravity{};
-		float		maxFallSpeed{};
-		Donya::AABB	hitBox{};	// Hit-Box of using to the collision to the stage.
+		float	gravity{};
+		float	maxFallSpeed{};
+		AABBEx	hitBox{};	// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -45,7 +47,7 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "HeavyBlock";
+	static constexpr const char *SERIAL_ID = "FragileBlock";
 	Member m;
 private:
 	ParamHeavyBlock() : m() {}
@@ -95,11 +97,12 @@ public:
 		{
 			if ( ImGui::TreeNode( u8"ブロック・調整データ" ) )
 			{
-				auto AdjustAABB = []( const std::string &prefix, Donya::AABB *pHitBox )
+				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
 					ImGui::DragFloat2( ( prefix + u8"中心位置のオフセット" ).c_str(), &pHitBox->pos.x );
 					ImGui::DragFloat2( ( prefix + u8"サイズ（半分を指定）" ).c_str(), &pHitBox->size.x );
-					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
+					ImGui::DragInt   ( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
+					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
 				ImGui::DragFloat( u8"重力加速度", &m.gravity );
@@ -138,30 +141,31 @@ public:
 };
 CEREAL_CLASS_VERSION( ParamHeavyBlock::Member, 1 )
 
-HeavyBlock::HeavyBlock() :
-	pos(), velocity()
+FragileBlock::FragileBlock() :
+	pos(), velocity(),
+	wasBroken( false )
 {}
-HeavyBlock::~HeavyBlock() = default;
+FragileBlock::~FragileBlock() = default;
 
-void HeavyBlock::Init( const Donya::Vector3 &wsPos )
+void FragileBlock::Init( const Donya::Vector3 &wsPos )
 {
 	pos = wsPos;
 }
-void HeavyBlock::Uninit()
+void FragileBlock::Uninit()
 {
 
 }
 
-void HeavyBlock::Update( float elapsedTime )
+void FragileBlock::Update( float elapsedTime )
 {
 	Fall( elapsedTime );
 }
-void HeavyBlock::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+void FragileBlock::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
 	AssignVelocity( terrains );
 }
 
-void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
@@ -171,7 +175,7 @@ void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, con
 	{
 		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
-		constexpr Donya::Vector4 color{ 0.8f, 0.8f, 0.0f, 0.8f };
+		constexpr Donya::Vector4 color{ 0.3f, 0.3f, 0.3f, 0.8f };
 		cube.Render
 		(
 			nullptr,
@@ -183,19 +187,24 @@ void HeavyBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, con
 #endif // DEBUG_MODE
 }
 
-Donya::Vector3 HeavyBlock::GetPosition() const
+bool FragileBlock::ShouldRemove() const
+{
+	return wasBroken;
+}
+
+Donya::Vector3 FragileBlock::GetPosition() const
 {
 	return pos;
 }
-Donya::AABB HeavyBlock::GetHitBox() const
+AABBEx FragileBlock::GetHitBox() const
 {
-	Donya::AABB base = ParamHeavyBlock::Get().Data().hitBox;
+	AABBEx base = ParamHeavyBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
 	return base;
 }
 
-Donya::Vector4x4 HeavyBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 FragileBlock::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -214,23 +223,23 @@ Donya::Vector4x4 HeavyBlock::GetWorldMatrix( bool useDrawing ) const
 	return mat;
 }
 
-void HeavyBlock::Fall( float elapsedTime )
+void FragileBlock::Fall( float elapsedTime )
 {
 	const auto DATA = ParamHeavyBlock::Get().Data();
 	velocity.y -= DATA.gravity * elapsedTime;
 	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
 }
 
-void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
+void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 {
 	/// <summary>
 	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
 	/// </summary>
-	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed, const Donya::AABB &baseHitBox )->bool
+	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed, const AABBEx &baseHitBox )->bool
 	{
 		bool corrected = false;
 
-		Donya::Box previousXYBody{}; // Use for check "a wall is myself?".
+		BoxEx previousXYBody{}; // Use for check "a wall is myself?".
 		{
 			previousXYBody.pos.x		= baseHitBox.pos.x;
 			previousXYBody.pos.y		= baseHitBox.pos.y;
@@ -239,6 +248,7 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 			previousXYBody.velocity.x	= baseHitBox.velocity.x;
 			previousXYBody.velocity.y	= baseHitBox.velocity.y;
 			previousXYBody.exist		= true;
+			previousXYBody.mass			= baseHitBox.mass;
 		}
 
 		// Only either X or Y is valid.
@@ -246,35 +256,85 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 		pos.x += xyVelocity.x;
 		pos.y += xyVelocity.y;
 
-		// Take a value of +1 or -1.
-		float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
-
-		// This process require the current move velocity(because using to calculate the repulse direction).
-		if ( ZeroEqual( moveSign ) ) { return corrected; }
-		// else
-
 		// The player's hit box of stage is circle, but doing with rectangle for easily correction.
-		Donya::Box xyBody{};
+		BoxEx xyBody{};
 		{
-			xyBody.pos.x  = GetPosition().x;
-			xyBody.pos.y  = GetPosition().y;
-			xyBody.size.x = baseHitBox.size.x;
-			xyBody.size.y = baseHitBox.size.y;
-			xyBody.exist  = true;
+			xyBody.pos.x	= GetPosition().x;
+			xyBody.pos.y	= GetPosition().y;
+			xyBody.size.x	= baseHitBox.size.x;
+			xyBody.size.y	= baseHitBox.size.y;
+			xyBody.exist	= true;
+			xyBody.mass		= baseHitBox.mass;
 		}
 		Donya::Vector2 xyBodyCenter = xyBody.pos;
 		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
 		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
-		for ( const auto &wall : terrains )
+		// The moving direction of myself. Take a value of +1 or -1.
+		float moveSign{};
+		bool  pushedNow = false;
+		Donya::Vector2 pushedDirection{}; // Store a vector of [wall->myself].
+		const size_t wallCount = terrains.size();
+		for ( size_t i = 0; i < wallCount; ++i )
 		{
-			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
+			const BoxEx &wall = terrains[i];
+
 			if ( previousXYBody == wall ) { continue; } // The terrains contain also myself.
+			if ( !Donya::Box::IsHitBox( xyBody, wall ) ) { continue; }
 			// else
+
+			moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
 
 			Donya::Vector2 xyWallCenter = wall.pos;
 			Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
-			float wallWidth = wallSize.Length(); // Extract valid member by Length().
+			Donya::Vector2 wallVelocity{ wall.velocity.x * xyNAxis.x, wall.velocity.y * xyNAxis.y }; // Only either X or Y is valid.
+			float wallWidth = wallSize.Length();		// Extract valid member by Length().
+			float wallSpeed = wallVelocity.Length();	// Extract valid member by Length().
+
+			if ( ZeroEqual( moveSign ) )
+			{
+				// Usually I decide a repulse direction by moving direction("moveSign") of myself.
+				// But I can not decide a repulse direction when the myself does not moving.
+				// So use the other("wall")'s moving direction.
+
+				// If the myself is heavier than wall, so the myself does not repulse.
+				if ( wall.mass < xyBody.mass ) { continue; }
+				// else
+
+				// Each other does not move, it is not colliding movement of now axis.
+				if ( ZeroEqual( wallSpeed )  )
+				{
+					// Only store a direction of [wall->myself].
+					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					continue;
+				}
+				// else
+
+				moveSign  = scast<float>( Donya::SignBit( wallVelocity.x ) + Donya::SignBit( wallVelocity.y ) );
+				moveSign *= -1.0f; // This "moveSign" represent the moving direction of myself, so I should reverse.
+				moveSpeed = wallSpeed * -moveSign;
+			}
+
+			// Calculate the myself will complessed?
+			if ( xyBody.mass <= wall.mass )
+			{
+				if ( pushedNow )
+				{
+					Donya::Vector2 currentPushedDir = ( xyBody.pos - wall.pos ).Normalized();
+
+					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
+					if (  angle < 0.0f ) // If these direction is against.
+					{
+						wasBroken = true;
+						break;
+					}
+				}
+				else
+				{
+					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					pushedNow = true;
+				}
+			}
 
 			// Calculate colliding length.
 			// First, calculate body's edge of moving side.
@@ -286,27 +346,28 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 			Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
 			Donya::Vector2 diff		= bodyEdge - wallEdge;
 			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
-			float collidingLength	= axisDiff.Length();
+			float collidingLength	= axisDiff.Length(); // Extract valid member by Length().
 		
 			Donya::Vector2 xyCorrection = xyNAxis * ( collidingLength * -moveSign );
 			pos.x += xyCorrection.x;
 			pos.y += xyCorrection.y;
-
 			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
 			pos.x += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.x ) );
 			pos.y += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.y ) );
-
 			// We must apply the repulsed position to hit-box for next collision.
 			xyBody.pos.x = GetPosition().x;
 			xyBody.pos.y = GetPosition().y;
 
 			corrected = true;
+
+			// Recheck from the beginning with updated position.
+			i = 0;
 		}
 
 		return corrected;
 	};
 
-	const Donya::AABB actualBody = GetHitBox();
+	const AABBEx actualBody = GetHitBox();
 
 	// Move to X-axis with collision.
 	MoveSpecifiedAxis( Donya::Vector2{ 1.0f, 0.0f }, velocity.x, actualBody );
@@ -324,7 +385,7 @@ void HeavyBlock::AssignVelocity( const std::vector<Donya::Box> &terrains )
 
 #if USE_IMGUI
 
-void HeavyBlock::ShowImGuiNode()
+void FragileBlock::ShowImGuiNode()
 {
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
@@ -332,13 +393,13 @@ void HeavyBlock::ShowImGuiNode()
 
 #endif // USE_IMGUI
 
-// region HeavyBlock
+// region FragileBlock
 #pragma endregion
 
 #pragma region Gimmick
 
 Gimmick::Gimmick() :
-	stageNo(), heavyBlocks()
+	stageNo(), fragileBlocks()
 {}
 Gimmick::~Gimmick() = default;
 
@@ -352,7 +413,7 @@ void Gimmick::Init( int stageNumber )
 }
 void Gimmick::Uninit()
 {
-	heavyBlocks.clear();
+	fragileBlocks.clear();
 }
 
 void Gimmick::Update( float elapsedTime )
@@ -361,18 +422,18 @@ void Gimmick::Update( float elapsedTime )
 	UseImGui();
 #endif // USE_IMGUI
 
-	for ( auto &it : heavyBlocks )
+	for ( auto &it : fragileBlocks )
 	{
 		it.Update( elapsedTime );
 	}
 }
-void Gimmick::PhysicUpdate( const std::vector<Donya::Box> &terrains )
+void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
-	const size_t blockCount = heavyBlocks.size();
+	const size_t blockCount = fragileBlocks.size();
 
-	auto ToBox = []( const Donya::AABB &aabb )
+	auto ToBox = []( const AABBEx &aabb )
 	{
-		Donya::Box box{};
+		BoxEx box{};
 		box.pos.x		= aabb.pos.x;
 		box.pos.y		= aabb.pos.y;
 		box.size.x		= aabb.size.x;
@@ -380,40 +441,54 @@ void Gimmick::PhysicUpdate( const std::vector<Donya::Box> &terrains )
 		box.velocity.x	= aabb.velocity.x;
 		box.velocity.y	= aabb.velocity.y;
 		box.exist		= aabb.exist;
+		box.mass		= aabb.mass;
 		return box;
 	};
 
-	// The "heavyBlocks" will update at PhysicUpdate().
+	// The "fragileBlocks" will update at PhysicUpdate().
 	// So I prepare a temporary vector of terrains and update this every time update elements.
-	std::vector<Donya::Box> boxes{ blockCount }; // Necessary for AABB to Box.
+	std::vector<BoxEx> boxes{ blockCount }; // Necessary for AABB to Box.
 	for ( size_t i = 0; i < blockCount; ++i )
 	{
-		boxes[i] = ToBox( heavyBlocks[i].GetHitBox() );
+		boxes[i] = ToBox( fragileBlocks[i].GetHitBox() );
 	}
 
-	std::vector<Donya::Box> allTerrains = boxes; // [blocks][terrains]
+	std::vector<BoxEx> allTerrains = boxes; // [blocks][terrains]
 	allTerrains.insert( allTerrains.end(), terrains.begin(), terrains.end() );
 
 	for ( size_t i = 0; i < blockCount; ++i )
 	{
-		heavyBlocks[i].PhysicUpdate( allTerrains );
+		fragileBlocks[i].PhysicUpdate( allTerrains );
 
-		allTerrains[i] = ToBox( heavyBlocks[i].GetHitBox() );
+		allTerrains[i] = ToBox( fragileBlocks[i].GetHitBox() );
+	}
+
+	// Erase the should remove blocks.
+	{
+		auto itr = std::remove_if
+		(
+			fragileBlocks.begin(), fragileBlocks.end(),
+			[]( FragileBlock &element )
+			{
+				return element.ShouldRemove();
+			}
+		);
+		fragileBlocks.erase( itr, fragileBlocks.end() );
 	}
 }
 
 void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
-	for ( const auto &it : heavyBlocks )
+	for ( const auto &it : fragileBlocks )
 	{
 		it.Draw( V, P, lightDir );
 	}
 }
 
-std::vector<Donya::AABB> Gimmick::RequireHitBoxes() const
+std::vector<AABBEx> Gimmick::RequireHitBoxes() const
 {
-	std::vector<Donya::AABB> boxes{};
-	for ( const auto &it : heavyBlocks )
+	std::vector<AABBEx> boxes{};
+	for ( const auto &it : fragileBlocks )
 	{
 		boxes.emplace_back( it.GetHitBox() );
 	}
@@ -457,23 +532,23 @@ void Gimmick::UseImGui()
 			{
 				if ( ImGui::Button( u8"末尾にブロック追加" ) )
 				{
-					heavyBlocks.push_back( {} );
-					heavyBlocks.back().Init( Donya::Vector3::Zero() );
+					fragileBlocks.push_back( {} );
+					fragileBlocks.back().Init( Donya::Vector3::Zero() );
 				}
-				if ( heavyBlocks.empty() )
+				if ( fragileBlocks.empty() )
 				{
 					// Align a line.
 					ImGui::Text( "" );
 				}
 				else if ( ImGui::Button( u8"末尾のブロック削除" ) )
 				{
-					heavyBlocks.pop_back();
+					fragileBlocks.pop_back();
 				}
 			}
 
 			int i = 0;
 			std::string caption{};
-			for ( auto &it : heavyBlocks )
+			for ( auto &it : fragileBlocks )
 			{
 				caption = "Block[" + std::to_string( i++ ) + "]";
 				if ( ImGui::TreeNode( caption.c_str() ) )

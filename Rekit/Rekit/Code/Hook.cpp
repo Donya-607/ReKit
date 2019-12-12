@@ -25,8 +25,8 @@ public:
 		float		pullTime{};		// 
 		float		hitRadius{};	// Hit-Sphere of using to the collision to player.
 
-//		Donya::AABB	appearanceBox{};// Apparent size of box.
-		Donya::AABB	hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
+//		AABBEx		appearanceBox{};// Apparent size of box.
+		AABBEx		hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -174,14 +174,15 @@ public:
 
 CEREAL_CLASS_VERSION(HookParam::Member, 0)
 
-Donya::Geometric::Cube			Hook::drawModel;
-Donya::CBuffer<Hook::Constants>	Hook::cbuffer;
-Donya::VertexShader				Hook::VSDemo;
-Donya::PixelShader				Hook::PSDemo;
+Donya::Geometric::Cube			Hook::drawModel{};
+Donya::CBuffer<Hook::Constants>	Hook::cbuffer{};
+Donya::VertexShader				Hook::VSDemo{};
+Donya::PixelShader				Hook::PSDemo{};
 
 Hook::Hook(const Donya::Vector3& playerPos) :
-	pos(playerPos), velocity(), direction(), state(ActionState::Throw), exist(true),
-	easingTime(0), prevPress(false), momentPullDist(0), distance(0)
+	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
+	easingTime(0), distance(0), momentPullDist(0),
+	prevPress(false), exist(true)
 {}
 Hook::~Hook() = default;
 
@@ -216,8 +217,6 @@ void Hook::Update(float elapsedTime, Input controller)
 	}
 //
 #endif // USE_IMGUI
-
-	// Calc velocity.
 
 #if DEBUG_MODE
 
@@ -269,7 +268,7 @@ void Hook::Update(float elapsedTime, Input controller)
 	prevPress = controller.currPress;
 }
 
-void Hook::PhysicUpdate(const std::vector<Donya::Box>& terrains, const Donya::Vector3& playerPos)
+void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos)
 {
 
 	if (state == ActionState::Throw)
@@ -326,14 +325,15 @@ void Hook::PhysicUpdate(const std::vector<Donya::Box>& terrains, const Donya::Ve
 		// else
 
 		// The hook's hit box of stage is circle, but doing with rectangle for easily correction.
-		Donya::Box xyBody{};
+		BoxEx xyBody{};
 		{
-			xyBody.pos.x = GetPosition().x;
-			xyBody.pos.y = GetPosition().y;
-			xyBody.size.x = actualBody.size.x * xyNAxis.x; // Only either X or Y is valid.
-			xyBody.size.y = actualBody.size.y * xyNAxis.y; // Only either X or Y is valid.
-			xyBody.velocity.x = GetVelocity().x;
-			xyBody.velocity.y = GetVelocity().y;
+			xyBody.pos.x		= GetPosition().x;
+			xyBody.pos.y		= GetPosition().y;
+			xyBody.size.x		= actualBody.size.x * xyNAxis.x; // Only either X or Y is valid.
+			xyBody.size.y		= actualBody.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.velocity.x	= GetVelocity().x;
+			xyBody.velocity.y	= GetVelocity().y;
+			xyBody.mass			= actualBody.mass;
 			if (state == ActionState::Stay || state == ActionState::Pull)	{ xyBody.exist = true; }
 			else															{ xyBody.exist = false; }
 		}
@@ -390,11 +390,11 @@ void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4&
 	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling(HookParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */);
 	Donya::Vector4x4 W = S * T;
 
-	cbuffer.data.world = W.XMFloat();
-	cbuffer.data.worldViewProjection = (W * matViewProjection).XMFloat();
-	cbuffer.data.lightDirection = lightDirection;
-	cbuffer.data.lightColor = lightColor;
-	cbuffer.data.materialColor = Donya::Vector4{ 1.0f, 0.6f, 0.8f, 1.0f };
+	cbuffer.data.world					= W.XMFloat();
+	cbuffer.data.worldViewProjection	= (W * matViewProjection).XMFloat();
+	cbuffer.data.lightDirection			= lightDirection;
+	cbuffer.data.lightColor				= lightColor;
+	cbuffer.data.materialColor			= Donya::Vector4{ 1.0f, 0.6f, 0.8f, 1.0f };
 
 	cbuffer.Activate(0, /* setVS = */ true, /* setPS = */ true);
 	VSDemo.Activate();
