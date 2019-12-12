@@ -262,7 +262,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// The gimmicks PhysicUpdate().
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
-		// I want to the moved hit-box of player.
+		// // I want to the moved hit-box of player.
 		// wsPlayerAABB.pos += wsPlayerAABB.velocity;
 
 		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
@@ -544,6 +544,7 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
 		
 		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
+		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) )	{ useJump = true; }
 	}
 
 	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }

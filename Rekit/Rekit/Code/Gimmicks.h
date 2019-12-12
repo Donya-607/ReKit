@@ -11,11 +11,16 @@
 
 #include "DerivedCollision.h"
 
+// TODO : If you create another block or like that,
+// You should separate this to BlockBase,
+// then inherit that and recreate FragileBlock.
+// After that, you create another block.
 class FragileBlock
 {
 private:
 	Donya::Vector3	pos;		// World space.
 	Donya::Vector3	velocity;
+	bool			wasBroken;	// Use for a signal of want to remove.
 public:
 	FragileBlock();
 	~FragileBlock();
@@ -42,6 +47,10 @@ public:
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
+	/// <summary>
+	/// Returns a signal of want to remove.
+	/// </summary>
+	bool ShouldRemove() const;
 	/// <summary>
 	/// Returns world space position.
 	/// </summary>

@@ -1,5 +1,7 @@
 #include "Gimmicks.h"
 
+#include <algorithm>		// Use std::remove_if.
+
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
@@ -140,7 +142,8 @@ public:
 CEREAL_CLASS_VERSION( ParamHeavyBlock::Member, 1 )
 
 FragileBlock::FragileBlock() :
-	pos(), velocity()
+	pos(), velocity(),
+	wasBroken( false )
 {}
 FragileBlock::~FragileBlock() = default;
 
@@ -172,7 +175,7 @@ void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, c
 	{
 		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
-		constexpr Donya::Vector4 color{ 0.8f, 0.8f, 0.0f, 0.8f };
+		constexpr Donya::Vector4 color{ 0.3f, 0.3f, 0.3f, 0.8f };
 		cube.Render
 		(
 			nullptr,
@@ -182,6 +185,11 @@ void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, c
 		);
 	}
 #endif // DEBUG_MODE
+}
+
+bool FragileBlock::ShouldRemove() const
+{
+	return wasBroken;
 }
 
 Donya::Vector3 FragileBlock::GetPosition() const
@@ -269,6 +277,8 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
 		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
+		bool pushedNow = false;
+		Donya::Vector2 pushedDirection{};
 		for ( const auto &wall : terrains )
 		{
 			if ( wall.mass < xyBody.mass )					{ continue; }
@@ -305,6 +315,26 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 			xyBody.pos.y = GetPosition().y;
 
 			corrected = true;
+
+			// Calc the myself will complessed?
+			if ( !wall.velocity.IsZero() )
+			{
+				if ( pushedNow )
+				{
+					Donya::Vector2 currentPushedDir = wall.velocity;
+
+					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
+					if (  angle < 0.0f ) // If these direction is against.
+					{
+						wasBroken = true;
+					}
+				}
+				else
+				{
+					pushedDirection = wall.velocity;
+					pushedNow = true;
+				}
+			}
 		}
 
 		return corrected;
@@ -404,6 +434,19 @@ void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		fragileBlocks[i].PhysicUpdate( allTerrains );
 
 		allTerrains[i] = ToBox( fragileBlocks[i].GetHitBox() );
+	}
+
+	// Erase the should remove blocks.
+	{
+		auto itr = std::remove_if
+		(
+			fragileBlocks.begin(), fragileBlocks.end(),
+			[]( FragileBlock &element )
+			{
+				return element.ShouldRemove();
+			}
+		);
+		fragileBlocks.erase( itr, fragileBlocks.end() );
 	}
 }
 
