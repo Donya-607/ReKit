@@ -235,7 +235,7 @@ void FragileBlock::Fall( float elapsedTime )
 void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 {
 	/// <summary>
-	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
+	/// The "xyNAxis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
 	/// </summary>
 	auto MoveSpecifiedAxis = [&]( Donya::Vector2 xyNAxis, float moveSpeed, const AABBEx &baseHitBox )->bool
 	{
@@ -277,8 +277,10 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		bool  pushedNow = false;
 		Donya::Vector2 pushedDirection{}; // Store a vector of [wall->myself].
 		const size_t wallCount = terrains.size();
+		int loop = 0;
 		for ( size_t i = 0; i < wallCount; ++i )
 		{
+			loop++;
 			const BoxEx &wall = terrains[i];
 
 			if ( previousXYBody == wall ) { continue; } // The terrains contain also myself.
@@ -323,6 +325,8 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 				if ( pushedNow )
 				{
 					Donya::Vector2 currentPushedDir = ( xyBody.pos - wall.pos ).Normalized();
+					currentPushedDir.x *= xyNAxis.x;
+					currentPushedDir.y *= xyNAxis.y;
 
 					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
 					if (  angle < 0.0f ) // If these direction is against.
@@ -336,6 +340,8 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 				else
 				{
 					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					pushedDirection.x *= xyNAxis.x;
+					pushedDirection.y *= xyNAxis.y;
 					pushedNow = true;
 				}
 			}

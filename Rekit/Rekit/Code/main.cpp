@@ -32,7 +32,8 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 #if DEBUG_MODE
 	constexpr bool fullScreenMode = false;
 #else
-	constexpr bool fullScreenMode = true;
+	// constexpr bool fullScreenMode = true;
+	constexpr bool fullScreenMode = false;
 #endif // DEBUG_MODE
 
 	std::string title{ "エクスプローラー" };
