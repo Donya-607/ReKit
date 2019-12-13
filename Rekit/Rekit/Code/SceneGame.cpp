@@ -35,7 +35,8 @@ public:
 	public:
 		std::vector<BoxEx> debugTerrains{};
 		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
-		BoxEx debugCompressor{ { 0.0f, 0.0f, 1.5f, 1.5f, true }, 30 };
+		BoxEx debugCompressor  { { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
+		BoxEx debugClearTrigger{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -47,7 +48,11 @@ public:
 			);
 			if ( 1 <= version )
 			{
-				// CEREAL_NVP( x )
+				archive( CEREAL_NVP( debugClearTrigger ) );
+			}
+			if ( 2 <= version )
+			{
+				// archive( CEREAL_NVP( x ) );
 			}
 		}
 	};
@@ -149,12 +154,24 @@ public:
 						ImGui::TreePop();
 					}
 
-					if ( ImGui::TreeNode( u8"コンプレッサ" ) )
+					if ( ImGui::TreeNode( u8"デバッグ用：コンプレッサ" ) )
 					{
 						ImGui::DragFloat2( u8"座標",				&m.debugCompressor.pos.x				);
 						ImGui::DragFloat2( u8"サイズ（半分）",	&m.debugCompressor.size.x				);
 						ImGui::DragFloat2( u8"速度",				&m.debugCompressor.velocity.x,	0.001f	);
 						ImGui::DragInt   ( u8"質量",				&m.debugCompressor.mass,		1.0f, 0	);
+						ImGui::Checkbox  ( u8"当たり判定は有効か", &m.debugCompressor.exist );
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( u8"クリア判定エリア" ) )
+					{
+						ImGui::DragFloat2( u8"座標",				&m.debugClearTrigger.pos.x				);
+						ImGui::DragFloat2( u8"サイズ（半分）",	&m.debugClearTrigger.size.x				);
+
+						m.debugClearTrigger.velocity = 0.0f;
+						m.debugClearTrigger.mass = 0;
 
 						ImGui::TreePop();
 					}
@@ -192,14 +209,15 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( AlphaParam::Member, 0 )
+CEREAL_CLASS_VERSION( AlphaParam::Member, 1 )
 #pragma endregion
 
 SceneGame::SceneGame() :
 	dirLight(), iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	player(), gimmicks(),
-	pHook( nullptr )
+	pHook( nullptr ),
+	useCushion( true )
 {}
 SceneGame::~SceneGame() = default;
 
@@ -228,6 +246,14 @@ void SceneGame::Uninit()
 
 Scene::Result SceneGame::Update( float elapsedTime )
 {
+	if ( useCushion )
+	{
+		useCushion = false;
+		CameraUpdate();
+		return Scene::Result{ Scene::Request::NONE, Scene::Type::Null };
+	}
+	// else
+
 #if USE_IMGUI
 
 	UseImGui();
@@ -329,6 +355,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	}
 #endif // DEBUG_MODE
 
+	if ( DetectClearMoment() )
+	{
+		StartFade();
+	}
+
 	return ReturnResult();
 }
 
@@ -354,10 +385,10 @@ void SceneGame::Draw( float elapsedTime )
 // #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
+		static auto cube = Donya::Geometric::CreateCube();
+
 		// Drawing Test Terrains that use to player's collision.
 		{
-			static auto cube = Donya::Geometric::CreateCube();
-
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 0.8f, 0.0f, 0.6f };
 			Donya::Vector4x4 cubeT{};
 			Donya::Vector4x4 cubeS{};
@@ -382,6 +413,25 @@ void SceneGame::Draw( float elapsedTime )
 					cubeColor
 				);
 			}
+		}
+
+		// Drawing area of clear-trigger.
+		{
+			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+			const auto box = AlphaParam::Get().Data().debugClearTrigger;
+			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 0.0f } );
+			Donya::Vector4x4 cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ box.size * 2.0f, 1.0f } );
+			Donya::Vector4x4 cubeW = cubeS * cubeT;
+
+			cube.Render
+			(
+				nullptr,
+				/* useDefaultShading	= */ true,
+				/* isEnableFill			= */ true,
+				( cubeW * V * P ), cubeW,
+				dirLight.dir,
+				cubeColor
+			);
 		}
 
 	#if DEBUG_MODE
@@ -586,7 +636,7 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	player.Update( elapsedTime, input );
 }
 
-void SceneGame::HookUpdate(float elapsedTime)
+void SceneGame::HookUpdate( float elapsedTime )
 {
 #if USE_IMGUI
 	Hook::UseImGui();
@@ -663,6 +713,25 @@ void SceneGame::HookUpdate(float elapsedTime)
 	pHook->Update(elapsedTime, input);
 }
 
+bool SceneGame::DetectClearMoment() const
+{
+	if ( Fader::Get().IsExist() ) { return false; }
+	// else
+
+	const auto clearBox		= AlphaParam::Get().Data().debugClearTrigger;
+	const auto playerBox	= player.GetHitBox();
+	BoxEx xyPlayer{};
+	{
+		xyPlayer.pos.x		= playerBox.pos.x;
+		xyPlayer.pos.y		= playerBox.pos.y;
+		xyPlayer.size.x		= playerBox.size.x;
+		xyPlayer.size.y		= playerBox.size.y;
+		xyPlayer.exist		= true;
+	}
+
+	return ( Donya::Box::IsHitBox( xyPlayer, clearBox ) ) ? true : false;
+}
+
 void SceneGame::StartFade() const
 {
 	Fader::Configuration config{};
@@ -678,7 +747,7 @@ Scene::Result SceneGame::ReturnResult()
 	{
 		Scene::Result change{};
 		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Clear;
+		change.sceneType = Scene::Type::Game;
 		return change;
 	}
 
