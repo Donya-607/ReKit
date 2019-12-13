@@ -241,7 +241,7 @@ void Hook::Update(float elapsedTime, Input controller)
 		break;
 
 	case ActionState::Stay:
-		velocity = { 0.0f };
+		velocity = 0.0f;
 		if (controller.currPress)
 		{
 			state = ActionState::Pull;
@@ -340,7 +340,6 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 		for (const auto& wall : terrains)
 		{
-			if ( wall.mass < xyBody.mass )					{ continue; }
 			if ( !Donya::Box::IsHitBox( xyBody, wall ) )	{ continue; }
 			// else
 
@@ -364,6 +363,9 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 				moveSign *= -1.0f;		// This "moveSign" represent the moving direction of myself, so I should reverse.
 				moveSpeed = wallSpeed * moveSign;
 			}
+
+			if ( wall.mass < xyBody.mass ) { continue; }
+			// else
 
 			// Calculate colliding length.
 			// First, calculate body's edge of moving side.
