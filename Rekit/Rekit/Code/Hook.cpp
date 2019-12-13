@@ -302,7 +302,9 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	if ( Donya::Sphere::IsHitSphere( hookBody, playerBody ) )
 	{
 		state = ActionState::End;
+		return;
 	}
+	// else
 
 	/// <summary>
 	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
@@ -425,6 +427,17 @@ Donya::Vector3 Hook::GetPosition() const
 Donya::Vector3 Hook::GetVelocity() const
 {
 	return velocity;
+}
+
+AABBEx Hook::GetHitBox() const
+{
+	AABBEx wsBox	= HookParam::Get().Data().hitBoxPhysic;
+	wsBox.pos		+= GetPosition();
+	wsBox.velocity	= GetVelocity();
+	wsBox.exist		= ( state == ActionState::Stay || state == ActionState::Pull )
+					? true
+					: false;
+	return wsBox;
 }
 
 void Hook::CreateRenderingObjects()

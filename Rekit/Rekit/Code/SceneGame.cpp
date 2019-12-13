@@ -255,39 +255,47 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	Update-order memo:
 	1.	Prepare and reset "debugAllTerrains" with "debugTerrains". This way prevent continuously emplace_back to "debugAllTerrains" every frame. You do not add or remove the "debugTerrains".
 	2.	Update only a velocity(a position does not update) of all objects.
-	3.	Update a position(PhysicUpdate) of the gimmicks with the player's hit-box that contain calculated velocity. That hit-box of the player is not latest, but I want to update the gimmicks before the update of the player.
-	4.	Register the updated hit-boxes of the gimmicks to "debugAllTerrains".
-	5.	Update a position(PhysicUpdate) of the player with updated "debugAllTerrains".
+	3.	Update a position(PhysicUpdate) of the hook with terrains.
+	4.	Update a position(PhysicUpdate) of the gimmicks with the player's hit-box(and hook's hit-box if existed) that contain calculated velocity. That hit-box of the player is not latest, but I want to update the gimmicks before the update of the player.
+	5.	Register the updated hit-boxes of the gimmicks to "debugAllTerrains".
+	6.	Update a position(PhysicUpdate) of the player with updated "debugAllTerrains".
 	*/
 
-// #if DEBUG_MODE
-	// 1.
 	auto &refStage = AlphaParam::Get().DataRef();
-	// Reset the terrains.
-	refStage.debugAllTerrains.clear();
-	refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
-	refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
-// #endif // DEBUG_MODE
+	// 1. Reset the registered hit-boxes in "debugAllTerrains".
+	{
+		refStage.debugAllTerrains.clear();
+		refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
+		refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
+	}
 
-	// 2.
+	// 2. Update velocity of all objects.
 	gimmicks.Update( elapsedTime );
 	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 
-	// 3. The gimmicks PhysicUpdate().
+	// 3. The hook's PhysicUpdate().
+	if ( pHook )
+	{
+		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
+	}
+
+	// 4. The gimmicks PhysicUpdate().
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
 
 		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
 		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
 
-	// #if DEBUG_MODE
+		if ( pHook )
+		{
+			terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
+		}
+
 		gimmicks.PhysicUpdate( terrainsForGimmicks );
-	// #endif // DEBUG_MODE
 	}
 
-// #if DEBUG_MODE
-	// 4. Add the gimmicks block.
+	// 5. Add the gimmicks block.
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : boxes )
@@ -295,13 +303,9 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			refStage.debugAllTerrains.emplace_back( ToBox( it ) );
 		}
 	}
-// #endif // DEBUG_MODE
 	
+	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
-	if ( pHook )
-	{
-		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
-	}
 
 	CameraUpdate();
 
@@ -625,13 +629,17 @@ void SceneGame::HookUpdate(float elapsedTime)
 		if ( Donya::Keyboard::Trigger( VK_END    ) ) { trigger   = true; }
 	}
 
-	if (!pHook)
+
+	if ( trigger )
 	{
-		if (trigger)	{ pHook = std::make_unique<Hook>(player.GetPosition()); }
-		else			{ return; }
+		if ( pHook )	{ pHook.reset(); }
+		else			{ pHook = std::make_unique<Hook>( player.GetPosition() ); }
 	}
 
-	if (!pHook->IsExist())
+	if ( !pHook ) { return; }
+	// else
+
+	if ( !pHook->IsExist() )
 	{
 		pHook.reset();
 		return;
@@ -639,7 +647,7 @@ void SceneGame::HookUpdate(float elapsedTime)
 
 	input.playerPos = player.GetPosition();
 	input.currPress = useAction;
-	input.stickVec  = stick.Normalized();	// stick vector(e)‚ð“n‚·
+	input.stickVec  = stick.Normalized();
 
 	pHook->Update(elapsedTime, input);
 }
