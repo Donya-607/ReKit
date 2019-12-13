@@ -303,8 +303,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
 	}
 
-//	hook.PhysicUpdate( refStage.debugAllTerrains );
-
 	CameraUpdate();
 
 #if DEBUG_MODE
@@ -563,11 +561,13 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	}
 	else
 	{
-		if ( Donya::Keyboard::Press( VK_LEFT  ) )		{ moveLeft  = true; }
-		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
+		bool pressLeft  = Donya::Keyboard::Press( 'A' )/* || Donya::Keyboard::Press( VK_LEFT  )*/;
+		bool pressRight = Donya::Keyboard::Press( 'D' )/* || Donya::Keyboard::Press( VK_RIGHT )*/;
+		if ( pressLeft  )		{ moveLeft  = true; }
+		if ( pressRight )		{ moveRight = true; }
 		
-		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
-		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) )	{ useJump = true; }
+		bool trgJump    = Donya::Keyboard::Trigger( 'S' )/* || Donya::Keyboard::Trigger( VK_LSHIFT )*/;
+		if ( trgJump )			{ useJump = true; }
 	}
 
 	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }
@@ -585,7 +585,7 @@ void SceneGame::HookUpdate(float elapsedTime)
 
 	Hook::Input input{};
 
-	Donya::Vector2		stick;
+	Donya::Vector2		stick{};
 	bool				useAction	= false;
 	bool				trigger		= false;
 
@@ -600,6 +600,8 @@ void SceneGame::HookUpdate(float elapsedTime)
 	}
 	else
 	{
+		// OLD
+		/*
 		POINT mousePoint = Donya::Mouse::Coordinate();
 		stick.x = scast<float>(mousePoint.x) - player.GetPosition().x;
 		stick.y = scast<float>(mousePoint.y) - player.GetPosition().y;
@@ -612,6 +614,15 @@ void SceneGame::HookUpdate(float elapsedTime)
 		{
 			trigger = true;
 		}
+		*/
+
+		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x  -= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x  += 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y  += 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y  -= 1.0f; }
+
+		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction = true; }
+		if ( Donya::Keyboard::Trigger( VK_END    ) ) { trigger   = true; }
 	}
 
 	if (!pHook)
