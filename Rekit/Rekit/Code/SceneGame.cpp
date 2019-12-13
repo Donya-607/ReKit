@@ -403,7 +403,7 @@ void SceneGame::Draw( float elapsedTime )
 	}
 
 // #if DEBUG_MODE
-	if ( Common::IsShowCollision() )
+	// if ( Common::IsShowCollision() )
 	{
 		static auto cube = Donya::Geometric::CreateCube();
 

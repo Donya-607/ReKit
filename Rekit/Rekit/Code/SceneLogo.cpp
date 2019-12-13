@@ -85,9 +85,9 @@ Scene::Result SceneLogo::Update( float elapsedTime )
 			if ( showCount <= showIndex )
 			{
 				Fader::Configuration config{};
-				config.type = Fader::Type::Scroll;
-				config.closeFrame	= 20;
-				config.parameter	= Fader::Direction::RIGHT;
+				config.type			= Fader::Type::Gradually;
+				config.closeFrame	= Fader::GetDefaultCloseFrame();
+				config.SetColor( Donya::Color::Code::BLACK );
 				Fader::Get().StartFadeOut( config );
 
 				status = State::END;
@@ -131,7 +131,7 @@ Scene::Result SceneLogo::ReturnResult()
 	{
 		Scene::Result change{};
 		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Title;
+		change.sceneType = Scene::Type::Game;
 		return change;
 	}
 	// else
