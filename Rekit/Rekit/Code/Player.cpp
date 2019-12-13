@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Donya/Constant.h"	// Use DEBUG_MODE, scast macros.
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
 
@@ -13,6 +14,7 @@
 #endif // DEBUG_MODE
 
 #include "FilePath.h"
+#include "Music.h"
 
 #undef max
 #undef min
@@ -498,6 +500,8 @@ void Player::JumpIfUsed( float elapsedTime, Input controller )
 	if ( !controller.useJump || remainJumpCount <= 0 ) { return; }
 	// else
 	
+
+	Donya::Sound::Play( Music::Jump );
 	remainJumpCount--;
 	velocity.y = PlayerParam::Get().Data().jumpPower;
 }

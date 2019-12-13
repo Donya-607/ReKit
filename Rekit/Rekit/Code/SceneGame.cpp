@@ -35,6 +35,7 @@ public:
 	public:
 		std::vector<BoxEx> debugTerrains{};
 		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
+
 		BoxEx debugCompressor{ { 0.0f, 0.0f, 1.5f, 1.5f, true }, 30 };
 	private:
 		friend class cereal::access;
@@ -639,7 +640,11 @@ void SceneGame::HookUpdate(float elapsedTime)
 
 	if ( trigger )
 	{
-		if( !pHook ) { pHook = std::make_unique<Hook>( player.GetPosition() ); }
+		if( !pHook ) 
+		{ 
+			pHook = std::make_unique<Hook>( player.GetPosition() );
+			Donya::Sound::Play( Music::Throw );
+		}
 	}
 	if ( erase )
 	{

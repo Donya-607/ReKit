@@ -5,10 +5,12 @@
 #include <vector>
 
 #include "Donya/Easing.h"
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "Music.h"
 
 #undef max
 #undef min
@@ -237,6 +239,7 @@ void Hook::Update(float elapsedTime, Input controller)
 		if (prevPress && !controller.currPress)
 		{
 			state = ActionState::Stay;
+			Donya::Sound::Play( Music::Appearance );
 		}
 		break;
 
@@ -246,6 +249,7 @@ void Hook::Update(float elapsedTime, Input controller)
 		{
 			state = ActionState::Pull;
 			momentPullDist;
+			Donya::Sound::Play( Music::Pull );
 		}
 		break;
 
