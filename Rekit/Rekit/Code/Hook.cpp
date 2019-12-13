@@ -183,7 +183,7 @@ Donya::PixelShader				Hook::PSDemo{};
 Hook::Hook(const Donya::Vector3& playerPos) :
 	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
 	easingTime(0), distance(0), momentPullDist(0),
-	prevPress(false), exist(true)
+	prevPress(false), exist(true), placeablePoint(true)
 {}
 Hook::~Hook() = default;
 
@@ -277,6 +277,29 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	{
 		pos.x = direction.x * distance + playerPos.x;
 		pos.y = direction.y * distance + playerPos.y;
+
+		placeablePoint = true;
+		const auto wsAABB = GetHitBox();
+		BoxEx xyBody{};
+		{
+			xyBody.pos.x		= wsAABB.pos.x;
+			xyBody.pos.y		= wsAABB.pos.y;
+			xyBody.size.x		= wsAABB.size.x;
+			xyBody.size.y		= wsAABB.size.y;
+			xyBody.velocity.x	= wsAABB.velocity.x;
+			xyBody.velocity.y	= wsAABB.velocity.y;
+			xyBody.mass			= wsAABB.mass;
+			xyBody.exist		= true;
+		}
+		for ( const auto &it : terrains )
+		{
+			if ( Donya::Box::IsHitBox( it, xyBody ) )
+			{
+				placeablePoint = false;
+				break;
+			}
+		}
+
 		return;
 	}
 	// else
@@ -411,7 +434,9 @@ void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4&
 	cbuffer.data.worldViewProjection	= (W * matViewProjection).XMFloat();
 	cbuffer.data.lightDirection			= lightDirection;
 	cbuffer.data.lightColor				= lightColor;
-	cbuffer.data.materialColor			= Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f };
+	cbuffer.data.materialColor			= ( placeablePoint )
+										? Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f }
+										: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
 
 	cbuffer.Activate(0, /* setVS = */ true, /* setPS = */ true);
 	VSDemo.Activate();
