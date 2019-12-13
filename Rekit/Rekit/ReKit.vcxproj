@@ -173,6 +173,7 @@
     <ClCompile Include="Code\main.cpp" />
     <ClCompile Include="Code\Player.cpp" />
     <ClCompile Include="Code\SceneClear.cpp" />
+    <ClCompile Include="Code\SceneEditor.cpp" />
     <ClCompile Include="Code\SceneGame.cpp" />
     <ClCompile Include="Code\SceneLogo.cpp" />
     <ClCompile Include="Code\SceneManager.cpp" />
@@ -234,6 +235,7 @@
     <ClInclude Include="Code\Player.h" />
     <ClInclude Include="Code\Scene.h" />
     <ClInclude Include="Code\SceneClear.h" />
+    <ClInclude Include="Code\SceneEditor.h" />
     <ClInclude Include="Code\SceneGame.h" />
     <ClInclude Include="Code\SceneLogo.h" />
     <ClInclude Include="Code\SceneManager.h" />
