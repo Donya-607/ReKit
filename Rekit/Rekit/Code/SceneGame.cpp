@@ -33,8 +33,9 @@ public:
 	struct Member
 	{
 	public:
-		std::vector<Donya::Box> debugTerrains{};
-		std::vector<Donya::Box> debugAllTerrains{};		// Use for collision and drawing.
+		std::vector<BoxEx> debugTerrains{};
+		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
+		BoxEx debugCompressor{ { 0.0f, 0.0f, 1.5f, 1.5f, true }, 30 };
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -101,22 +102,23 @@ private:
 public:
 	void UseImGui()
 	{
+		m.debugCompressor.pos += m.debugCompressor.velocity;
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ブロックの移動関係" ) )
+			if ( ImGui::TreeNode( u8"地形エディタ" ) )
 			{
-				if ( ImGui::TreeNode( u8"パラメーター関係" ) )
+				if ( ImGui::TreeNode( u8"パラメーター設定" ) )
 				{
 					bool pressCtrl = Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
 					bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
 					if ( ( pressCtrl && triggerDebugButton ) || ImGui::Button( u8"ブロック生成" ) )
 					{
-						Donya::Box changeable{ 0.0f, 0.0f, 2.0f, 2.0f, true };
+						BoxEx changeable{ { 0.0f, 0.0f, 2.0f, 2.0f, true }, 1 };
 						AlphaParam::Get().DataRef().debugTerrains.emplace_back( changeable );
 					}
 					ImGui::Text( "" );
 
-					if ( ImGui::TreeNode( u8"ブロックの設定" ) )
+					if ( ImGui::TreeNode( u8"設定" ) )
 					{
 						int index = 0;
 						for ( auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
@@ -125,9 +127,11 @@ public:
 
 							std::string strPos	= u8"座標"   + std::to_string( index );
 							std::string strSize	= u8"サイズ" + std::to_string( index );
+							std::string strMass	= u8"質量"   + std::to_string( index );
 
-							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x );
+							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x  );
 							ImGui::DragFloat2( strSize.c_str(), &itr->size.x );
+							ImGui::DragInt   ( strMass.c_str(), &itr->mass   );
 
 							std::string strErase = u8"削除"  + std::to_string( index );
 
@@ -141,6 +145,16 @@ public:
 							}
 							ImGui::Text( "" );
 						}
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( u8"コンプレッサ" ) )
+					{
+						ImGui::DragFloat2( u8"座標",				&m.debugCompressor.pos.x				);
+						ImGui::DragFloat2( u8"サイズ（半分）",	&m.debugCompressor.size.x				);
+						ImGui::DragFloat2( u8"速度",				&m.debugCompressor.velocity.x,	0.001f	);
+						ImGui::DragInt   ( u8"質量",				&m.debugCompressor.mass,		1.0f, 0	);
 
 						ImGui::TreePop();
 					}
@@ -182,10 +196,10 @@ CEREAL_CLASS_VERSION( AlphaParam::Member, 0 )
 #pragma endregion
 
 SceneGame::SceneGame() :
-	dirLight(),
+	dirLight(), iCamera(),
+	controller( Donya::Gamepad::PAD_1 ),
 	player(), gimmicks(),
-	iCamera(),
-	controller( Donya::Gamepad::PAD_1 )
+	pHook( nullptr )
 {}
 SceneGame::~SceneGame() = default;
 
@@ -199,7 +213,7 @@ void SceneGame::Init()
 	AlphaParam::Get().Init();
 
 	player.Init();
-//	hook.Init();
+	Hook::Init();
 }
 void SceneGame::Uninit()
 {
@@ -209,7 +223,7 @@ void SceneGame::Uninit()
 	AlphaParam::Get().Uninit();
 
 	player.Uninit();
-//	hook.Uninit();
+	Hook::Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -219,52 +233,79 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	UseImGui();
 	AlphaParam::Get().UseImGui();
 
-	auto &refStage = AlphaParam::Get().DataRef();
-
 #endif // USE_IMGUI
+
+	auto ToBox = []( const AABBEx &aabb )
+	{
+		BoxEx box{};
+		box.pos.x		= aabb.pos.x;
+		box.pos.y		= aabb.pos.y;
+		box.size.x		= aabb.size.x;
+		box.size.y		= aabb.size.y;
+		box.exist		= aabb.exist;
+		box.velocity.x	= aabb.velocity.x;
+		box.velocity.y	= aabb.velocity.y;
+		box.mass		= aabb.mass;
+		return box;
+	};
 
 	controller.Update();
 
-	gimmicks.Update( elapsedTime );
+	/*
+	Update-order memo:
+	1.	Prepare and reset "debugAllTerrains" with "debugTerrains". This way prevent continuously emplace_back to "debugAllTerrains" every frame. You do not add or remove the "debugTerrains".
+	2.	Update only a velocity(a position does not update) of all objects.
+	3.	Update a position(PhysicUpdate) of the hook with terrains.
+	4.	Update a position(PhysicUpdate) of the gimmicks with the player's hit-box(and hook's hit-box if existed) that contain calculated velocity. That hit-box of the player is not latest, but I want to update the gimmicks before the update of the player.
+	5.	Register the updated hit-boxes of the gimmicks to "debugAllTerrains".
+	6.	Update a position(PhysicUpdate) of the player with updated "debugAllTerrains".
+	*/
 
-#if DEBUG_MODE
-	gimmicks.PhysicUpdate( refStage.debugTerrains );
-#endif // DEBUG_MODE
-
-	// This update does not call PhysicUpdate().
-	PlayerUpdate( elapsedTime );
-
-#if DEBUG_MODE
-	// Collision Test.
+	auto &refStage = AlphaParam::Get().DataRef();
+	// 1. Reset the registered hit-boxes in "debugAllTerrains".
 	{
-		refStage.debugAllTerrains = refStage.debugTerrains;
+		refStage.debugAllTerrains.clear();
+		refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
+		refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
+	}
 
-		// Add the gimmicks block.
+	// 2. Update velocity of all objects.
+	gimmicks.Update( elapsedTime );
+	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
+	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
+
+	// 3. The hook's PhysicUpdate().
+	if ( pHook )
+	{
+		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
+	}
+
+	// 4. The gimmicks PhysicUpdate().
+	{
+		AABBEx wsPlayerAABB = player.GetHitBox();
+
+		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
+		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
+
+		if ( pHook )
 		{
-			auto ToBox = []( const Donya::AABB &aabb )
-			{
-				Donya::Box box{};
-				box.pos.x		= aabb.pos.x;
-				box.pos.y		= aabb.pos.y;
-				box.size.x		= aabb.size.x;
-				box.size.y		= aabb.size.y;
-				box.exist		= aabb.exist;
-				box.velocity.x	= aabb.velocity.x;
-				box.velocity.y	= aabb.velocity.y;
-				return box;
-			};
-
-			const auto boxes = gimmicks.RequireHitBoxes();
-			for ( const auto &it : boxes )
-			{
-				refStage.debugAllTerrains.emplace_back( ToBox( it ) );
-			}
+			terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
 		}
 
-		player.PhysicUpdate( refStage.debugAllTerrains );
-//		hook.PhysicUpdate( refStage.debugAllTerrains );
+		gimmicks.PhysicUpdate( terrainsForGimmicks );
 	}
-#endif // DEBUG_MODE
+
+	// 5. Add the gimmicks block.
+	{
+		const auto boxes = gimmicks.RequireHitBoxes();
+		for ( const auto &it : boxes )
+		{
+			refStage.debugAllTerrains.emplace_back( ToBox( it ) );
+		}
+	}
+	
+	// 6. The player's PhysicUpdate().
+	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
 
 	CameraUpdate();
 
@@ -300,9 +341,12 @@ void SceneGame::Draw( float elapsedTime )
 	gimmicks.Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
-//	hook.Draw( V * P, dirLight.dir, dirLight.color );
+	if (pHook)
+	{
+		pHook->Draw(V * P, dirLight.dir, dirLight.color);
+	}
 
-#if DEBUG_MODE
+// #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
 		// Drawing Test Terrains that use to player's collision.
@@ -335,6 +379,7 @@ void SceneGame::Draw( float elapsedTime )
 			}
 		}
 
+	#if DEBUG_MODE
 		// Drawing TextureBoard Demo.
 		{
 			constexpr const wchar_t *texturePath	= L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
@@ -389,8 +434,9 @@ void SceneGame::Draw( float elapsedTime )
 				lightDir, boardColor
 			);
 		}
+	#endif // DEBUG_MODE
 	}
-#endif // DEBUG_MODE
+// #endif // DEBUG_MODE
 }
 
 void SceneGame::CameraInit()
@@ -481,7 +527,10 @@ void SceneGame::CameraUpdate()
 
 		return ctrl;
 	};
-	iCamera.Update( MakeControlStructWithMouse() );
+	auto input = MakeControlStructWithMouse();
+	input.moveVelocity.x *= -1.0f;
+	input.moveVelocity.y *= -1.0f;
+	iCamera.Update( input );
 
 #if DEBUG_MODE
 	if ( Donya::Keyboard::Press( VK_MENU ) )
@@ -516,10 +565,13 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	}
 	else
 	{
-		if ( Donya::Keyboard::Press( VK_LEFT  ) )		{ moveLeft  = true; }
-		if ( Donya::Keyboard::Press( VK_RIGHT ) )		{ moveRight = true; }
+		bool pressLeft  = Donya::Keyboard::Press( 'A' )/* || Donya::Keyboard::Press( VK_LEFT  )*/;
+		bool pressRight = Donya::Keyboard::Press( 'D' )/* || Donya::Keyboard::Press( VK_RIGHT )*/;
+		if ( pressLeft  )		{ moveLeft  = true; }
+		if ( pressRight )		{ moveRight = true; }
 		
-		if ( Donya::Keyboard::Trigger( VK_LSHIFT ) )	{ useJump = true; }
+		bool trgJump    = Donya::Keyboard::Trigger( 'S' )/* || Donya::Keyboard::Trigger( VK_LSHIFT )*/;
+		if ( trgJump )			{ useJump = true; }
 	}
 
 	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }
@@ -529,11 +581,82 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	player.Update( elapsedTime, input );
 }
 
+void SceneGame::HookUpdate(float elapsedTime)
+{
+#if USE_IMGUI
+	Hook::UseImGui();
+#endif // USE_IMGUI
+
+	Hook::Input input{};
+
+	Donya::Vector2		stick{};
+	bool				useAction	= false;
+	bool				trigger		= false;
+
+	if (controller.IsConnected())
+	{
+		using Pad = Donya::Gamepad;
+
+		stick = controller.RightStick();
+
+		if (controller.Press(Pad::RT)) { useAction = true; }
+		if (controller.Trigger(Pad::RT)) { trigger = true; }
+	}
+	else
+	{
+		// OLD
+		/*
+		POINT mousePoint = Donya::Mouse::Coordinate();
+		stick.x = scast<float>(mousePoint.x) - player.GetPosition().x;
+		stick.y = scast<float>(mousePoint.y) - player.GetPosition().y;
+
+		if (Donya::Mouse::Press(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			useAction = true;
+		}
+		if (Donya::Mouse::Trigger(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
+		{
+			trigger = true;
+		}
+		*/
+
+		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x  -= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x  += 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y  += 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y  -= 1.0f; }
+
+		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction = true; }
+		if ( Donya::Keyboard::Trigger( VK_END    ) ) { trigger   = true; }
+	}
+
+
+	if ( trigger )
+	{
+		if ( pHook )	{ pHook.reset(); }
+		else			{ pHook = std::make_unique<Hook>( player.GetPosition() ); }
+	}
+
+	if ( !pHook ) { return; }
+	// else
+
+	if ( !pHook->IsExist() )
+	{
+		pHook.reset();
+		return;
+	}
+
+	input.playerPos = player.GetPosition();
+	input.currPress = useAction;
+	input.stickVec  = stick.Normalized();
+
+	pHook->Update(elapsedTime, input);
+}
+
 void SceneGame::StartFade() const
 {
 	Fader::Configuration config{};
 	config.type			= Fader::Type::Gradually;
-	config.closeFrame	= Fader::GetDefaultCloseFrame();;
+	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
 }

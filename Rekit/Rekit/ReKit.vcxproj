@@ -170,6 +170,7 @@
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\Gimmicks.cpp" />
+    <ClCompile Include="Code\Hook.cpp" />
     <ClCompile Include="Code\main.cpp" />
     <ClCompile Include="Code\Player.cpp" />
     <ClCompile Include="Code\SceneClear.cpp" />
@@ -191,6 +192,7 @@
   <ItemGroup>
     <ClInclude Include="Code\Animation.h" />
     <ClInclude Include="Code\Common.h" />
+    <ClInclude Include="Code\DerivedCollision.h" />
     <ClInclude Include="Code\Donya\AudioSystem.h" />
     <ClInclude Include="Code\Donya\Benchmark.h" />
     <ClInclude Include="Code\Donya\Blend.h" />
@@ -230,6 +232,7 @@
     <ClInclude Include="Code\FilePath.h" />
     <ClInclude Include="Code\Framework.h" />
     <ClInclude Include="Code\Gimmicks.h" />
+    <ClInclude Include="Code\Hook.h" />
     <ClInclude Include="Code\Icon.h" />
     <ClInclude Include="Code\Music.h" />
     <ClInclude Include="Code\Player.h" />
