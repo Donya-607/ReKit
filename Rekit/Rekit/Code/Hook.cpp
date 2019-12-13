@@ -326,8 +326,8 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 		{
 			xyBody.pos.x		= GetPosition().x;
 			xyBody.pos.y		= GetPosition().y;
-			xyBody.size.x		= actualBody.size.x * xyNAxis.x; // Only either X or Y is valid.
-			xyBody.size.y		= actualBody.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.size.x		= actualBody.size.x;
+			xyBody.size.y		= actualBody.size.y;
 			xyBody.velocity.x	= GetVelocity().x;
 			xyBody.velocity.y	= GetVelocity().y;
 			xyBody.mass			= actualBody.mass;
@@ -335,7 +335,8 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 			else															{ xyBody.exist = false; }
 		}
 		Donya::Vector2 xyBodyCenter = xyBody.pos;
-		const float bodyWidth = xyBody.size.Length(); // Extract valid member by Length().
+		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
+		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
 		for (const auto& wall : terrains)
 		{
@@ -399,8 +400,9 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const
 {
-	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation(GetPosition());
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling(HookParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */);
+	const AABBEx wsHitBox = GetHitBox();
+	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
 	Donya::Vector4x4 W = S * T;
 
 	cbuffer.data.world					= W.XMFloat();
