@@ -228,7 +228,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( AlphaParam::Member, 1 )
+CEREAL_CLASS_VERSION( AlphaParam::Member, 2 )
 #pragma endregion
 
 SceneGame::SceneGame() :
@@ -244,11 +244,11 @@ void SceneGame::Init()
 {
 	Donya::Sound::Play( Music::BGM_Game );
 
+	AlphaParam::Get().Init();
+
 	CameraInit();
 
 	gimmicks.Init( NULL );
-	AlphaParam::Get().Init();
-
 	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
 }
