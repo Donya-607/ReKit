@@ -439,7 +439,7 @@ void SceneGame::Draw( float elapsedTime )
 		{
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 			const auto box = AlphaParam::Get().Data().debugClearTrigger;
-			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 0.0f } );
+			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 1.0f } );
 			Donya::Vector4x4 cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ box.size * 2.0f, 1.0f } );
 			Donya::Vector4x4 cubeW = cubeS * cubeT;
 
