@@ -5,9 +5,11 @@
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
+#include "Donya/Sound.h"
 
 #include "Common.h"
 #include "FilePath.h"
+#include "Music.h"
 
 #undef max
 #undef min
@@ -325,6 +327,8 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
 					if (  angle < 0.0f ) // If these direction is against.
 					{
+
+						Donya::Sound::Play( Music::Insert );
 						wasBroken = true;
 						break;
 					}
