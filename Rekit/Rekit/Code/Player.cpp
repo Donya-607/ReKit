@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Donya/Constant.h"	// Use DEBUG_MODE, scast macros.
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
 
@@ -13,13 +14,14 @@
 #endif // DEBUG_MODE
 
 #include "FilePath.h"
+#include "Music.h"
 
 #undef max
 #undef min
 
-class Param final : public Donya::Singleton<Param>
+class PlayerParam final : public Donya::Singleton<PlayerParam>
 {
-	friend Donya::Singleton<Param>;
+	friend Donya::Singleton<PlayerParam>;
 public:
 	struct Member
 	{
@@ -54,9 +56,9 @@ private:
 	static constexpr const char *SERIAL_ID = "Player";
 	Member m;
 private:
-	Param() : m() {}
+	PlayerParam() : m() {}
 public:
-	~Param() = default;
+	~PlayerParam() = default;
 public:
 	void Init()
 	{
@@ -147,7 +149,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( Param::Member, 0 )
+CEREAL_CLASS_VERSION( PlayerParam::Member, 0 )
 
 Player::Player() :
 	remainJumpCount( 1 ),
@@ -156,22 +158,24 @@ Player::Player() :
 {}
 Player::~Player() = default;
 
-void Player::Init()
+void Player::Init( const Donya::Vector3 &wsInitPos )
 {
-	Param::Get().Init();
+	PlayerParam::Get().Init();
 
 	CreateRenderingObjects();
+
+	pos = wsInitPos;
 }
 void Player::Uninit()
 {
-	Param::Get().Uninit();
+	PlayerParam::Get().Uninit();
 }
 
 void Player::Update( float elapsedTime, Input controller )
 {
 #if USE_IMGUI
 
-	Param::Get().UseImGui();
+	PlayerParam::Get().UseImGui();
 	UseImGui();
 
 #endif // USE_IMGUI
@@ -211,7 +215,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			pos.x += xyVelocity.x;
 			pos.y += xyVelocity.y;
 
-			const auto actualBody = Param::Get().Data().hitBoxPhysic;
+			const auto actualBody = PlayerParam::Get().Data().hitBoxPhysic;
 
 			// A moveing direction of myself. Take a value of +1.0f or -1.0f.
 			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
@@ -328,7 +332,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			pos.x += xyVelocity.x;
 			pos.y += xyVelocity.y;
 
-			const auto actualBody = Param::Get().Data().hitBoxPhysic;
+			const auto actualBody = PlayerParam::Get().Data().hitBoxPhysic;
 
 			// Take a value of +1 or -1.
 			float moveSign = scast<float>( Donya::SignBit( xyVelocity.x ) + Donya::SignBit( xyVelocity.y ) );
@@ -435,7 +439,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( Param::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
 	Donya::Vector4x4 W = S * T;
 
 	cbuffer.data.world					= W.XMFloat();
@@ -461,7 +465,7 @@ Donya::Vector3 Player::GetPosition() const
 }
 AABBEx Player::GetHitBox() const
 {
-	AABBEx wsAABB	=  Param::Get().Data().hitBoxPhysic;
+	AABBEx wsAABB	=  PlayerParam::Get().Data().hitBoxPhysic;
 	wsAABB.pos		+= GetPosition();
 	wsAABB.velocity	=  velocity;
 	return wsAABB;
@@ -484,27 +488,29 @@ void Player::CreateRenderingObjects()
 
 void Player::Move( float elapsedTime, Input controller )
 {
-	const float moveSpeed = Param::Get().Data().moveSpeed;
+	const float moveSpeed = PlayerParam::Get().Data().moveSpeed;
 	velocity.x = controller.moveVelocity.x * moveSpeed * elapsedTime;
 }
 
 void Player::Fall( float elapsedTime, Input controller )
 {
-	velocity.y -= Param::Get().Data().gravity * elapsedTime;
-	velocity.y =  std::max( -Param::Get().Data().maxFallSpeed, velocity.y );
+	velocity.y -= PlayerParam::Get().Data().gravity * elapsedTime;
+	velocity.y =  std::max( -PlayerParam::Get().Data().maxFallSpeed, velocity.y );
 }
 void Player::JumpIfUsed( float elapsedTime, Input controller )
 {
 	if ( !controller.useJump || remainJumpCount <= 0 ) { return; }
 	// else
-	
+
 	remainJumpCount--;
-	velocity.y = Param::Get().Data().jumpPower;
+	velocity.y = PlayerParam::Get().Data().jumpPower;
+	
+	Donya::Sound::Play( Music::Jump );
 }
 
 void Player::Landing()
 {
-	remainJumpCount = Param::Get().Data().maxJumpCount;
+	remainJumpCount = PlayerParam::Get().Data().maxJumpCount;
 	velocity.y = 0.0f;
 }
 

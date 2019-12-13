@@ -12,6 +12,12 @@ namespace Music
 		ItemChoose,
 		ItemDecision,
 
+		Jump,
+		Throw,
+		Appearance,
+		Pull,
+		Insert,
+
 		MUSIC_COUNT
 	};
 }

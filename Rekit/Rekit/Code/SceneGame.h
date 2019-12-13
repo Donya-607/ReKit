@@ -29,6 +29,8 @@ private:
 	Gimmick					gimmicks;
 
 	std::unique_ptr<Hook>	pHook;
+
+	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
 	SceneGame();
 	~SceneGame();
@@ -45,6 +47,8 @@ private:
 
 	void	PlayerUpdate(float elapsedTime);
 	void	HookUpdate( float elapsedTime );
+
+	bool	DetectClearMoment() const;
 
 	void	StartFade() const;
 private:

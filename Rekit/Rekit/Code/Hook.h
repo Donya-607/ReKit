@@ -49,6 +49,7 @@ private:
 	float								momentPullDist;		// à¯Ç©ÇÍÇΩèuä‘ÇÃplayerÇ∆hookÇÃãóó£
 	bool								prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
 	bool								exist;
+	bool								placeablePoint;		// Use for represent to user when state == Throw.
 
 	static Donya::Geometric::Cube		drawModel;
 	static Donya::CBuffer<Constants>	cbuffer;
@@ -73,6 +74,11 @@ public:
 	/// </summary>
 	Donya::Vector3 GetPosition() const;
 	Donya::Vector3 GetVelocity() const;
+
+	/// <summary>
+	/// Returns hit-box is world space.
+	/// </summary>
+	AABBEx GetHitBox() const;
 private:
 	static void CreateRenderingObjects();
 
