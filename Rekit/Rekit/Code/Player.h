@@ -41,7 +41,7 @@ public:
 	Player();
 	~Player();
 public:
-	void Init();
+	void Init( const Donya::Vector3 &wsInitPos );
 	void Uninit();
 
 	void Update( float elpasedTime, Input controller );

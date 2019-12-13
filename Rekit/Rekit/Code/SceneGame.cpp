@@ -37,6 +37,9 @@ public:
 		std::vector<BoxEx> debugAllTerrains{};		// Use for collision and drawing.
 		BoxEx debugCompressor  { { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
 		BoxEx debugClearTrigger{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
+
+		Donya::Vector3 initCameraPos{};
+		Donya::Vector3 initPlayerPos{};
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -51,6 +54,14 @@ public:
 				archive( CEREAL_NVP( debugClearTrigger ) );
 			}
 			if ( 2 <= version )
+			{
+				archive
+				(
+					CEREAL_NVP( initPlayerPos ),
+					CEREAL_NVP( initCameraPos )
+				);
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -176,6 +187,14 @@ public:
 						ImGui::TreePop();
 					}
 
+					if ( ImGui::TreeNode( u8"初期位置" ) )
+					{
+						ImGui::DragFloat3( u8"自機の初期位置", &m.initPlayerPos.x );
+						ImGui::DragFloat3( u8"カメラの初期位置", &m.initCameraPos.x );
+
+						ImGui::TreePop();
+					}
+
 					ImGui::TreePop();
 				}
 
@@ -230,7 +249,7 @@ void SceneGame::Init()
 	gimmicks.Init( NULL );
 	AlphaParam::Get().Init();
 
-	player.Init();
+	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
 }
 void SceneGame::Uninit()
@@ -500,7 +519,7 @@ void SceneGame::CameraInit()
 	iCamera.SetZRange( 0.1f, 1000.0f );
 	iCamera.SetFOV( ToRadian( 30.0f ) );
 	iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-	iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
+	iCamera.SetPosition( AlphaParam::Get().Data().initCameraPos );
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
 

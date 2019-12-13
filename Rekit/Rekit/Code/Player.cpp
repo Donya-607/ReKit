@@ -156,11 +156,13 @@ Player::Player() :
 {}
 Player::~Player() = default;
 
-void Player::Init()
+void Player::Init( const Donya::Vector3 &wsInitPos )
 {
 	PlayerParam::Get().Init();
 
 	CreateRenderingObjects();
+
+	pos = wsInitPos;
 }
 void Player::Uninit()
 {
