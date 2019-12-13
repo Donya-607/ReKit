@@ -183,7 +183,7 @@ Donya::PixelShader				Hook::PSDemo{};
 Hook::Hook(const Donya::Vector3& playerPos) :
 	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
 	easingTime(0), distance(0), momentPullDist(0),
-	prevPress(false), exist(true)
+	prevPress(false), exist(true), placeablePoint(true)
 {}
 Hook::~Hook() = default;
 
@@ -241,7 +241,7 @@ void Hook::Update(float elapsedTime, Input controller)
 		break;
 
 	case ActionState::Stay:
-		velocity = { 0.0f };
+		velocity = 0.0f;
 		if (controller.currPress)
 		{
 			state = ActionState::Pull;
@@ -277,6 +277,29 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	{
 		pos.x = direction.x * distance + playerPos.x;
 		pos.y = direction.y * distance + playerPos.y;
+
+		placeablePoint = true;
+		const auto wsAABB = GetHitBox();
+		BoxEx xyBody{};
+		{
+			xyBody.pos.x		= wsAABB.pos.x;
+			xyBody.pos.y		= wsAABB.pos.y;
+			xyBody.size.x		= wsAABB.size.x;
+			xyBody.size.y		= wsAABB.size.y;
+			xyBody.velocity.x	= wsAABB.velocity.x;
+			xyBody.velocity.y	= wsAABB.velocity.y;
+			xyBody.mass			= wsAABB.mass;
+			xyBody.exist		= true;
+		}
+		for ( const auto &it : terrains )
+		{
+			if ( Donya::Box::IsHitBox( it, xyBody ) )
+			{
+				placeablePoint = false;
+				break;
+			}
+		}
+
 		return;
 	}
 	// else
@@ -326,8 +349,8 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 		{
 			xyBody.pos.x		= GetPosition().x;
 			xyBody.pos.y		= GetPosition().y;
-			xyBody.size.x		= actualBody.size.x * xyNAxis.x; // Only either X or Y is valid.
-			xyBody.size.y		= actualBody.size.y * xyNAxis.y; // Only either X or Y is valid.
+			xyBody.size.x		= actualBody.size.x;
+			xyBody.size.y		= actualBody.size.y;
 			xyBody.velocity.x	= GetVelocity().x;
 			xyBody.velocity.y	= GetVelocity().y;
 			xyBody.mass			= actualBody.mass;
@@ -335,11 +358,11 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 			else															{ xyBody.exist = false; }
 		}
 		Donya::Vector2 xyBodyCenter = xyBody.pos;
-		const float bodyWidth = xyBody.size.Length(); // Extract valid member by Length().
+		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
+		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
 		for (const auto& wall : terrains)
 		{
-			if ( wall.mass < xyBody.mass )					{ continue; }
 			if ( !Donya::Box::IsHitBox( xyBody, wall ) )	{ continue; }
 			// else
 
@@ -363,6 +386,9 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 				moveSign *= -1.0f;		// This "moveSign" represent the moving direction of myself, so I should reverse.
 				moveSpeed = wallSpeed * moveSign;
 			}
+
+			if ( wall.mass < xyBody.mass ) { continue; }
+			// else
 
 			// Calculate colliding length.
 			// First, calculate body's edge of moving side.
@@ -399,15 +425,18 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const
 {
-	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation(GetPosition());
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling(HookParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */);
+	const AABBEx wsHitBox = GetHitBox();
+	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
 	Donya::Vector4x4 W = S * T;
 
 	cbuffer.data.world					= W.XMFloat();
 	cbuffer.data.worldViewProjection	= (W * matViewProjection).XMFloat();
 	cbuffer.data.lightDirection			= lightDirection;
 	cbuffer.data.lightColor				= lightColor;
-	cbuffer.data.materialColor			= Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f };
+	cbuffer.data.materialColor			= ( placeablePoint )
+										? Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f }
+										: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
 
 	cbuffer.Activate(0, /* setVS = */ true, /* setPS = */ true);
 	VSDemo.Activate();

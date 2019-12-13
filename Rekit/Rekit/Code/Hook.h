@@ -49,6 +49,7 @@ private:
 	float								momentPullDist;		// ˆø‚©‚ê‚½uŠÔ‚Ìplayer‚Æhook‚Ì‹——£
 	bool								prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
 	bool								exist;
+	bool								placeablePoint;		// Use for represent to user when state == Throw.
 
 	static Donya::Geometric::Cube		drawModel;
 	static Donya::CBuffer<Constants>	cbuffer;

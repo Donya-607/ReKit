@@ -248,6 +248,14 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		box.mass		= aabb.mass;
 		return box;
 	};
+	auto AppendGimmicksBox = [&ToBox]( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
+	{
+		const auto boxes = gimmicks.RequireHitBoxes();
+		for ( const auto &it : boxes )
+		{
+			pTerrains->emplace_back( ToBox( it ) );
+		}
+	};
 
 	controller.Update();
 
@@ -277,7 +285,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
 	{
-		pHook->PhysicUpdate( refStage.debugAllTerrains, player.GetPosition() );
+		std::vector<BoxEx>   terrainsForHook = refStage.debugAllTerrains;
+		AppendGimmicksBox(  &terrainsForHook, gimmicks );
+
+		pHook->PhysicUpdate( terrainsForHook, player.GetPosition() );
 	}
 
 	// 4. The gimmicks PhysicUpdate().
@@ -296,13 +307,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	}
 
 	// 5. Add the gimmicks block.
-	{
-		const auto boxes = gimmicks.RequireHitBoxes();
-		for ( const auto &it : boxes )
-		{
-			refStage.debugAllTerrains.emplace_back( ToBox( it ) );
-		}
-	}
+	AppendGimmicksBox( &refStage.debugAllTerrains, gimmicks );
 	
 	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
@@ -592,15 +597,17 @@ void SceneGame::HookUpdate(float elapsedTime)
 	Donya::Vector2		stick{};
 	bool				useAction	= false;
 	bool				trigger		= false;
+	bool				erase		= false; // A User can erase the hook arbitally.
 
-	if (controller.IsConnected())
+	if ( controller.IsConnected() )
 	{
 		using Pad = Donya::Gamepad;
 
 		stick = controller.RightStick();
 
-		if (controller.Press(Pad::RT)) { useAction = true; }
-		if (controller.Trigger(Pad::RT)) { trigger = true; }
+		if ( controller.Press  ( Pad::RT ) ) { useAction	= true; }
+		if ( controller.Trigger( Pad::RT ) ) { trigger		= true; }
+		if ( controller.Trigger( Pad::LT ) ) { erase		= true; }
 	}
 	else
 	{
@@ -620,20 +627,23 @@ void SceneGame::HookUpdate(float elapsedTime)
 		}
 		*/
 
-		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x  -= 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x  += 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y  += 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y  -= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x		-= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x		+= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y		+= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y		-= 1.0f; }
 
-		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction = true; }
-		if ( Donya::Keyboard::Trigger( VK_END    ) ) { trigger   = true; }
+		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction	= true; }
+		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) ) { trigger		= true; }
+		if ( Donya::Keyboard::Trigger( VK_END    ) ) { erase		= true; }
 	}
-
 
 	if ( trigger )
 	{
-		if ( pHook )	{ pHook.reset(); }
-		else			{ pHook = std::make_unique<Hook>( player.GetPosition() ); }
+		if( !pHook ) { pHook = std::make_unique<Hook>( player.GetPosition() ); }
+	}
+	if ( erase )
+	{
+		pHook.reset();
 	}
 
 	if ( !pHook ) { return; }
@@ -644,6 +654,7 @@ void SceneGame::HookUpdate(float elapsedTime)
 		pHook.reset();
 		return;
 	}
+	// else
 
 	input.playerPos = player.GetPosition();
 	input.currPress = useAction;
