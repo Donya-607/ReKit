@@ -718,6 +718,9 @@ void SceneGame::HookUpdate( float elapsedTime )
 	if ( erase )
 	{
 		pHook.reset();
+
+		// The sound is temporary. so TODO : change this.
+		Donya::Sound::Play( Music::Jump );
 	}
 
 	if ( !pHook ) { return; }
