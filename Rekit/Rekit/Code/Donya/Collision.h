@@ -10,6 +10,8 @@
 
 namespace Donya
 {
+#pragma region 2D
+
 	class Circle;
 
 	/// <summary>
@@ -148,6 +150,50 @@ namespace Donya
 		}
 	};
 
+	/// <summary>
+	/// Line-segment.<para></para>
+	/// Vector2 pos : Start position of line.<para></para>
+	/// Vector2 vec : Direction of line. Also have length.
+	/// </summary>
+	class Line
+	{
+	public:
+		Donya::Vector2 pos{}; // Start position of line.
+		Donya::Vector2 vec{}; // Direction of line. Also have length.
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, std::uint32_t version )
+		{
+			archive
+			(
+				CEREAL_NVP( pos ),
+				CEREAL_NVP( vec )
+			);
+			if ( 1 <= version )
+			{
+				// archive();
+			}
+		}
+	public:
+		struct Result
+		{
+			Donya::Vector2 intersection{};
+			bool wasHit{ false };
+		};
+		static Result CalcIntersectionPoint( const Line &L, const Line &R );
+	public:
+		static Line Nil()
+		{
+			return Line{};
+		}
+	};
+
+// 2D
+#pragma endregion
+
+#pragma region 3D
+	
 	class Sphere;
 
 	/// <summary>
@@ -304,6 +350,9 @@ namespace Donya
 			return OBB{ {}, {}, {}, {}, false };
 		}
 	};
+
+// 3D
+#pragma endregion
 
 	bool		operator == ( const Box &L,		const Box &R );
 	static bool	operator != ( const Box &L,		const Box &R ) { return !( L == R ); }

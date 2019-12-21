@@ -1,6 +1,8 @@
 #include "Gimmicks.h"
 
+#include <array>			// Use at collision.
 #include <algorithm>		// Use std::remove_if.
+#include <vector>			// use at collision.
 
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Template.h"
@@ -234,6 +236,320 @@ void FragileBlock::Fall( float elapsedTime )
 
 void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 {
+#if 0 // VER_4, Calc a penetration every colliding hit-boxes. Then resolve only lowest penetrating axis. Then recheck a collision.
+	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
+	{
+		for ( const auto &it : terrains )
+		{
+			if ( it.mass < myself.mass ) { continue; }
+			if ( it == previousMyself  ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, myself ) )
+			{
+				return it;
+			}
+		}
+
+		return BoxEx::Nil();
+	};
+
+	const AABBEx actualBody = GetHitBox();
+	BoxEx previousXYBody{};
+	{
+		previousXYBody.pos.x		= actualBody.pos.x;
+		previousXYBody.pos.y		= actualBody.pos.y;
+		previousXYBody.size.x		= actualBody.size.x;
+		previousXYBody.size.y		= actualBody.size.y;
+		previousXYBody.velocity.x	= actualBody.velocity.x;
+		previousXYBody.velocity.y	= actualBody.velocity.y;
+		previousXYBody.exist		= actualBody.exist;
+		previousXYBody.mass			= actualBody.mass;
+	}
+
+	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+	{
+		scast<float>( Donya::SignBit( xyVelocity.x ) ),
+		scast<float>( Donya::SignBit( xyVelocity.y ) )
+	};
+
+	BoxEx movedXYBody = previousXYBody;
+	movedXYBody.pos  += xyVelocity;
+
+	BoxEx other{};
+
+	std::vector<Donya::Vector2> pushedDirections{}; // Store a normalized-vector of [wall->myself].
+	// Returns true if it is determined to compressed. The "pushDir" expect {0, 1} or {1, 0}.
+	auto JudgeWillCompressed = [&pushedDirections]( const Donya::Vector2 pushDir )->bool
+	{
+		pushedDirections.emplace_back( pushDir );
+		if ( pushedDirections.size() < 2U ) { return false; } // The myself does not compress if a vectors count less than two.
+		// else
+
+		float angle{};
+		for ( const auto &it : pushedDirections )
+		{
+			angle = Donya::Vector2::Dot( pushDir, it );
+			if ( angle < 0.0f ) // If these direction is against.
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+	unsigned int loopCount{};
+	while ( ++loopCount < MAX_LOOP_COUNT )
+	{
+		other = CalcCollidingBox( movedXYBody, previousXYBody );
+		if ( other == BoxEx::Nil() ) { break; }
+		// else
+
+	}
+
+#elif 1 // VER_3, Calc a penetration every colliding hit-boxes. Then recheck a collision.
+	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
+	{
+		for ( const auto &it : terrains )
+		{
+			if ( it.mass < myself.mass ) { continue; }
+			if ( it == previousMyself  ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, myself ) )
+			{
+				return it;
+			}
+		}
+
+		return BoxEx::Nil();
+	};
+
+	const AABBEx actualBody = GetHitBox();
+	BoxEx previousXYBody{};
+	{
+		previousXYBody.pos.x		= actualBody.pos.x;
+		previousXYBody.pos.y		= actualBody.pos.y;
+		previousXYBody.size.x		= actualBody.size.x;
+		previousXYBody.size.y		= actualBody.size.y;
+		previousXYBody.velocity.x	= actualBody.velocity.x;
+		previousXYBody.velocity.y	= actualBody.velocity.y;
+		previousXYBody.exist		= actualBody.exist;
+		previousXYBody.mass			= actualBody.mass;
+	}
+
+	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+	{
+		scast<float>( Donya::SignBit( xyVelocity.x ) ),
+		scast<float>( Donya::SignBit( xyVelocity.y ) )
+	};
+
+	BoxEx movedXYBody = previousXYBody;
+	movedXYBody.pos  += xyVelocity;
+
+	BoxEx other{};
+
+	std::vector<Donya::Vector2> pushedDirections{}; // Store a normalized-vector of [wall->myself].
+	// Returns true if it is determined to compressed. The "pushDir" expect {0, 1} or {1, 0}.
+	auto JudgeWillCompressed = [&pushedDirections]( const Donya::Vector2 pushDir )->bool
+	{
+		pushedDirections.emplace_back( pushDir );
+		if ( pushedDirections.size() < 2U ) { return false; } // The myself does not compress if a vectors count less than two.
+		// else
+
+		float angle{};
+		for ( const auto &it : pushedDirections )
+		{
+			angle = Donya::Vector2::Dot( pushDir, it );
+			if ( angle < 0.0f ) // If these direction is against.
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+	unsigned int loopCount{};
+	bool    nowColliding = true;
+	while ( nowColliding )
+	{
+		if ( MAX_LOOP_COUNT <= ++loopCount ) { break; }
+		// else
+
+		other = CalcCollidingBox( movedXYBody, previousXYBody );
+		if ( other == BoxEx::Nil() ) { break; }
+		// else
+
+		if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+		}
+		if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+		}
+
+		Donya::Vector2 penetration{}; // Store absolute value.
+		Donya::Vector2 plusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+		};
+		Donya::Vector2 minusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+		};
+		penetration.x
+			= ( moveSign.x < 0.0f ) ? minusPenetration.x
+			: ( moveSign.x > 0.0f ) ? plusPenetration.x
+			: std::min( minusPenetration.x, plusPenetration.x );
+		penetration.y
+			= ( moveSign.y < 0.0f ) ? minusPenetration.y
+			: ( moveSign.y > 0.0f ) ? plusPenetration.y
+			: std::min( minusPenetration.y, plusPenetration.y );
+
+		// Safety. Prevent the penetration to be too big.
+		// if ( fabsf( xyVelocity.x ) < penetration.x ) { penetration.x = fabsf( xyVelocity.x ); }
+		// if ( fabsf( xyVelocity.y ) < penetration.y ) { penetration.y = fabsf( xyVelocity.y ); }
+
+		penetration += 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+		Donya::Vector2 resolver
+		{
+			penetration.x * -moveSign.x,
+			penetration.y * -moveSign.y
+		};
+
+		if ( Donya::SignBit( resolver.y ) != 0 ) { velocity.y = 0.0f; } // My preference.
+		
+		movedXYBody.pos += resolver;
+		moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+		moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+
+		std::vector<Donya::Vector2> pushDirections{};
+		Donya::Int2 resolveSign
+		{
+			Donya::SignBit( resolver.x ),
+			Donya::SignBit( resolver.y )
+		};
+		if ( resolveSign.x == +1 ) { pushDirections.emplace_back( Donya::Vector2{ +1.0f, 0.0f } ); }
+		if ( resolveSign.x == -1 ) { pushDirections.emplace_back( Donya::Vector2{ -1.0f, 0.0f } ); }
+		if ( resolveSign.y == +1 ) { pushDirections.emplace_back( Donya::Vector2{ 0.0f, +1.0f } ); }
+		if ( resolveSign.y == -1 ) { pushDirections.emplace_back( Donya::Vector2{ 0.0f, -1.0f } ); }
+
+		for ( const auto &it : pushDirections )
+		{
+			if ( JudgeWillCompressed( it ) )
+			{
+				wasBroken = true;
+				Donya::Sound::Play( Music::Insert );
+				break; // Break from directions loop.
+			}
+		}
+		if ( wasBroken ) { break; }
+		// else
+	}
+
+	pos.x =  movedXYBody.pos.x;
+	pos.y =  movedXYBody.pos.y;
+	pos.z += velocity.z;		// Z-axis does not check a collision(unnecessary).
+
+#elif 0 // VER_2, WIP, Calc intersection-point by a line of movement vs edges of terrains hit-box.
+	auto CalcCollidingBox		= [&]( const BoxEx &prevMyself, const Donya::Vector2 &velocity )->BoxEx
+	{		
+		BoxEx movedMyself = prevMyself;
+		movedMyself.pos  += velocity;
+
+		for ( const auto &it : terrains )
+		{
+			if ( it.mass < movedMyself.mass ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, movedMyself ) )
+			{
+				return it;
+			}
+		}
+
+		return BoxEx::Nil();
+	};
+	auto CalcIntersectionPoint	= [&]( const BoxEx &prevMyself, const BoxEx &collideBox )->Donya::Line::Result
+	{
+		std::array<Donya::Line, 4> otherEdges{}; // [0:LT->RT][1:RT->RB][2:RB->LB][3:LB->LT]
+		auto AssignEdges		= [&otherEdges]( const BoxEx &other )
+		{
+			Donya::Vector2 LT = other.pos - other.size;
+			Donya::Vector2 LB = LT; LT.y += other.size.y * 2.0f;
+			Donya::Vector2 RT = LT; RT.x += other.size.x * 2.0f;
+			Donya::Vector2 RB = other.pos - other.size;
+
+			otherEdges[0].pos = LT;
+			otherEdges[0].vec = RT - otherEdges[0].pos;
+
+			otherEdges[1].pos = RT;
+			otherEdges[1].vec = RB - otherEdges[1].pos;
+
+			otherEdges[2].pos = RB;
+			otherEdges[2].vec = LB - otherEdges[2].pos;
+
+			otherEdges[3].pos = LB;
+			otherEdges[3].vec = LT - otherEdges[3].pos;
+		};
+
+		Donya::Line movement{};
+		movement.pos			=	prevMyself.pos;
+		movement.vec			=	Donya::Vector2{ velocity.x, velocity.y };
+
+		// Convert to point vs AABB.
+		Donya::Vector2 myPoint	=	prevMyself.pos;
+		BoxEx exOther			=	collideBox; // Extended other(collideBox) by myself's size.
+		exOther.size			+=	prevMyself.size;
+
+		AssignEdges( exOther );
+
+		Donya::Line::Result result{};
+		for ( const auto &it : otherEdges )
+		{
+			result = Donya::Line::CalcIntersectionPoint( it, movement );
+			if ( result.wasHit ) { break; }
+		}
+		
+		return result;
+	};
+
+	Donya::Vector2 moveVelocity{ velocity.x, velocity.y };
+	bool    wasHit = true;
+	while ( wasHit )
+	{
+		const AABBEx actualBody = GetHitBox();
+		BoxEx previousXYBody{}; // Use for check "a wall is myself?".
+		{
+			previousXYBody.pos.x		= actualBody.pos.x;
+			previousXYBody.pos.y		= actualBody.pos.y;
+			previousXYBody.size.x		= actualBody.size.x;
+			previousXYBody.size.y		= actualBody.size.y;
+			previousXYBody.velocity.x	= actualBody.velocity.x;
+			previousXYBody.velocity.y	= actualBody.velocity.y;
+			previousXYBody.exist		= actualBody.exist;
+			previousXYBody.mass			= actualBody.mass;
+		}
+
+		BoxEx collideBox = CalcCollidingBox( previousXYBody, moveVelocity );
+
+		wasHit = false;
+	}
+
+#else // VER_1, Apply the velocity and check the collision per axis.
+
 	/// <summary>
 	/// The "xyNAxis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
 	/// </summary>
@@ -272,10 +588,38 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
 		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
 
-		// The moving direction of myself. Take a value of +1 or -1.
-		float moveSign{};
-		bool  pushedNow = false;
-		Donya::Vector2 pushedDirection{}; // Store a vector of [wall->myself].
+		float moveSign{}; // The moving direction of myself. Take a value of +1 or -1.
+		std::vector<Donya::Vector2> pushedDirections{}; // Store a normalized-vector of [wall->myself].
+
+		// Returns true if it is determined to compressed.
+		auto JudgeWillCompressed = [&pushedDirections]( const BoxEx &myself, const BoxEx &other, const Donya::Vector2 &xyNAxis, bool rejectLightOther = true )->bool
+		{
+			if ( rejectLightOther && other.mass < myself.mass ) { return false; }
+			// else
+
+			Donya::Vector2 currentPushDir = ( myself.pos - other.pos ).Normalized();
+			currentPushDir.x *= xyNAxis.x;
+			currentPushDir.y *= xyNAxis.y;
+
+			pushedDirections.emplace_back( currentPushDir );
+			if ( pushedDirections.size() < 2U ) { return false; } // The myself does not compress if a vectors count less than two.
+			// else
+
+			float angle{};
+			for ( const auto &it : pushedDirections )
+			{
+				angle = Donya::Vector2::Dot( currentPushDir, it );
+				if ( angle < 0.0f ) // If these direction is against.
+				{
+					Donya::Sound::Play( Music::Insert );
+					
+					return true;
+				}
+			}
+
+			return false;
+		};
+
 		const size_t wallCount = terrains.size();
 		int loop = 0;
 		for ( size_t i = 0; i < wallCount; ++i )
@@ -308,8 +652,11 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 				// Each other does not move, it is not colliding movement of now axis.
 				if ( ZeroEqual( wallSpeed )  )
 				{
-					// Only store a direction of [wall->myself].
-					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
+					wasBroken = JudgeWillCompressed( xyBody, wall, xyNAxis );
+
+					// Break/Continue from hit-boxes loop.
+					if ( wasBroken ) { break; }
+					// else
 					continue;
 				}
 				// else
@@ -319,31 +666,9 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 				moveSpeed = wallSpeed * -moveSign;
 			}
 
-			// Calculate the myself will complessed?
-			if ( xyBody.mass <= wall.mass )
-			{
-				if ( pushedNow )
-				{
-					Donya::Vector2 currentPushedDir = ( xyBody.pos - wall.pos ).Normalized();
-					currentPushedDir.x *= xyNAxis.x;
-					currentPushedDir.y *= xyNAxis.y;
-
-					float angle = Donya::Vector2::Dot( pushedDirection, currentPushedDir );
-					if (  angle < 0.0f ) // If these direction is against.
-					{
-						Donya::Sound::Play( Music::Insert );
-						wasBroken = true;
-						break;
-					}
-				}
-				else
-				{
-					pushedDirection = ( xyBody.pos - wall.pos ).Normalized();
-					pushedDirection.x *= xyNAxis.x;
-					pushedDirection.y *= xyNAxis.y;
-					pushedNow = true;
-				}
-			}
+			wasBroken = JudgeWillCompressed( xyBody, wall, xyNAxis );
+			if ( wasBroken ) { break; } // Break from hit-boxes loop.
+			// else
 
 			// Calculate colliding length.
 			// First, calculate body's edge of moving side.
@@ -390,6 +715,8 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 
 	// Move to Z-axis only.
 	pos.z += velocity.z;
+
+#endif // VERSION
 }
 
 #if USE_IMGUI
