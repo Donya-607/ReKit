@@ -11,6 +11,59 @@
 
 #include "DerivedCollision.h"
 
+class GimmickBase
+{
+protected:
+	int				kind;
+	Donya::Vector3	pos;			// World space.
+	Donya::Vector3	velocity;
+public:
+	GimmickBase();
+	~GimmickBase();
+private:
+	friend class cereal::access;
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t version )
+	{
+		archive
+		(
+			CEREAL_NVP( kind ),
+			CEREAL_NVP( pos ),
+			CEREAL_NVP( velocity )
+		);
+		if ( 1 <= version )
+		{
+			// CEREAL_NVP( x )
+		}
+	}
+public:
+	virtual void Init( int kind, const Donya::Vector3 &wsInitPos ) = 0;
+	virtual void Uninit() = 0;
+
+	virtual void Update( float elapsedTime ) = 0;
+	virtual void PhysicUpdate( const std::vector<BoxEx> &terrains ) = 0;
+
+	void BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const;
+	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
+public:
+	/// <summary>
+	/// Returns a signal of want to remove.
+	/// </summary>
+	virtual bool ShouldRemove() const = 0;
+	/// <summary>
+	/// Returns world space position.
+	/// </summary>
+	virtual Donya::Vector3 GetPosition() const = 0;
+	/// <summary>
+	/// Returns world space hit-box.
+	/// </summary>
+	virtual AABBEx GetHitBox() const = 0;
+
+#if USE_IMGUI
+	virtual void ShowImGuiNode() {}
+#endif // USE_IMGUI
+};
+
 // TODO : If you create another block or like that,
 // You should separate this to BlockBase,
 // then inherit that and recreate FragileBlock.

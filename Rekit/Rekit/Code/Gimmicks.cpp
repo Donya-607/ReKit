@@ -16,6 +16,34 @@
 #undef max
 #undef min
 
+#pragma region Base
+
+GimmickBase::GimmickBase() :
+	kind(), pos(), velocity()
+{}
+GimmickBase::~GimmickBase() = default;
+
+void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const
+{
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+
+		cube.Render
+		(
+			nullptr,
+			/* useDefaultShading	= */ true,
+			/* isEnableFill			= */ true,
+			matWVP, matW, lightDir, materialColor
+		);
+	}
+#endif // DEBUG_MODE
+}
+
+// region Base
+#pragma endregion
+
 #pragma region FragileBlock
 
 struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
