@@ -47,6 +47,11 @@ public:
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
 public:
 	/// <summary>
+	/// Tell something trigger to the gimmick.
+	/// </summary>
+	virtual void WakeUp() = 0;
+
+	/// <summary>
 	/// Returns a signal of want to remove.
 	/// </summary>
 	virtual bool ShouldRemove() const = 0;
