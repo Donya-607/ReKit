@@ -16,12 +16,162 @@
 #undef max
 #undef min
 
+// Internal utility.
+namespace
+{
+	int ToInt( GimmickKind kind )
+	{
+		return scast<int>( kind );
+	}
+	GimmickKind ToKind( int kind )
+	{
+		if ( kind < 0 || ToInt( GimmickKind::GimmicksCount ) <= kind )
+		{
+			_ASSERT_EXPR( 0, L"Error : An out of range detected!" );
+			return GimmickKind::GimmicksCount;
+		}
+		// else
+		return scast<GimmickKind>( kind );
+	}
+	std::string ToString( GimmickKind kind )
+	{
+		switch ( kind )
+		{
+		case GimmickKind::Fragile: return "Fragile"; // break;
+		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
+		}
+
+		return "ERROR_KIND";
+	}
+}
+
 #pragma region Base
 
 GimmickBase::GimmickBase() :
 	kind(), pos(), velocity()
 {}
 GimmickBase::~GimmickBase() = default;
+
+void GimmickBase::PhysicUpdate( const std::vector<BoxEx> &terrains )
+{
+	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
+	{
+		for ( const auto &it : terrains )
+		{
+			if ( it.mass < myself.mass ) { continue; }
+			if ( it == previousMyself  ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, myself ) )
+			{
+				return it;
+			}
+		}
+
+		return BoxEx::Nil();
+	};
+
+	const AABBEx actualBody = GetHitBox();
+	BoxEx previousXYBody{};
+	{
+		previousXYBody.pos.x		= actualBody.pos.x;
+		previousXYBody.pos.y		= actualBody.pos.y;
+		previousXYBody.size.x		= actualBody.size.x;
+		previousXYBody.size.y		= actualBody.size.y;
+		previousXYBody.velocity.x	= actualBody.velocity.x;
+		previousXYBody.velocity.y	= actualBody.velocity.y;
+		previousXYBody.exist		= actualBody.exist;
+		previousXYBody.mass			= actualBody.mass;
+	}
+
+	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+	{
+		scast<float>( Donya::SignBit( xyVelocity.x ) ),
+		scast<float>( Donya::SignBit( xyVelocity.y ) )
+	};
+
+	BoxEx movedXYBody = previousXYBody;
+	movedXYBody.pos  += xyVelocity;
+
+	BoxEx other{};
+
+	constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+	unsigned int loopCount{};
+	while ( ++loopCount < MAX_LOOP_COUNT )
+	{
+		other = CalcCollidingBox( movedXYBody, previousXYBody );
+		if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
+		// else
+
+		if ( other.mass < movedXYBody.mass ) { continue; }
+		// else
+
+		if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+		}
+		if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+		}
+
+		if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+		// else
+
+		Donya::Vector2 penetration{}; // Store absolute value.
+		Donya::Vector2 plusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+		};
+		Donya::Vector2 minusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+		};
+		penetration.x
+			= ( moveSign.x < 0.0f ) ? minusPenetration.x
+			: ( moveSign.x > 0.0f ) ? plusPenetration.x
+			: 0.0f;
+		penetration.y
+			= ( moveSign.y < 0.0f ) ? minusPenetration.y
+			: ( moveSign.y > 0.0f ) ? plusPenetration.y
+			: 0.0f;
+
+		penetration += 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+		Donya::Vector2 pushDirection{};
+		Donya::Vector2 resolver
+		{
+			penetration.x * -moveSign.x,
+			penetration.y * -moveSign.y
+		};
+
+		if ( penetration.y < penetration.x )
+		{
+			movedXYBody.pos.x += resolver.x;
+			velocity.x = 0.0f;
+			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+
+			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
+		}
+		else
+		{
+			movedXYBody.pos.y += resolver.y;
+			velocity.y = 0.0f;
+			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+
+			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
+		}
+
+	}
+
+	pos.x = movedXYBody.pos.x;
+	pos.y = movedXYBody.pos.y;
+}
 
 void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const
 {
@@ -41,14 +191,17 @@ void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4
 #endif // DEBUG_MODE
 }
 
+int				GimmickBase::GetKind()		const { return kind;	}
+Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
+
 // region Base
 #pragma endregion
 
 #pragma region FragileBlock
 
-struct ParamHeavyBlock final : public Donya::Singleton<ParamHeavyBlock>
+struct ParamFragileBlock final : public Donya::Singleton<ParamFragileBlock>
 {
-	friend Donya::Singleton<ParamHeavyBlock>;
+	friend Donya::Singleton<ParamFragileBlock>;
 public:
 	struct Member
 	{
@@ -82,9 +235,9 @@ private:
 	static constexpr const char *SERIAL_ID = "FragileBlock";
 	Member m;
 private:
-	ParamHeavyBlock() : m() {}
+	ParamFragileBlock() : m() {}
 public:
-	~ParamHeavyBlock() = default;
+	~ParamFragileBlock() = default;
 public:
 	void Init()
 	{
@@ -171,17 +324,18 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamHeavyBlock::Member, 1 )
+CEREAL_CLASS_VERSION( ParamFragileBlock::Member, 1 )
 
-FragileBlock::FragileBlock() :
-	pos(), velocity(),
+FragileBlock::FragileBlock() : GimmickBase(),
 	wasBroken( false )
 {}
 FragileBlock::~FragileBlock() = default;
 
-void FragileBlock::Init( const Donya::Vector3 &wsPos )
+void FragileBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
 {
-	pos = wsPos;
+	kind		= gimmickKind;
+	pos			= wsPos;
+	velocity	= 0.0f;
 }
 void FragileBlock::Uninit()
 {
@@ -219,6 +373,11 @@ void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, c
 #endif // DEBUG_MODE
 }
 
+void FragileBlock::WakeUp()
+{
+	// No op.
+}
+
 bool FragileBlock::ShouldRemove() const
 {
 	return wasBroken;
@@ -230,7 +389,7 @@ Donya::Vector3 FragileBlock::GetPosition() const
 }
 AABBEx FragileBlock::GetHitBox() const
 {
-	AABBEx base = ParamHeavyBlock::Get().Data().hitBox;
+	AABBEx base = ParamFragileBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
 	return base;
@@ -257,14 +416,14 @@ Donya::Vector4x4 FragileBlock::GetWorldMatrix( bool useDrawing ) const
 
 void FragileBlock::Fall( float elapsedTime )
 {
-	const auto DATA = ParamHeavyBlock::Get().Data();
+	const auto DATA = ParamFragileBlock::Get().Data();
 	velocity.y -= DATA.gravity * elapsedTime;
 	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
 }
 
 void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 {
-#if 0 // VER_4, Calc a penetration every colliding hit-boxes. Then resolve only lowest penetrating axis. Then recheck a collision.
+#if 1 // VER_4, Calc a penetration every colliding hit-boxes. Then resolve only lowest penetrating axis. Then recheck a collision.
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
 		for ( const auto &it : terrains )
@@ -333,12 +492,89 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 	while ( ++loopCount < MAX_LOOP_COUNT )
 	{
 		other = CalcCollidingBox( movedXYBody, previousXYBody );
-		if ( other == BoxEx::Nil() ) { break; }
+		if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
 		// else
 
+		if ( other.mass < movedXYBody.mass ) { continue; }
+		// else
+
+		if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+		}
+		if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+		}
+
+		if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+		// else
+
+		Donya::Vector2 penetration{}; // Store absolute value.
+		Donya::Vector2 plusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+		};
+		Donya::Vector2 minusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+		};
+		penetration.x
+			= ( moveSign.x < 0.0f ) ? minusPenetration.x
+			: ( moveSign.x > 0.0f ) ? plusPenetration.x
+			: 0.0f; // std::min( minusPenetration.x, plusPenetration.x );
+		penetration.y
+			= ( moveSign.y < 0.0f ) ? minusPenetration.y
+			: ( moveSign.y > 0.0f ) ? plusPenetration.y
+			: 0.0f; // std::min( minusPenetration.y, plusPenetration.y );
+
+		// Safety. Prevent the penetration to be too big.
+		// if ( fabsf( xyVelocity.x ) < penetration.x ) { penetration.x = fabsf( xyVelocity.x ); }
+		// if ( fabsf( xyVelocity.y ) < penetration.y ) { penetration.y = fabsf( xyVelocity.y ); }
+
+		penetration += 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+		Donya::Vector2 pushDirection{};
+		Donya::Vector2 resolver
+		{
+			penetration.x * -moveSign.x,
+			penetration.y * -moveSign.y
+		};
+
+		if ( penetration.y < penetration.x )
+		{
+			movedXYBody.pos.x += resolver.x;
+			velocity.x = 0.0f;
+			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+
+			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
+		}
+		else
+		{
+			movedXYBody.pos.y += resolver.y;
+			velocity.y = 0.0f;
+			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+
+			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
+		}
+
+		if ( JudgeWillCompressed( pushDirection ) )
+		{
+			Donya::Sound::Play( Music::Insert );
+			wasBroken = true;
+			break; // Break from hit-boxes loop.
+		}
+		// else
 	}
 
-#elif 1 // VER_3, Calc a penetration every colliding hit-boxes. Then recheck a collision.
+	pos.x = movedXYBody.pos.x;
+	pos.y = movedXYBody.pos.y;
+
+#elif 0 // VER_3, Calc a penetration every colliding hit-boxes. Then recheck a collision.
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
 		for ( const auto &it : terrains )
@@ -751,6 +987,7 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 
 void FragileBlock::ShowImGuiNode()
 {
+	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
 }
@@ -763,13 +1000,13 @@ void FragileBlock::ShowImGuiNode()
 #pragma region Gimmick
 
 Gimmick::Gimmick() :
-	stageNo(), fragileBlocks()
+	stageNo(), pGimmicks()
 {}
 Gimmick::~Gimmick() = default;
 
 void Gimmick::Init( int stageNumber )
 {
-	ParamHeavyBlock::Get().Init();
+	ParamFragileBlock::Get().Init();
 
 	LoadParameter();
 
@@ -777,7 +1014,7 @@ void Gimmick::Init( int stageNumber )
 }
 void Gimmick::Uninit()
 {
-	fragileBlocks.clear();
+	pGimmicks.clear();
 }
 
 void Gimmick::Update( float elapsedTime )
@@ -786,14 +1023,17 @@ void Gimmick::Update( float elapsedTime )
 	UseImGui();
 #endif // USE_IMGUI
 
-	for ( auto &it : fragileBlocks )
+	for ( auto &it : pGimmicks )
 	{
-		it.Update( elapsedTime );
+		if ( !it ) { continue; }
+		// else
+
+		it->Update( elapsedTime );
 	}
 }
 void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
-	const size_t blockCount = fragileBlocks.size();
+	const size_t blockCount = pGimmicks.size();
 
 	auto ToBox = []( const AABBEx &aabb )
 	{
@@ -809,12 +1049,15 @@ void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		return box;
 	};
 
-	// The "fragileBlocks" will update at PhysicUpdate().
+	// The "pGimmicks" will update at PhysicUpdate().
 	// So I prepare a temporary vector of terrains and update this every time update elements.
 	std::vector<BoxEx> boxes{ blockCount }; // Necessary for AABB to Box.
 	for ( size_t i = 0; i < blockCount; ++i )
 	{
-		boxes[i] = ToBox( fragileBlocks[i].GetHitBox() );
+		if ( !pGimmicks[i] ) { continue; }
+		// else
+
+		boxes[i] = ToBox( pGimmicks[i]->GetHitBox() );
 	}
 
 	std::vector<BoxEx> allTerrains = boxes; // [blocks][terrains]
@@ -822,39 +1065,47 @@ void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 
 	for ( size_t i = 0; i < blockCount; ++i )
 	{
-		fragileBlocks[i].PhysicUpdate( allTerrains );
+		if ( !pGimmicks[i] ) { continue; }
+		// else
 
-		allTerrains[i] = ToBox( fragileBlocks[i].GetHitBox() );
+		pGimmicks[i]->PhysicUpdate( allTerrains );
+		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
 	}
 
 	// Erase the should remove blocks.
 	{
 		auto itr = std::remove_if
 		(
-			fragileBlocks.begin(), fragileBlocks.end(),
-			[]( FragileBlock &element )
+			pGimmicks.begin(), pGimmicks.end(),
+			[]( std::unique_ptr<GimmickBase> &pElement )
 			{
-				return element.ShouldRemove();
+				return ( !pElement ) ? false : pElement->ShouldRemove();
 			}
 		);
-		fragileBlocks.erase( itr, fragileBlocks.end() );
+		pGimmicks.erase( itr, pGimmicks.end() );
 	}
 }
 
 void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
-	for ( const auto &it : fragileBlocks )
+	for ( auto &it : pGimmicks )
 	{
-		it.Draw( V, P, lightDir );
+		if ( !it ) { continue; }
+		// else
+
+		it->Draw( V, P, lightDir );
 	}
 }
 
 std::vector<AABBEx> Gimmick::RequireHitBoxes() const
 {
 	std::vector<AABBEx> boxes{};
-	for ( const auto &it : fragileBlocks )
+	for ( const auto &it : pGimmicks )
 	{
-		boxes.emplace_back( it.GetHitBox() );
+		if ( !it ) { continue; }
+		// else
+
+		boxes.emplace_back( it->GetHitBox() );
 	}
 	return boxes;
 }
@@ -883,42 +1134,55 @@ void Gimmick::SaveParameter()
 
 void Gimmick::UseImGui()
 {
-	ParamHeavyBlock::Get().UseImGui();
+	ParamFragileBlock::Get().UseImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			ImGui::Text( u8"アルファ向けのデバッグ用です" );
-			ImGui::Text( "" );
-		
 			// Resizing.
 			{
-				if ( ImGui::Button( u8"末尾にブロック追加" ) )
+				const std::string prefix{ u8"末尾に追加・" };
+
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile ) ).c_str() ) )
 				{
-					fragileBlocks.push_back( {} );
-					fragileBlocks.back().Init( Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_unique<FragileBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), Donya::Vector3::Zero() );
 				}
-				if ( fragileBlocks.empty() )
+				/*
+				if ( ImGui::Button( ( prefix + String( GimmickKind:: ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<XXX>() );
+					pGimmicks.back()->Init( Int( GimmickKind:: ), Donya::Vector3::Zero() );
+				}
+				*/
+
+				if ( pGimmicks.empty() )
 				{
 					// Align a line.
 					ImGui::Text( "" );
 				}
-				else if ( ImGui::Button( u8"末尾のブロック削除" ) )
+				else if ( ImGui::Button( u8"末尾を削除" ) )
 				{
-					fragileBlocks.pop_back();
+					pGimmicks.pop_back();
 				}
 			}
 
-			int i = 0;
-			std::string caption{};
-			for ( auto &it : fragileBlocks )
+			// Show parameter nodes.
 			{
-				caption = "Block[" + std::to_string( i++ ) + "]";
-				if ( ImGui::TreeNode( caption.c_str() ) )
+				int i = 0;
+				std::string caption{};
+				for ( auto &it : pGimmicks )
 				{
-					it.ShowImGuiNode();
-					ImGui::TreePop();
+					if ( !it ) { continue; }
+					// else
+
+					caption = ToString( ToKind( it->GetKind() ) ) + "[" + std::to_string( i++ ) + "]";
+					if ( ImGui::TreeNode( caption.c_str() ) )
+					{
+						it->ShowImGuiNode();
+						ImGui::TreePop();
+					}
 				}
 			}
 

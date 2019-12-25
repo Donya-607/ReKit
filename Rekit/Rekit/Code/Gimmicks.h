@@ -1,7 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
+#undef max
+#undef min
+#include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/vector.hpp>
 
 #include "Donya/Collision.h"
@@ -10,6 +15,13 @@
 #include "Donya/Vector.h"
 
 #include "DerivedCollision.h"
+
+enum class GimmickKind
+{
+	Fragile = 0,
+
+	GimmicksCount
+};
 
 class GimmickBase
 {
@@ -33,7 +45,7 @@ private:
 		);
 		if ( 1 <= version )
 		{
-			// CEREAL_NVP( x )
+			// archive( CEREAL_NVP( x ) );
 		}
 	}
 public:
@@ -41,7 +53,7 @@ public:
 	virtual void Uninit() = 0;
 
 	virtual void Update( float elapsedTime ) = 0;
-	virtual void PhysicUpdate( const std::vector<BoxEx> &terrains ) = 0;
+	virtual void PhysicUpdate( const std::vector<BoxEx> &terrains );
 
 	void BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const;
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
@@ -55,10 +67,15 @@ public:
 	/// Returns a signal of want to remove.
 	/// </summary>
 	virtual bool ShouldRemove() const = 0;
+
+	/// <summary>
+	/// Returns integer link to "GimmickKind".
+	/// </summary>
+	virtual int GetKind() const;
 	/// <summary>
 	/// Returns world space position.
 	/// </summary>
-	virtual Donya::Vector3 GetPosition() const = 0;
+	virtual Donya::Vector3 GetPosition() const;
 	/// <summary>
 	/// Returns world space hit-box.
 	/// </summary>
@@ -69,16 +86,10 @@ public:
 #endif // USE_IMGUI
 };
 
-// TODO : If you create another block or like that,
-// You should separate this to BlockBase,
-// then inherit that and recreate FragileBlock.
-// After that, you create another block.
-class FragileBlock
+class FragileBlock : public GimmickBase
 {
 private:
-	Donya::Vector3	pos;		// World space.
-	Donya::Vector3	velocity;
-	bool			wasBroken;	// Use for a signal of want to remove.
+	bool	wasBroken;	// Use for a signal of want to remove.
 public:
 	FragileBlock();
 	~FragileBlock();
@@ -89,34 +100,36 @@ private:
 	{
 		archive
 		(
-			CEREAL_NVP( pos )
+			cereal::base_class<GimmickBase>( this )
 		);
 		if ( 1 <= version )
 		{
-			// CEREAL_NVP( x )
+			// archive( CEREAL_NVP( x ) );
 		}
 	}
 public:
-	void Init( const Donya::Vector3 &wsPos );
-	void Uninit();
+	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Uninit() override;
 
-	void Update( float elapsedTime );
-	void PhysicUpdate( const std::vector<BoxEx> &terrains );
+	void Update( float elapsedTime ) override;
+	void PhysicUpdate( const std::vector<BoxEx> &terrains ) override;
 
-	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
+	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
+	void WakeUp() override;
+
 	/// <summary>
 	/// Returns a signal of want to remove.
 	/// </summary>
-	bool ShouldRemove() const;
+	bool ShouldRemove() const override;
 	/// <summary>
 	/// Returns world space position.
 	/// </summary>
-	Donya::Vector3 GetPosition() const;
+	Donya::Vector3 GetPosition() const override;
 	/// <summary>
 	/// Returns world space hit-box.
 	/// </summary>
-	AABBEx GetHitBox() const;
+	AABBEx GetHitBox() const override;
 private:
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
 
@@ -125,15 +138,18 @@ private:
 	void AssignVelocity( const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
-	void ShowImGuiNode();
+	void ShowImGuiNode() override;
 #endif // USE_IMGUI
 };
+CEREAL_CLASS_VERSION( FragileBlock, 0 )
+CEREAL_REGISTER_TYPE( FragileBlock )
+CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, FragileBlock )
 
 class Gimmick
 {
 private:
 	int stageNo;
-	std::vector<FragileBlock> fragileBlocks;
+	std::vector<std::unique_ptr<GimmickBase>> pGimmicks;
 private:
 	friend class cereal::access;
 	template<class Archive>
@@ -141,14 +157,18 @@ private:
 	{
 		archive
 		(
-			CEREAL_NVP( fragileBlocks )
+			CEREAL_NVP( pGimmicks )
 		);
 		if ( 1 <= version )
 		{
-			// CEREAL_NVP( x )
+			// archive( CEREAL_NVP( x ) );
+		}
+		if ( 2 <= version )
+		{
+			// archive( CEREAL_NVP( x ) );
 		}
 	}
-	static constexpr const char *SERIAL_ID = "DebugBlocks";
+	static constexpr const char *SERIAL_ID = "Gimmick";
 public:
 	Gimmick();
 	~Gimmick();
@@ -169,3 +189,4 @@ private:
 	void UseImGui();
 #endif // USE_IMGUI
 };
+CEREAL_CLASS_VERSION( Gimmick, 0 )
