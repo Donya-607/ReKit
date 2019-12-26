@@ -27,8 +27,7 @@ namespace Donya
 			pDevice = Donya::GetDevice();
 		}
 
-		bool result =
-		Donya::Resource::CreateVertexShaderFromCso
+		bool result = Donya::Resource::CreateVertexShaderFromCso
 		(
 			pDevice,
 			filePath.c_str(), "rb",
@@ -38,7 +37,35 @@ namespace Donya
 			inputElements.size(),
 			isEnableCache
 		);
+		if ( !result ) { return false; }
+		// else
 
+		wasCreated = true;
+		return true;
+	}
+	bool VertexShader::CreateByEmbededSourceCode( const std::string &shaderID, const std::string &shaderSource, const std::string shaderEntry, const std::vector<D3D11_INPUT_ELEMENT_DESC> &inputElements, bool isEnableCache, ID3D11Device *pDevice )
+	{
+		if ( wasCreated ) { return true; }
+		// else
+
+		// Use default device.
+		if ( !pDevice )
+		{
+			pDevice = Donya::GetDevice();
+		}
+
+		bool result = Donya::Resource::CreateVertexShaderFromSource
+		(
+			pDevice,
+			shaderID,
+			shaderSource,
+			shaderEntry,
+			iVertexShader.GetAddressOf(),
+			iInputLayout.GetAddressOf(),
+			inputElements.data(),
+			inputElements.size(),
+			isEnableCache
+		);
 		if ( !result ) { return false; }
 		// else
 
@@ -106,15 +133,39 @@ namespace Donya
 			pDevice = Donya::GetDevice();
 		}
 
-		bool result =
-		Donya::Resource::CreatePixelShaderFromCso
+		bool result = Donya::Resource::CreatePixelShaderFromCso
 		(
 			pDevice,
 			filePath.c_str(), "rb",
 			iPixelShader.GetAddressOf(),
 			isEnableCache
 		);
+		if ( !result ) { return false; }
+		// else
 
+		wasCreated = true;
+		return true;
+	}
+	bool Donya::PixelShader::CreateByEmbededSourceCode( const std::string &shaderID, const std::string &shaderSource, const std::string shaderEntry, bool isEnableCache, ID3D11Device *pDevice )
+	{
+		if ( wasCreated ) { return true; }
+		// else
+
+		// Use default device.
+		if ( !pDevice )
+		{
+			pDevice = Donya::GetDevice();
+		}
+
+		bool result = Donya::Resource::CreatePixelShaderFromSource
+		(
+			pDevice,
+			shaderID,
+			shaderSource,
+			shaderEntry,
+			iPixelShader.GetAddressOf(),
+			isEnableCache
+		);
 		if ( !result ) { return false; }
 		// else
 
@@ -126,7 +177,7 @@ namespace Donya
 	{
 		if ( !wasCreated )
 		{
-			_ASSERT_EXPR( 0, L"Error : The vertex-shader was not created !" );
+			_ASSERT_EXPR( 0, L"Error : The pixel-shader was not created !" );
 			return;
 		}
 		// else
