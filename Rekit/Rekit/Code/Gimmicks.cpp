@@ -52,7 +52,7 @@ GimmickBase::GimmickBase() :
 {}
 GimmickBase::~GimmickBase() = default;
 
-void GimmickBase::PhysicUpdate( const std::vector<BoxEx> &terrains )
+void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
@@ -82,6 +82,15 @@ void GimmickBase::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		previousXYBody.velocity.y	= actualBody.velocity.y;
 		previousXYBody.exist		= actualBody.exist;
 		previousXYBody.mass			= actualBody.mass;
+	}
+
+	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
+	{
+		// Following to "accompanyBox".
+		// My velocity consider to be as accompanyBox's velocity.
+
+		velocity.x = accompanyBox.velocity.x;
+		velocity.y = accompanyBox.velocity.y;
 	}
 
 	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
@@ -141,30 +150,26 @@ void GimmickBase::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			: ( moveSign.y > 0.0f ) ? plusPenetration.y
 			: 0.0f;
 
-		penetration += 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+		constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
 
-		Donya::Vector2 pushDirection{};
 		Donya::Vector2 resolver
 		{
-			penetration.x * -moveSign.x,
-			penetration.y * -moveSign.y
+			( penetration.x + ERROR_MARGIN ) * -moveSign.x,
+			( penetration.y + ERROR_MARGIN ) * -moveSign.y
 		};
 
-		if ( penetration.y < penetration.x )
-		{
-			movedXYBody.pos.x += resolver.x;
-			velocity.x = 0.0f;
-			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
-
-			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
-		}
-		else
+		// Repulse to the more little(but greater than zero) axis side of penetration.
+		if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 		{
 			movedXYBody.pos.y += resolver.y;
 			velocity.y = 0.0f;
 			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
-
-			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
+		}
+		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+		{
+			movedXYBody.pos.x += resolver.x;
+			velocity.x = 0.0f;
+			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
 		}
 
 	}
@@ -207,7 +212,9 @@ public:
 	{
 		float	gravity{};
 		float	maxFallSpeed{};
-		AABBEx	hitBox{};	// Hit-Box of using to the collision to the stage.
+		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
+		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
+		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -226,6 +233,14 @@ public:
 				);
 			}
 			if ( 2 <= version )
+			{
+				archive
+				(
+					CEREAL_NVP( brakeSpeed ),
+					CEREAL_NVP( stopThreshold )
+				);
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -290,8 +305,10 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat( u8"重力加速度", &m.gravity );
-				ImGui::DragFloat( u8"最大落下速度", &m.maxFallSpeed );
+				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
+				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
+				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.1f	);
+				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -324,7 +341,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamFragileBlock::Member, 1 )
+CEREAL_CLASS_VERSION( ParamFragileBlock::Member, 2 )
 
 FragileBlock::FragileBlock() : GimmickBase(),
 	wasBroken( false )
@@ -345,10 +362,12 @@ void FragileBlock::Uninit()
 void FragileBlock::Update( float elapsedTime )
 {
 	Fall( elapsedTime );
+
+	Brake( elapsedTime );
 }
-void FragileBlock::PhysicUpdate( const std::vector<BoxEx> &terrains )
+void FragileBlock::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	AssignVelocity( terrains );
+	AssignVelocity( accompanyBox, terrains );
 }
 
 void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -421,7 +440,25 @@ void FragileBlock::Fall( float elapsedTime )
 	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
 }
 
-void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
+void FragileBlock::Brake( float elapsedTime )
+{
+	const float moveSign = scast<float>( Donya::SignBit( velocity.x ) );
+	if ( ZeroEqual( moveSign ) ) { return; }
+	// else
+
+	const float nowSpeed = fabsf( velocity.x );
+	if ( nowSpeed <= ParamFragileBlock::Get().Data().stopThreshold )
+	{
+		velocity.x = 0.0f;
+		return;
+	}
+	// else
+
+	const float brakeSpeed = std::min( nowSpeed, ParamFragileBlock::Get().Data().brakeSpeed );
+	velocity.x -= brakeSpeed * moveSign;
+}
+
+void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 #if 1 // VER_4, Calc a penetration every colliding hit-boxes. Then resolve only lowest penetrating axis. Then recheck a collision.
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
@@ -452,6 +489,15 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		previousXYBody.velocity.y	= actualBody.velocity.y;
 		previousXYBody.exist		= actualBody.exist;
 		previousXYBody.mass			= actualBody.mass;
+	}
+
+	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
+	{
+		// Following to "accompanyBox".
+		// My velocity consider to be as accompanyBox's velocity.
+
+		velocity.x = accompanyBox.velocity.x;
+		velocity.y = accompanyBox.velocity.y;
 	}
 
 	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
@@ -536,30 +582,31 @@ void FragileBlock::AssignVelocity( const std::vector<BoxEx> &terrains )
 		// if ( fabsf( xyVelocity.x ) < penetration.x ) { penetration.x = fabsf( xyVelocity.x ); }
 		// if ( fabsf( xyVelocity.y ) < penetration.y ) { penetration.y = fabsf( xyVelocity.y ); }
 
-		penetration += 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+		constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
 
 		Donya::Vector2 pushDirection{};
 		Donya::Vector2 resolver
 		{
-			penetration.x * -moveSign.x,
-			penetration.y * -moveSign.y
+			( penetration.x + ERROR_MARGIN ) * -moveSign.x,
+			( penetration.y + ERROR_MARGIN ) * -moveSign.y
 		};
 
-		if ( penetration.y < penetration.x )
-		{
-			movedXYBody.pos.x += resolver.x;
-			velocity.x = 0.0f;
-			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
-
-			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
-		}
-		else
+		// Repulse to the more little(but greater than zero) axis side of penetration.
+		if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 		{
 			movedXYBody.pos.y += resolver.y;
 			velocity.y = 0.0f;
 			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
 
 			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
+		}
+		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+		{
+			movedXYBody.pos.x += resolver.x;
+			velocity.x = 0.0f;
+			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+
+			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
 		}
 
 		if ( JudgeWillCompressed( pushDirection ) )
@@ -1031,7 +1078,7 @@ void Gimmick::Update( float elapsedTime )
 		it->Update( elapsedTime );
 	}
 }
-void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
+void Gimmick::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 	const size_t blockCount = pGimmicks.size();
 
@@ -1068,7 +1115,7 @@ void Gimmick::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
-		pGimmicks[i]->PhysicUpdate( allTerrains );
+		pGimmicks[i]->PhysicUpdate( accompanyBox, allTerrains );
 		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
 	}
 

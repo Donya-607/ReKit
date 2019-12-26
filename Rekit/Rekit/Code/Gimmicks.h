@@ -53,7 +53,7 @@ public:
 	virtual void Uninit() = 0;
 
 	virtual void Update( float elapsedTime ) = 0;
-	virtual void PhysicUpdate( const std::vector<BoxEx> &terrains );
+	virtual void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const;
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
@@ -112,7 +112,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const std::vector<BoxEx> &terrains ) override;
+	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -135,7 +135,9 @@ private:
 
 	void Fall( float elapsedTime );
 
-	void AssignVelocity( const std::vector<BoxEx> &terrains );
+	void Brake( float elapsedTime );
+
+	void AssignVelocity( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;
@@ -177,7 +179,7 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
-	void PhysicUpdate( const std::vector<BoxEx> &terrains );
+	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
