@@ -295,7 +295,7 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ブロック・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[Fragile]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
