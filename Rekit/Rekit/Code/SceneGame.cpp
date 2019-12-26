@@ -25,11 +25,6 @@
 
 using namespace DirectX;
 
-namespace Debug
-{
-	static Donya::Geometric::Line line{};
-}
-
 #pragma region AlphaParam
 class AlphaParam final : public Donya::Singleton<AlphaParam>
 {
@@ -257,8 +252,6 @@ void SceneGame::Init()
 	gimmicks.Init( NULL );
 	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
-
-	Debug::line.Init();
 }
 void SceneGame::Uninit()
 {
@@ -418,8 +411,6 @@ void SceneGame::Draw( float elapsedTime )
 // #if DEBUG_MODE
 	// if ( Common::IsShowCollision() )
 	{
-		Debug::line.Flush( V * P );
-
 		static auto cube = Donya::Geometric::CreateCube();
 
 		// Drawing Test Terrains that use to player's collision.
@@ -823,12 +814,6 @@ void SceneGame::UseImGui()
 
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
-
-			static Donya::Vector3 start{ 0.0f, 0.0f, -0.5f };
-			static Donya::Vector3 end  { 0.0f, 0.0f, +0.5f };
-			ImGui::DragFloat3( u8"始点", &start.x );
-			ImGui::DragFloat3( u8"終点", &end.x   );
-			Debug::line.Reserve( start, end );
 
 			ImGui::TreePop();
 		}
