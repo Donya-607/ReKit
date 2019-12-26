@@ -99,7 +99,7 @@ bool Framework::LoadSounds()
 			{ ID::BGM_Title,			"./Data/Sounds/BGM/Title.wav",					true  },
 			{ ID::BGM_Game,				"./Data/Sounds/BGM/Game.wav",					true  },
 			{ ID::BGM_Clear,			"./Data/Sounds/BGM/Clear.wav",					true  },
-			{ ID::BGM_Over,				"./Data/Sounds/BGM/Over.wav",					true  },
+			// { ID::BGM_Over,				"./Data/Sounds/BGM/Over.wav",					true  },
 			
 			{ ID::ItemChoose,			"./Data/Sounds/SE/UI/ItemChoose.wav",			false },
 			{ ID::ItemDecision,			"./Data/Sounds/SE/UI/ItemDecision.wav",			false },

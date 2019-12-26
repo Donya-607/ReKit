@@ -30,11 +30,11 @@ SceneOver::~SceneOver() = default;
 
 void SceneOver::Init()
 {
-	Donya::Sound::Play( Music::BGM_Over );
+	// Donya::Sound::Play( Music::BGM_Over );
 }
 void SceneOver::Uninit()
 {
-	Donya::Sound::Stop( Music::BGM_Over );
+	// Donya::Sound::Stop( Music::BGM_Over );
 }
 
 Scene::Result SceneOver::Update( float elapsedTime )
