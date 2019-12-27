@@ -19,9 +19,16 @@
 enum class GimmickKind
 {
 	Fragile = 0,
+	Hard,
 
 	GimmicksCount
 };
+namespace GimmickUtility
+{
+	int ToInt( GimmickKind kind );
+	GimmickKind ToKind( int kind );
+	std::string ToString( GimmickKind kind );
+}
 
 class GimmickBase
 {
@@ -53,10 +60,14 @@ public:
 	virtual void Uninit() = 0;
 
 	virtual void Update( float elapsedTime ) = 0;
+	/// <summary>
+	/// The base class PhysicUpdate() provides only moves(by velocity) and resolving collision.
+	/// </summary>
 	virtual void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
-	void BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const;
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
+protected:
+	void BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const;
 public:
 	/// <summary>
 	/// Tell something trigger to the gimmick.
@@ -88,6 +99,17 @@ public:
 
 class FragileBlock : public GimmickBase
 {
+public:
+	/// <summary>
+	/// Please call when a scene initialize.
+	/// </summary>
+	static void ParameterInit();
+#if USE_IMGUI
+	/// <summary>
+	/// Please call every frame.
+	/// </summary>
+	static void UseParameterImGui();
+#endif // USE_IMGUI
 private:
 	bool	wasBroken;	// Use for a signal of want to remove.
 public:
@@ -146,6 +168,75 @@ public:
 CEREAL_CLASS_VERSION( FragileBlock, 0 )
 CEREAL_REGISTER_TYPE( FragileBlock )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, FragileBlock )
+
+class HardBlock : public GimmickBase
+{
+public:
+	/// <summary>
+	/// Please call when a scene initialize.
+	/// </summary>
+	static void ParameterInit();
+#if USE_IMGUI
+	/// <summary>
+	/// Please call every frame.
+	/// </summary>
+	static void UseParameterImGui();
+#endif // USE_IMGUI
+private:
+public:
+	HardBlock();
+	~HardBlock();
+private:
+	friend class cereal::access;
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t version )
+	{
+		archive
+		(
+			cereal::base_class<GimmickBase>( this )
+		);
+		if ( 1 <= version )
+		{
+			// archive( CEREAL_NVP( x ) );
+		}
+	}
+public:
+	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Uninit() override;
+
+	void Update( float elapsedTime ) override;
+	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains ) override;
+
+	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
+public:
+	void WakeUp() override;
+
+	/// <summary>
+	/// Returns a signal of want to remove.
+	/// </summary>
+	bool ShouldRemove() const override;
+	/// <summary>
+	/// Returns world space position.
+	/// </summary>
+	Donya::Vector3 GetPosition() const override;
+	/// <summary>
+	/// Returns world space hit-box.
+	/// </summary>
+	AABBEx GetHitBox() const override;
+private:
+	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
+
+	void Fall( float elapsedTime );
+
+	void Brake( float elapsedTime );
+public:
+#if USE_IMGUI
+	void ShowImGuiNode() override;
+#endif // USE_IMGUI
+};
+CEREAL_CLASS_VERSION( HardBlock, 0 )
+CEREAL_REGISTER_TYPE( HardBlock )
+CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, HardBlock )
 
 class Gimmick
 {
