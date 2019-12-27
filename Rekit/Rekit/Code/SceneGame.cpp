@@ -348,7 +348,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		if ( pHook )
 		{
 			accompanyBox = ToBox( pHook->GetHitBox() );
-			terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
+			// terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
 		}
 		else
 		{
@@ -814,7 +814,7 @@ void SceneGame::UseImGui()
 
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
-
+			
 			ImGui::TreePop();
 		}
 		

@@ -71,18 +71,8 @@ void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<Box
 		return BoxEx::Nil();
 	};
 
-	const AABBEx actualBody = GetHitBox();
-	BoxEx previousXYBody{};
-	{
-		previousXYBody.pos.x		= actualBody.pos.x;
-		previousXYBody.pos.y		= actualBody.pos.y;
-		previousXYBody.size.x		= actualBody.size.x;
-		previousXYBody.size.y		= actualBody.size.y;
-		previousXYBody.velocity.x	= actualBody.velocity.x;
-		previousXYBody.velocity.y	= actualBody.velocity.y;
-		previousXYBody.exist		= actualBody.exist;
-		previousXYBody.mass			= actualBody.mass;
-	}
+	const AABBEx actualBody		= GetHitBox();
+	const BoxEx  previousXYBody	= actualBody.Get2D();
 
 	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
 	{
@@ -478,40 +468,6 @@ void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<
 		return BoxEx::Nil();
 	};
 
-	const AABBEx actualBody = GetHitBox();
-	BoxEx previousXYBody{};
-	{
-		previousXYBody.pos.x		= actualBody.pos.x;
-		previousXYBody.pos.y		= actualBody.pos.y;
-		previousXYBody.size.x		= actualBody.size.x;
-		previousXYBody.size.y		= actualBody.size.y;
-		previousXYBody.velocity.x	= actualBody.velocity.x;
-		previousXYBody.velocity.y	= actualBody.velocity.y;
-		previousXYBody.exist		= actualBody.exist;
-		previousXYBody.mass			= actualBody.mass;
-	}
-
-	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
-	{
-		// Following to "accompanyBox".
-		// My velocity consider to be as accompanyBox's velocity.
-
-		velocity.x = accompanyBox.velocity.x;
-		velocity.y = accompanyBox.velocity.y;
-	}
-
-	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
-	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
-	{
-		scast<float>( Donya::SignBit( xyVelocity.x ) ),
-		scast<float>( Donya::SignBit( xyVelocity.y ) )
-	};
-
-	BoxEx movedXYBody = previousXYBody;
-	movedXYBody.pos  += xyVelocity;
-
-	BoxEx other{};
-
 	std::vector<Donya::Vector2> pushedDirections{}; // Store a normalized-vector of [wall->myself].
 	// Returns true if it is determined to compressed. The "pushDir" expect {0, 1} or {1, 0}.
 	auto JudgeWillCompressed = [&pushedDirections]( const Donya::Vector2 pushDir )->bool
@@ -532,6 +488,48 @@ void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<
 
 		return false;
 	};
+
+	const AABBEx actualBody		= GetHitBox();
+	const BoxEx  previousXYBody	= actualBody.Get2D();
+
+	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
+	{
+		// Following to "accompanyBox".
+		// My velocity consider to be as accompanyBox's velocity.
+
+		velocity.x = accompanyBox.velocity.x;
+		velocity.y = accompanyBox.velocity.y;
+
+		// The "accompanyBox" is external factor.
+		// But I regard as that is not contained to "terrains",
+		// so I should register to a list of compress-factors("pushedDirections") here.
+
+		const Donya::Int2 moveSign
+		{
+			Donya::SignBit( accompanyBox.velocity.x ),
+			Donya::SignBit( accompanyBox.velocity.y )
+		};
+		if ( moveSign.x != 0 )
+		{
+			pushedDirections.emplace_back( Donya::Vector2{ scast<float>( moveSign.x ), 0.0f } );
+		}
+		if ( moveSign.y != 0 )
+		{
+			pushedDirections.emplace_back( Donya::Vector2{ 0.0f, scast<float>( moveSign.y ) } );
+		}
+	}
+
+	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+	{
+		scast<float>( Donya::SignBit( xyVelocity.x ) ),
+		scast<float>( Donya::SignBit( xyVelocity.y ) )
+	};
+
+	BoxEx movedXYBody = previousXYBody;
+	movedXYBody.pos  += xyVelocity;
+
+	BoxEx other{};
 
 	constexpr unsigned int MAX_LOOP_COUNT = 1000U;
 	unsigned int loopCount{};
