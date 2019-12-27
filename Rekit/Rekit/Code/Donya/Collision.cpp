@@ -242,6 +242,37 @@ namespace Donya
 		return Box::IsHitCircle( R, RBoxScreenPosX, RBoxScreenPosY, L, LCircleScreenPosX, LCircleScreenPosY );
 	}
 
+	Line::Result Line::CalcIntersectionPoint( const Line &L, const Line &R )
+	{
+		// From http://marupeke296.com/COL_2D_No10_SegmentAndSegment.html
+
+		Line::Result none{};
+		none.wasHit = false;
+
+		float crsLR = Donya::Vector2::Cross( L.vec, R.vec );
+		if ( ZeroEqual( crsLR ) ) { return none; } // The vectors are parallel. 
+		// else
+
+		Donya::Vector2 vecSS = R.pos - L.pos;
+		float crsSL = Donya::Vector2::Cross( vecSS, L.vec );
+		float crsSR = Donya::Vector2::Cross( vecSS, R.vec );
+
+		float internDivL = crsSR / ( crsLR + EPSILON/* Prevent a zero-divide */ );
+		float internDivR = crsSL / ( crsLR + EPSILON/* Prevent a zero-divide */ );
+
+		auto WithinZeroOne = []( float value )
+		{
+			return ( value < 0.0f || 1.0f < value ) ? false : true;
+		};
+		if ( !WithinZeroOne( internDivL ) || !WithinZeroOne( internDivR ) ) { return none; }
+		// else
+
+		Line::Result result{};
+		result.wasHit		= true;
+		result.intersection	= L.pos + ( L.vec * internDivL );
+		return result;
+	}
+
 	bool AABB::IsHitPoint	( const AABB &L, const Donya::Vector3 &R, bool ignoreExistFlag )
 	{
 		if ( !ignoreExistFlag && !L.exist ) { return false; }

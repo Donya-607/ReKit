@@ -7,7 +7,10 @@
 #include <string>
 #include <wrl.h>
 
+#include "Color.h"		// Use for Line.
+#include "Shader.h"		// Use for Line.
 #include "Quaternion.h"	// Use for Billboard's freeze axis.
+#include "Vector.h"
 
 namespace Donya
 {
@@ -189,6 +192,71 @@ namespace Donya
 				const DirectX::XMFLOAT4		&defaultLightDir	= { 0.0f, 1.0f, 1.0f, 0.0f },
 				const DirectX::XMFLOAT4		&defaultMtlColor	= { 1.0f, 1.0f, 1.0f, 1.0f }
 			) const;
+		};
+
+		class Line
+		{
+		public:
+			struct Vertex
+			{
+				// The "matVP" is not need here,
+				// but I don't want use a constant-buffer,
+				// because the shader is made from embeded source-code,
+				// so the slot of constant-buffer can not change by external.
+				// So I decide to place here.
+
+				DirectX::XMFLOAT3	pos{};				// Default is place to one(1,1,1).
+				DirectX::XMFLOAT4X4	matVP{};			// The View-Projection matrix.
+			};
+			struct Instance
+			{
+				float				scaling{ 1.0f };	// The length of line.
+				DirectX::XMFLOAT3	translation{};
+				DirectX::XMFLOAT4X4	rotation{};			// The rotation from front(0,0,1) vector to direction(end-start).
+				DirectX::XMFLOAT4	color{ 0.0f, 0.0f, 0.0f, 1.0f };	// RGBA.
+			};
+		private:
+			int  idDepthStencil;
+			int  idRasterizer;
+			bool wasCreated;
+
+			Donya::VertexShader lineVS;
+			Donya::PixelShader  linePS;
+
+			const   size_t MAX_INSTANCES;
+			mutable size_t reserveCount;
+			mutable std::vector<Instance>		instances;
+			template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+			mutable ComPtr<ID3D11Buffer>		pVertexBuffer;
+			mutable ComPtr<ID3D11Buffer>		pInstanceBuffer;
+		public:
+			Line( size_t maxInstanceCount = 32U );
+			~Line();
+
+			Line( const Line & );
+		public:
+			/// <summary>
+			/// A current reserving instances will be discard.<para></para>
+			/// Returns false if faileded an initialize.
+			/// </summary>
+			bool Init();
+			void Uninit();
+
+			/// <summary>
+			/// This method only reserve to a internal bundle-list.<para></para>
+			/// Returns false if a current reserving count over than internal capacity.
+			/// </summary>
+			bool Reserve( const Donya::Vector3 &wsStartPoint, const Donya::Vector3 &wsEndPoint, const Donya::Vector4 &color = { 0.0f, 0.0f, 0.0f, 1.0f } ) const;
+			/// <summary>
+			/// This method only reserve to a internal bundle-list.<para></para>
+			/// Returns false if a current reserving count over than internal capacity.
+			/// </summary>
+			bool Reserve( const Donya::Vector3 &wsStartPoint, const Donya::Vector3 &wsEndPoint, float alpha, Donya::Color::Code color = Donya::Color::Code::BLACK ) const;
+
+			/// <summary>
+			/// Draw current reserving instances.
+			/// </summary>
+			void Flush( const Donya::Vector4x4 &matViewProjection ) const;
 		};
 
 		Cube			CreateCube();
