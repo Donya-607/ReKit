@@ -23,6 +23,7 @@
 using namespace DirectX;
 
 SceneTitle::SceneTitle() :
+	nextSceneType(Scene::Type::Null),
 	controller( Donya::Gamepad::PAD_1 )
 {}
 SceneTitle::~SceneTitle() = default;
@@ -49,10 +50,22 @@ Scene::Result SceneTitle::Update( float elapsedTime )
 #if DEBUG_MODE
 	// Scene Transition Demo.
 	{
-		if ( Donya::Keyboard::Trigger( VK_RETURN ) || controller.Trigger( Donya::Gamepad::Button::A ) || controller.Trigger( Donya::Gamepad::Button::START ) )
+		bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL) || Donya::Keyboard::Press(VK_RCONTROL);
+		bool triggerReturn = Donya::Keyboard::Trigger(VK_RETURN) || controller.Trigger(Donya::Gamepad::Button::A) || controller.Trigger(Donya::Gamepad::Button::START);
+		bool triggerE = Donya::Keyboard::Trigger('E');
+		if ( pressCtrl && triggerReturn )
 		{
 			if ( !Fader::Get().IsExist() )
 			{
+				nextSceneType = Scene::Type::Game;
+				StartFade();
+			}
+		}
+		else if (pressCtrl && triggerE)
+		{
+			if (!Fader::Get().IsExist())
+			{
+				nextSceneType = Scene::Type::Editor;
 				StartFade();
 			}
 		}
@@ -83,25 +96,30 @@ Scene::Result SceneTitle::ReturnResult()
 {
 #if DEBUG_MODE
 
-	bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
-	if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
-	{
-		Donya::Sound::Play( Music::ItemDecision );
-
-		Scene::Result change{};
-		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Game;
-		return change;
-	}
-	// else
+//	bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
+//	if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
+//	{
+//		Donya::Sound::Play( Music::ItemDecision );
+//
+//		change.sceneType = Scene::Type::Game;
+//		return change;
+//	}
+//	else
+//	{
+//		if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+//		{
+//			change.sceneType = Scene::Type::Editor;
+//			return change;
+//		}
+//	}
 
 #endif // DEBUG_MODE
 
 	if ( Fader::Get().IsClosed() )
 	{
 		Scene::Result change{};
+		change.sceneType = nextSceneType;
 		change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ME );
-		change.sceneType = Scene::Type::Game;
 		return change;
 	}
 	// else

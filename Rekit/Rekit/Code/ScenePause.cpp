@@ -19,6 +19,7 @@
 ScenePause::ScenePause() :
 	choice( Choice::Resume ),
 	sprUI(),
+	nextSceneType(),
 	controller( Donya::XInput::PadNumber::PAD_1 )
 {}
 ScenePause::~ScenePause() = default;

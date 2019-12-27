@@ -11,6 +11,15 @@
 
 class SceneEditor : public Scene
 {
+private:
+	Donya::XInput			controller;
+	Donya::ICamera			iCamera;
+
+	Player					player;
+	Gimmick					gimmicks;
+
+	Scene::Type				nextSceneType;
+
 public:
 	SceneEditor();
 	~SceneEditor();
@@ -21,6 +30,13 @@ public:
 	Result	Update( float elapsedTime ) override;
 
 	void	Draw( float elapsedTime ) override;
+
+private:
+	void	StartFade() const;
+
+private:
+	void	CameraInit();
+	void	CameraUpdate();
 
 private:
 	Result	ReturnResult();
