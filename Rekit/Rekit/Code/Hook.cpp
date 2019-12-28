@@ -221,24 +221,13 @@ void Hook::Update(float elapsedTime, Input controller)
 //
 #endif // USE_IMGUI
 
-#if DEBUG_MODE
-	/*
-
-	{
-		const float throwSpeed = HookParam::Get().Data().throwSpeed;
-//		velocity = controller.moveVelocity * throwSpeed * elapsedTime;
-	}
-
-	*/
-#endif // DEBUG_MODE
-
 	switch (state)
 	{
 	case ActionState::Throw:
 		ThrowUpdate(elapsedTime,controller);
 		if (prevPress && !controller.currPress)
 		{
-			state = ActionState::Stay;
+			state = ( placeablePoint ) ? ActionState::Stay : ActionState::Erase;
 			Donya::Sound::Play( Music::Appearance );
 		}
 		break;
@@ -284,17 +273,8 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 		placeablePoint = true;
 		const auto wsAABB = GetHitBox();
-		BoxEx xyBody{};
-		{
-			xyBody.pos.x		= wsAABB.pos.x;
-			xyBody.pos.y		= wsAABB.pos.y;
-			xyBody.size.x		= wsAABB.size.x;
-			xyBody.size.y		= wsAABB.size.y;
-			xyBody.velocity.x	= wsAABB.velocity.x;
-			xyBody.velocity.y	= wsAABB.velocity.y;
-			xyBody.mass			= wsAABB.mass;
-			xyBody.exist		= true;
-		}
+		BoxEx xyBody = wsAABB.Get2D();
+		xyBody.exist = true;
 		for ( const auto &it : terrains )
 		{
 			if ( Donya::Box::IsHitBox( it, xyBody ) )
@@ -333,98 +313,117 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	}
 	// else
 
-	/// <summary>
-	/// The "x Axis" is specify moving axis. please only set to { 1, 0 } or { 0, 1 }. This function  to be able to handle any axis.
-	/// </summary>
-	auto MoveSpecifiedAxis = [&](Donya::Vector2 xyNAxis, float moveSpeed)->void
+	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
-		// Only either X or Y is valid.
-		const Donya::Vector2 xyVelocity = xyNAxis * moveSpeed;
-		pos.x += xyVelocity.x;
-		pos.y += xyVelocity.y;
-
-		const auto  actualBody = HookParam::Get().Data().hitBoxPhysic;
-
-		// A moveing direction of myself. Take a value of +1.0f or -1.0f.
-		float moveSign = scast<float>(Donya::SignBit(xyVelocity.x) + Donya::SignBit(xyVelocity.y));
-
-		// The hook's hit box of stage is circle, but doing with rectangle for easily correction.
-		BoxEx xyBody{};
+		for ( const auto &it : terrains )
 		{
-			xyBody.pos.x		= GetPosition().x;
-			xyBody.pos.y		= GetPosition().y;
-			xyBody.size.x		= actualBody.size.x;
-			xyBody.size.y		= actualBody.size.y;
-			xyBody.velocity.x	= GetVelocity().x;
-			xyBody.velocity.y	= GetVelocity().y;
-			xyBody.mass			= actualBody.mass;
-			if (state == ActionState::Stay || state == ActionState::Pull)	{ xyBody.exist = true; }
-			else															{ xyBody.exist = false; }
-		}
-		Donya::Vector2 xyBodyCenter = xyBody.pos;
-		Donya::Vector2 bodySize{ xyBody.size.x * xyNAxis.x, xyBody.size.y * xyNAxis.y }; // Only either X or Y is valid.
-		const float bodyWidth = bodySize.Length(); // Extract valid member by Length().
-
-		for (const auto& wall : terrains)
-		{
-			if ( !Donya::Box::IsHitBox( xyBody, wall ) )	{ continue; }
+			if ( it.mass < myself.mass ) { continue; }
+			if ( it == previousMyself  ) { continue; }
 			// else
 
-			Donya::Vector2 xyWallCenter = wall.pos;
-			Donya::Vector2 wallSize{ wall.size.x * xyNAxis.x, wall.size.y * xyNAxis.y }; // Only either X or Y is valid.
-			Donya::Vector2 wallVelocity{ wall.velocity.x * xyNAxis.x, wall.velocity.y * xyNAxis.y }; // Only either X or Y is valid.
-			float wallWidth = wallSize.Length();		// Extract valid member by Length().
-			float wallSpeed = wallVelocity.Length();	// Extract valid member by Length().
-
-			if ( ZeroEqual( moveSign ) )
+			if ( Donya::Box::IsHitBox( it, myself ) )
 			{
-				// Each other does not move, it is not colliding movement of now axis.
-				if ( ZeroEqual( wallSpeed ) )
-				{
-					state = ActionState::End;
-					break;
-				}
-				// else
-
-				moveSign = scast<float>( Donya::SignBit( wallVelocity.x ) + Donya::SignBit( wallVelocity.y ) );
-				moveSign *= -1.0f;		// This "moveSign" represent the moving direction of myself, so I should reverse.
-				moveSpeed = wallSpeed * moveSign;
+				return it;
 			}
-
-			if ( wall.mass < xyBody.mass ) { continue; }
-			// else
-
-			// Calculate colliding length.
-			// First, calculate body's edge of moving side.
-			// Then, calculate wall's edge of inverse moving side.
-			// After that, calculate colliding length from two edges.
-			// Finally, correct the position to inverse moving side only that length.
-
-			Donya::Vector2 bodyEdge	= xyBodyCenter + ( xyNAxis * bodyWidth * moveSign );
-			Donya::Vector2 wallEdge	= xyWallCenter + ( xyNAxis * wallWidth * -moveSign );
-			Donya::Vector2 diff		= bodyEdge - wallEdge;
-			Donya::Vector2 axisDiff{ diff.x * xyNAxis.x, diff.y * xyNAxis.y };
-			float collidingLength	= axisDiff.Length(); // Extract valid member by Length().
-
-			Donya::Vector2 xyCorrection = xyNAxis * ( collidingLength * -moveSign );
-			pos.x += xyCorrection.x;
-			pos.y += xyCorrection.y;
-			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
-			pos.x += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.x ) );
-			pos.y += 0.0001f * scast<float>( Donya::SignBit( xyCorrection.y ) );
-
-			// We must apply the repulsed position to hit-box for next collision.
-			xyBody.pos.x = GetPosition().x;
-			xyBody.pos.y = GetPosition().y;
 		}
+
+		return BoxEx::Nil();
 	};
 
-	// Move to X-axis with collision.
-	MoveSpecifiedAxis(Donya::Vector2{ 1.0f, 0.0f }, velocity.x);
-	// Move to Y-axis with collision.
-	MoveSpecifiedAxis(Donya::Vector2{ 0.0f, 1.0f }, velocity.y);
-	// Move to Z-axis only.
+	const AABBEx actualBody		= GetHitBox();
+	const BoxEx  previousXYBody	= actualBody.Get2D();
+
+	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+	Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+	{
+		scast<float>( Donya::SignBit( xyVelocity.x ) ),
+		scast<float>( Donya::SignBit( xyVelocity.y ) )
+	};
+
+	BoxEx movedXYBody = previousXYBody;
+	movedXYBody.pos  += xyVelocity;
+
+	BoxEx other{};
+	bool wasCollided = false;
+
+	constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+	unsigned int loopCount{};
+	while ( ++loopCount < MAX_LOOP_COUNT )
+	{
+		other = CalcCollidingBox( movedXYBody, previousXYBody );
+		if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
+		// else
+
+		if ( other.mass < movedXYBody.mass ) { continue; }
+		// else
+
+		if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+		}
+		if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+		{
+			// The myself's moving direction is considered the inverse of other's moving direction.
+			moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+		}
+
+		if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+		// else
+
+		Donya::Vector2 penetration{}; // Store absolute value.
+		Donya::Vector2 plusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+		};
+		Donya::Vector2 minusPenetration
+		{
+			fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+			fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+		};
+		penetration.x
+			= ( moveSign.x < 0.0f ) ? minusPenetration.x
+			: ( moveSign.x > 0.0f ) ? plusPenetration.x
+			: 0.0f;
+		penetration.y
+			= ( moveSign.y < 0.0f ) ? minusPenetration.y
+			: ( moveSign.y > 0.0f ) ? plusPenetration.y
+			: 0.0f;
+
+		constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+		Donya::Vector2 resolver
+		{
+			( penetration.x + ERROR_MARGIN ) * -moveSign.x,
+			( penetration.y + ERROR_MARGIN ) * -moveSign.y
+		};
+
+		// Repulse to the more little(but greater than zero) axis side of penetration.
+		if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
+		{
+			movedXYBody.pos.y += resolver.y;
+			velocity.y = 0.0f;
+			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+		}
+		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+		{
+			movedXYBody.pos.x += resolver.x;
+			velocity.x = 0.0f;
+			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+		}
+
+		wasCollided = true;
+	}
+
+	pos.x = movedXYBody.pos.x;
+	pos.y = movedXYBody.pos.y;
 	pos.z += velocity.z;
+
+	if ( wasCollided )
+	{
+		state = ActionState::Stay;
+	}
 }
 
 void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const

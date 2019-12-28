@@ -348,7 +348,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		if ( pHook )
 		{
 			accompanyBox = ToBox( pHook->GetHitBox() );
-			terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
 		}
 		else
 		{
@@ -415,11 +414,11 @@ void SceneGame::Draw( float elapsedTime )
 
 		// Drawing Test Terrains that use to player's collision.
 		{
-			constexpr Donya::Vector4 cubeColor{ 1.0f, 0.8f, 0.0f, 0.6f };
+			constexpr Donya::Vector4 cubeColor{ 0.6f, 0.6f, 0.6f, 0.6f };
 			Donya::Vector4x4 cubeT{};
 			Donya::Vector4x4 cubeS{};
 			Donya::Vector4x4 cubeW{};
-			for ( const auto &it : AlphaParam::Get().Data().debugAllTerrains )
+			for ( const auto &it : AlphaParam::Get().Data().debugTerrains )
 			{
 				// The drawing size is whole size.
 				// But a collision class's size is half size.
@@ -814,7 +813,7 @@ void SceneGame::UseImGui()
 
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
-
+			
 			ImGui::TreePop();
 		}
 		

@@ -54,6 +54,23 @@ private:
 		}
 	}
 public:
+	/// <summary>
+	/// A Vector2 members are builded by (x, y).
+	/// </summary>
+	BoxEx Get2D() const
+	{
+		BoxEx xy{};
+		xy.pos.x		= pos.x;
+		xy.pos.y		= pos.y;
+		xy.size.x		= size.x;
+		xy.size.y		= size.y;
+		xy.velocity.x	= velocity.x;
+		xy.velocity.y	= velocity.y;
+		xy.exist		= exist;
+		xy.mass			= mass;
+		return xy;
+	}
+public:
 	static AABBEx Nil()
 	{
 		return AABBEx{};
