@@ -136,6 +136,7 @@ CEREAL_CLASS_VERSION(EditParam::Member, 2)
 
 
 SceneEditor::SceneEditor() :
+	iCamera(),
 	nextSceneType(Scene::Type::Null),
 	controller(Donya::Gamepad::PAD_1)
 {
@@ -164,7 +165,8 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 	Donya::Vector2 mousePos;
 	Donya::Mouse::Coordinate(&mousePos.x, &mousePos.y);
 
-
+	Donya::ICamera::Controller ctrl{};
+	iCamera.Update(ctrl);
 
 	// Scene Transition Demo.
 	{
@@ -196,8 +198,17 @@ void SceneEditor::Draw(float elapsedTime)
 	bool isPressG = Donya::Keyboard::Press( 'G' );
 
 	Donya::Box cirsolBox;
-	cirsolBox.exist = false;
-	cirsolBox.Set(カーソルX, カーソルY, 1.0f, 1.0f, false);
+//	cirsolBox.Set(カーソルX, カーソルY, 1.0f, 1.0f, false);
+
+	Donya::Geometric::Line line;
+
+	line.Reserve(Donya::Vector3(0.0f, 0.0f, 0.0f), Donya::Vector3(1.0f, 0.0f, 0.0f));
+
+	Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+	Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
+	Donya::Vector4x4 VP = V * P;
+	line.Flush(VP);
+
 }
 
 void SceneEditor::StartFade()const
