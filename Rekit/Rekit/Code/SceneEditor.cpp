@@ -201,8 +201,11 @@ void SceneEditor::Draw(float elapsedTime)
 //	cirsolBox.Set(カーソルX, カーソルY, 1.0f, 1.0f, false);
 
 	Donya::Geometric::Line line;
+	line.Init();
 
-	line.Reserve(Donya::Vector3(0.0f, 0.0f, 0.0f), Donya::Vector3(1.0f, 0.0f, 0.0f));
+	Donya::Vector3 start = Donya::Vector3(0.0f, 0.0f, 0.0f);
+	Donya::Vector3 end = Donya::Vector3(1.0f, 0.0f, 0.0f);
+	line.Reserve(start, end);
 
 	Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 	Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
