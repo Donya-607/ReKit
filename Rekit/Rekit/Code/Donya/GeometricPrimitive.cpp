@@ -1534,8 +1534,7 @@ namespace Donya
 						Vertex{ Donya::Vector3::Zero().XMFloat(),  matVP.XMFloat() },
 						Vertex{ Donya::Vector3::Front().XMFloat(), matVP.XMFloat() }
 					};
-					memcpy_s( msrVertex.pData, sizeof( Line::Vertex ) * currentVertices.size(), currentVertices.data(), msrVertex.RowPitch );
-
+					memcpy( msrVertex.pData, currentVertices.data(), sizeof(Line::Vertex) * currentVertices.size());
 					pImmediateContext->Unmap( pVertexBuffer.Get(), 0 );
 				}
 
