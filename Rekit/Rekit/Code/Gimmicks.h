@@ -66,7 +66,7 @@ public:
 	/// <summary>
 	/// The base class PhysicUpdate() provides only moves(by velocity) and resolving collision.
 	/// </summary>
-	virtual void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+	virtual void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer = true, bool ignoreHitBoxExist = false );
 
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
 protected:
@@ -137,7 +137,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -207,7 +207,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -280,7 +280,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -299,8 +299,15 @@ public:
 	/// </summary>
 	AABBEx GetHitBox() const override;
 private:
+	/// <summary>
+	/// Returns index is kind of triggers(following the GimmickKind, start by TriggerKey), 0-based.
+	/// </summary>
+	int GetTriggerKindIndex() const;
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
-
+private:
+	void PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+	void PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+	void PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;
@@ -342,7 +349,7 @@ public:
 	void Uninit();
 
 	void Update( float elapsedTime );
-	void PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:

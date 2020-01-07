@@ -185,9 +185,12 @@ void FragileBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void FragileBlock::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void FragileBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
-	AssignVelocity( accompanyBox, terrains );
+	// Store also the player(player is not contain to terrains).
+	std::vector<BoxEx> wholeCollisions = terrains;
+	wholeCollisions.emplace_back( player );
+	AssignVelocity( accompanyBox, wholeCollisions );
 }
 
 void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const

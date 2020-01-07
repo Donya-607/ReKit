@@ -57,17 +57,23 @@ GimmickBase::GimmickBase() :
 {}
 GimmickBase::~GimmickBase() = default;
 
-void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
+	std::vector<BoxEx> wholeCollisions = terrains;
+	if ( collideToPlayer )
+	{
+		wholeCollisions.emplace_back( player );
+	}
+
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
-		for ( const auto &it : terrains )
+		for ( const auto &it : wholeCollisions )
 		{
 			if ( it.mass < myself.mass ) { continue; }
 			if ( it == previousMyself  ) { continue; }
 			// else
 
-			if ( Donya::Box::IsHitBox( it, myself ) )
+			if ( Donya::Box::IsHitBox( it, myself, ignoreHitBoxExist ) )
 			{
 				return it;
 			}
@@ -79,7 +85,7 @@ void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<Box
 	const AABBEx actualBody		= GetHitBox();
 	const BoxEx  previousXYBody	= actualBody.Get2D();
 
-	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
+	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody, ignoreHitBoxExist ) )
 	{
 		// Following to "accompanyBox".
 		// My velocity consider to be as accompanyBox's velocity.
@@ -233,7 +239,7 @@ void Gimmick::Update( float elapsedTime )
 		it->Update( elapsedTime );
 	}
 }
-void Gimmick::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 	const size_t blockCount = pGimmicks.size();
 
@@ -270,7 +276,7 @@ void Gimmick::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> 
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
-		pGimmicks[i]->PhysicUpdate( accompanyBox, allTerrains );
+		pGimmicks[i]->PhysicUpdate( player, accompanyBox, allTerrains );
 		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
 	}
 

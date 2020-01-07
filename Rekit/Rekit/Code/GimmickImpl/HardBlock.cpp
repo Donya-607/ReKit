@@ -172,9 +172,9 @@ void HardBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void HardBlock::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
-	GimmickBase::PhysicUpdate( accompanyBox, terrains );
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
 
 void HardBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
