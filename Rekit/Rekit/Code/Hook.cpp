@@ -225,7 +225,7 @@ void Hook::Update(float elapsedTime, Input controller)
 	{
 	case ActionState::Throw:
 		ThrowUpdate(elapsedTime,controller);
-		if (prevPress && !controller.currPress)
+		if (controller.currPress)
 		{
 			state = ( placeablePoint ) ? ActionState::Stay : ActionState::Erase;
 			Donya::Sound::Play( Music::Appearance );
