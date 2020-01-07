@@ -182,7 +182,6 @@ public:
 	/// </summary>
 	static void UseParameterImGui();
 #endif // USE_IMGUI
-private:
 public:
 	HardBlock();
 	~HardBlock();
