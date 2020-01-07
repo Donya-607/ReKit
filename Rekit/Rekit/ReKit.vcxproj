@@ -172,6 +172,7 @@
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\GimmickImpl\FragileBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\HardBlock.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Trigger.cpp" />
     <ClCompile Include="Code\Gimmicks.cpp" />
     <ClCompile Include="Code\Hook.cpp" />
     <ClCompile Include="Code\main.cpp" />
