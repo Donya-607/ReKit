@@ -36,8 +36,11 @@ namespace GimmickUtility
 	{
 		switch ( kind )
 		{
-		case GimmickKind::Fragile:	return "Fragile";	// break;
-		case GimmickKind::Hard:		return "Hard";		// break;
+		case GimmickKind::Fragile:			return "Fragile";		// break;
+		case GimmickKind::Hard:				return "Hard";			// break;
+		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
+		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
+		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -192,6 +195,116 @@ int				GimmickBase::GetKind()		const { return kind;	}
 Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
 
 // region Base
+#pragma endregion
+
+#pragma region Trigger
+
+void Trigger::ParameterInit()
+{
+
+}
+#if USE_IMGUI
+void Trigger::UseParameterImGui()
+{
+
+}
+#endif // USE_IMGUI
+
+Trigger::Trigger() : GimmickBase(),
+	ID( 0 ), enable( false )
+{}
+Trigger::Trigger( int id, bool enable ) : GimmickBase(),
+	ID(id), enable(enable)
+{}
+Trigger::~Trigger() = default;
+
+void Trigger::Init( int gimmickKind, const Donya::Vector3& wsPos )
+{
+	kind = gimmickKind;
+	pos = wsPos;
+	velocity = 0.0f;
+}
+void Trigger::Uninit()
+{
+	// No op.
+}
+
+void Trigger::Update( float elapsedTime )
+{
+
+}
+void Trigger::PhysicUpdate( const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains )
+{
+
+}
+
+void Trigger::Draw( const Donya::Vector4x4& V, const Donya::Vector4x4& P, const Donya::Vector4& lightDir ) const
+{
+	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
+	Donya::Vector4x4 WVP = W * V * P;
+
+	constexpr Donya::Vector4 color[3] = {
+		{ 0.8f, 1.0f, 0.0f, 0.8f },		// key
+		{ 1.0f, 0.0f, 0.8f, 0.8f },		// switch
+		{ 0.0f, 0.8f, 1.0f, 0.8f }		// pull
+	};
+	int colorKind = kind - scast<int>(GimmickKind::TriggerKey);
+
+	BaseDraw( WVP, W, lightDir, color[colorKind] );
+}
+
+void Trigger::WakeUp()
+{
+	// No op.
+}
+
+bool Trigger::ShouldRemove() const
+{
+	return false;
+}
+
+Donya::Vector3 Trigger::GetPosition() const
+{
+	return pos;
+}
+AABBEx Trigger::GetHitBox() const
+{
+	return AABBEx::Nil();
+}
+
+Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
+{
+	auto wsBox = GetHitBox();
+	if (useDrawing)
+	{
+		// The AABB size is half, but drawing object's size is whole.
+		wsBox.size *= 2.0f;
+	}
+
+	Donya::Vector4x4 mat{};
+	mat._11 = wsBox.size.x;
+	mat._22 = wsBox.size.y;
+	mat._33 = wsBox.size.z;
+	mat._41 = wsBox.pos.x;
+	mat._42 = wsBox.pos.y;
+	mat._43 = wsBox.pos.z;
+	return mat;
+}
+
+#if USE_IMGUI
+
+void Trigger::ShowImGuiNode()
+{
+	using namespace GimmickUtility;
+
+	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
+	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );
+}
+
+#endif // USE_IMGUI
+
+// region Trigger
 #pragma endregion
 
 #pragma region Gimmick
@@ -352,6 +465,21 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<HardBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), Donya::Vector3::Zero() );
+				}
+				if (ImGui::Button( (prefix + ToString( GimmickKind::TriggerKey )).c_str() ))
+				{
+					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), Donya::Vector3::Zero() );
+				}
+				if (ImGui::Button( (prefix + ToString( GimmickKind::TriggerSwitch )).c_str() ))
+				{
+					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), Donya::Vector3::Zero() );
+				}
+				if (ImGui::Button( (prefix + ToString( GimmickKind::TriggerPull )).c_str() ))
+				{
+					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )

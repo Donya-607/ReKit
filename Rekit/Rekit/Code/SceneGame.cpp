@@ -671,7 +671,7 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 	Donya::Vector2		stick{};
 	bool				useAction	= false;
-	bool				trigger		= false;
+	bool				create		= false;
 	bool				erase		= false; // A User can erase the hook arbitally.
 
 	if ( controller.IsConnected() )
@@ -681,7 +681,7 @@ void SceneGame::HookUpdate( float elapsedTime )
 		stick = controller.RightStick();
 
 		if ( controller.Press  ( Pad::RT ) ) { useAction	= true; }
-		if ( controller.Trigger( Pad::RT ) ) { trigger		= true; }
+		if ( stick.Length() != 0 )			 { create		= true; }
 		if ( controller.Trigger( Pad::LT ) ) { erase		= true; }
 	}
 	else
@@ -708,11 +708,11 @@ void SceneGame::HookUpdate( float elapsedTime )
 		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y		-= 1.0f; }
 
 		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction	= true; }
-		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) ) { trigger		= true; }
+		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) ) { create		= true; }
 		if ( Donya::Keyboard::Trigger( VK_END    ) ) { erase		= true; }
 	}
 
-	if ( trigger )
+	if ( create )
 	{
 		if( !pHook ) 
 		{ 
