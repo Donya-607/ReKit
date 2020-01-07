@@ -671,6 +671,8 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 	Donya::Vector2		stick{};
 	bool				useAction	= false;
+	bool				extend		= false;
+	bool				shrink		= false;
 	bool				create		= false;
 	bool				erase		= false; // A User can erase the hook arbitally.
 
@@ -680,9 +682,19 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 		stick = controller.RightStick();
 
+#if 1
+		if ( controller.Trigger( Pad::LT ) ) { useAction	= true; }
+		if ( controller.Press  ( Pad::RT ) ) { create		= true;
+											   extend		= true; }
+		if ( controller.Press  ( Pad::RB ) ) { shrink		= true; }
+		if ( controller.Trigger( Pad::LB ) ) { erase		= true; }
+#else
 		if ( controller.Press  ( Pad::RT ) ) { useAction	= true; }
-		if ( stick.Length() != 0 )			 { create		= true; }
+		if ( stick.Length() != 0 )			 { create		= true;
+											   extend		= true; }
+		else								 { shrink		= true; }
 		if ( controller.Trigger( Pad::LT ) ) { erase		= true; }
+#endif
 	}
 	else
 	{
