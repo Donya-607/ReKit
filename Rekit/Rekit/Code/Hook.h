@@ -19,6 +19,8 @@ public:
 		Donya::Vector3	playerPos{};	// World space.
 		Donya::Vector2	stickVec{};		// スティック前に倒したら上行く(Y+ == ↑)
 		bool			currPress{};	// Current button state : [TRUE:Pressed] [FALSE:Not pressed]
+
+
 	};
 private:
 	struct Constants
@@ -45,10 +47,11 @@ private:
 	ActionState							state;
 
 	float								easingTime;
-	float								distance;			// playerとhookの距離
-	float								momentPullDist;		// 引かれた瞬間のplayerとhookの距離
+	float								distance;			// distance between player and hook.
+	float								momentPullDist;		// The distance between the player and the hook at the moment of the pull.
 	bool								prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
-	bool								exist;
+	bool								exist;				// Exist flag			 : [TRUE:Exist] [FALSE:not exist]
+	bool								isHitCheckEnable;	// Hit judgment flag	 : [TRUE:judge] [FALSE:Do not judge]
 	bool								placeablePoint;		// Use for represent to user when state == Throw.
 
 	static Donya::Geometric::Cube		drawModel;
