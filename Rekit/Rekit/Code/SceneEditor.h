@@ -53,6 +53,7 @@ private:
 
 	// Edit Function
 	void GenerateBlockIfCleck();
+	void EraseBlockIfRightCleck();
 
 private:
 	Result	ReturnResult();

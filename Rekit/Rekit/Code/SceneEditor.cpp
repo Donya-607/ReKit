@@ -122,6 +122,22 @@ public:
 		BoxEx changeable{ { mousePos.x, mousePos.y, 2.0f, 2.0f, true }, 1 };
 		EditParam::Get().DataRef().debugTerrains.emplace_back(changeable);
 	}
+	void EraseBlock()
+	{
+		auto mousePos = EditParam::Get().Data().transformMousePos;
+		for (auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
+		{
+			auto box = *itr;
+			auto mousePos = m.transformMousePos;
+			if (box.pos.x - box.size.x > mousePos.x) { itr++; continue; }
+			if (box.pos.x + box.size.x < mousePos.x) { itr++; continue; }
+			if (box.pos.y - box.size.y > mousePos.y) { itr++; continue; }
+			if (box.pos.y + box.size.y < mousePos.y) { itr++; continue; }
+
+			itr = m.debugTerrains.erase(itr);
+			break;
+		}
+	}
 
 public:
 	void UseImGui()
@@ -236,6 +252,7 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 #endif
 
 	GenerateBlockIfCleck();
+	EraseBlockIfRightCleck();
 
 	return ReturnResult();
 }
@@ -377,6 +394,15 @@ void SceneEditor::GenerateBlockIfCleck()
 	if ( !cleckLeftButton )return;
 
 	EditParam::Get().GenerateBlock();
+}
+
+void SceneEditor::EraseBlockIfRightCleck()
+{
+	bool cleckRightButton = Donya::Mouse::Trigger(Donya::Mouse::RIGHT);
+
+	if (!cleckRightButton)return;
+
+	EditParam::Get().EraseBlock();
 }
 
 
