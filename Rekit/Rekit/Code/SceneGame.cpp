@@ -344,12 +344,17 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
 		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
 
+		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			terrainsForGimmicks.emplace_back( ToBox( pHook->GetHitBox() ) );
+			accompanyBox = ToBox( pHook->GetHitBox() );
+		}
+		else
+		{
+			accompanyBox.exist = false;
 		}
 
-		gimmicks.PhysicUpdate( terrainsForGimmicks );
+		gimmicks.PhysicUpdate( accompanyBox, terrainsForGimmicks );
 	}
 
 	// 5. Add the gimmicks block.
@@ -397,7 +402,7 @@ void SceneGame::Draw( float elapsedTime )
 	gimmicks.Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
-	if (pHook)
+	if ( pHook )
 	{
 		pHook->Draw(V * P, dirLight.dir, dirLight.color);
 	}
@@ -409,11 +414,11 @@ void SceneGame::Draw( float elapsedTime )
 
 		// Drawing Test Terrains that use to player's collision.
 		{
-			constexpr Donya::Vector4 cubeColor{ 1.0f, 0.8f, 0.0f, 0.6f };
+			constexpr Donya::Vector4 cubeColor{ 0.6f, 0.6f, 0.6f, 0.6f };
 			Donya::Vector4x4 cubeT{};
 			Donya::Vector4x4 cubeS{};
 			Donya::Vector4x4 cubeW{};
-			for ( const auto &it : AlphaParam::Get().Data().debugAllTerrains )
+			for ( const auto &it : AlphaParam::Get().Data().debugTerrains )
 			{
 				// The drawing size is whole size.
 				// But a collision class's size is half size.
@@ -439,7 +444,7 @@ void SceneGame::Draw( float elapsedTime )
 		{
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 			const auto box = AlphaParam::Get().Data().debugClearTrigger;
-			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 0.0f } );
+			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 1.0f } );
 			Donya::Vector4x4 cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ box.size * 2.0f, 1.0f } );
 			Donya::Vector4x4 cubeW = cubeS * cubeT;
 
@@ -808,7 +813,7 @@ void SceneGame::UseImGui()
 
 			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
 			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
-
+			
 			ImGui::TreePop();
 		}
 		

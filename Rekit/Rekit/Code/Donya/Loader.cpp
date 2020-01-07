@@ -1,6 +1,5 @@
 #include "Loader.h"
 
-#include <array>
 #include <crtdbg.h>
 #include <Windows.h>
 
@@ -8,9 +7,8 @@
 #include <fbxsdk.h>
 #endif // USE_FBX_SDK
 
-#include "Benchmark.h"
-#include "Constant.h"
-#include "Useful.h"
+#include "Constant.h"	// Use scast macro.
+#include "Useful.h"		// Use OutputDebugStr().
 
 #undef min
 #undef max
@@ -19,18 +17,30 @@
 namespace FBX = fbxsdk;
 #endif // USE_FBX_SDK
 
+void OutputDebugProgress( const std::string &str, bool isAllowOutput )
+{
+	if ( !isAllowOutput ) { return; }
+	// else
+
+	const std::string prefix { "[Donya.LoadProgress]:" };
+	const std::string postfix{ "\n" };
+	Donya::OutputDebugStr( ( prefix + str + postfix ).c_str() );
+}
+
 namespace Donya
 {
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
-		meshes()
-	{
-
-	}
+		meshes(), motions(), collisionFaces()
+	{}
 	Loader::~Loader()
 	{
 		meshes.clear();
+		motions.clear();
+		collisionFaces.clear();
 		meshes.shrink_to_fit();
+		motions.shrink_to_fit();
+		collisionFaces.shrink_to_fit();
 	}
 
 	std::mutex Loader::cerealMutex{};
@@ -65,6 +75,18 @@ namespace Donya
 			scast<float>( source.mData[3] )
 		};
 	}
+	DirectX::XMFLOAT4X4 Convert( const FBX::FbxAMatrix &affineMatrix )
+	{
+		DirectX::XMFLOAT4X4 out{};
+		for ( int r = 0; r < 4; ++r )
+		{
+			for ( int c = 0; c < 4; ++c )
+			{
+				out.m[r][c] = scast<float>( affineMatrix[r][c] );
+			}
+		}
+		return out;
+	}
 
 	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
 	{
@@ -94,7 +116,7 @@ namespace Donya
 		}
 	}
 
-	void FetchBoneInfluences( const fbxsdk::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
+	void FetchBoneInfluences( const FBX::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
 	{
 		const int ctrlPointCount = pMesh->GetControlPointsCount();
 		influences.resize( ctrlPointCount );
@@ -113,7 +135,7 @@ namespace Donya
 			{
 				auto	&data	= influences[ctrlPointIndices[i]].cluster;
 				float	weight	= scast<float>( ctrlPointWeights[i] );
-				data.emplace_back( clustersIndex, weight );
+				data.push_back( { clustersIndex, weight } );
 			}
 		};
 		auto FetchClusterFromSkin =
@@ -135,10 +157,148 @@ namespace Donya
 			FetchClusterFromSkin( influences, pSkin );
 		}
 	}
+	void FetchBoneMatrices( FBX::FbxTime time, const FBX::FbxMesh *pMesh, Loader::Skeletal *pSkeletal )
+	{
+		auto FetchMatricesFromSkin = []( FBX::FbxTime time, const FBX::FbxMesh *pMesh, const FBX::FbxSkin *pSkin, Loader::Skeletal *pSkeletal )
+		{
+			const int clusterCount = pSkin->GetClusterCount();
+
+		#define APPEND ( false )
+		#if APPEND
+			const size_t oldSkeletalCount = pSkeletal->size();
+			pSkeletal->resize( scast<size_t>( clusterCount ) + oldSkeletalCount );
+		#else
+			pSkeletal->skeletal.resize( scast<size_t>( clusterCount ) );
+		#endif // APPEND
+		#undef APPEND
+
+			pSkeletal->boneCount = pSkeletal->skeletal.size();
+
+			for ( int i = 0; i < clusterCount; ++i )
+			{
+				Loader::Bone &bone = pSkeletal->skeletal.at( i );
+
+				// Each joint.
+				const FbxCluster *pCluster = pSkin->GetCluster( i );
+
+				bone.name = pCluster->GetName();
+
+				FBX::FbxAMatrix offsetMatrix{};
+				{
+					// This matrix transforms coordinates of the initial pose from mesh space to global space.
+					FBX::FbxAMatrix referenceGlobalInitPosition{};
+					pCluster->GetTransformMatrix( referenceGlobalInitPosition );
+
+					// This matrix transforms coordinates of the initial pose from bone space to global space.
+					FBX::FbxAMatrix clusterGlobalInitPosition{};
+					pCluster->GetTransformLinkMatrix( clusterGlobalInitPosition );
+
+					offsetMatrix = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
+				}
+
+				FBX::FbxAMatrix poseMatrix{};
+				{
+					// This matrix transforms coordinates of the current pose from mesh space to global space.
+					FBX::FbxAMatrix referenceGlobalCurrentPosition{};
+					referenceGlobalCurrentPosition = pMesh->GetNode()->EvaluateGlobalTransform( time );
+
+					// This matrix transforms coordinates of the current pose from bone space to global space.
+					FBX::FbxAMatrix clusterGlobalCurrentPosition{};
+					FBX::FbxNode *pLinkNode = const_cast<FBX::FbxNode *>( pCluster->GetLink() );
+					clusterGlobalCurrentPosition = pLinkNode->EvaluateGlobalTransform( time );
+
+					poseMatrix = referenceGlobalCurrentPosition.Inverse() * clusterGlobalCurrentPosition;
+				}
+
+				// "initial : mesh->global->bone", "current : bone->global->mesh"
+				// First, transform from initial mesh space to initial bone space.
+				// Then,  transfrom from initial bone space to current mesh space(i.e.animated position).
+				// FbxAMatrix is column-major, so multiply from right side.
+
+				bone.transform = Convert( poseMatrix * offsetMatrix );
+				// bone.transformToBone = Convert( poseMatrix.Inverse() );
+			}
+		};
+
+		const int deformersCount = pMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
+		for ( int i = 0; i < deformersCount; ++i )
+		{
+			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( i, FBX::FbxDeformer::eSkin ) );
+
+			FetchMatricesFromSkin( time, pMesh, pSkin, pSkeletal );
+		}
+	}
+	/// <summary>
+	/// If specified mesh("pMesh") has not a motion(animation), returns false.
+	/// "samplingRate" is sampling times per second. if "samplingRate" zero, use FBX data's frame rate.
+	/// </summary>
+	bool FetchMotion( unsigned int samplingRate, const FBX::FbxMesh *pMesh, Loader::Motion *pMotion )
+	{
+		// List of all the animation stack. 
+		FBX::FbxArray<FBX::FbxString *> animationStackNames;
+		pMesh->GetScene()->FillAnimStackNameArray( animationStackNames );
+		const int animationStackCount = animationStackNames.Size();
+
+		auto ReleaseAnimationStackNames = [&animationStackNames, &animationStackCount]()->void
+		{
+			for ( int i = 0; i < animationStackCount; i++ )
+			{
+				delete animationStackNames[i];
+			}
+		};
+
+		if ( animationStackCount <= 0 )
+		{
+			// FBX::DeleteArray
+			ReleaseAnimationStackNames();
+			return false;
+		}
+		// else
+
+		// Get the FbxTime per animation's frame. 
+		const FBX::FbxTime::EMode timeMode = pMesh->GetScene()->GetGlobalSettings().GetTimeMode();
+		FBX::FbxTime frameTime{};
+		frameTime.SetTime( 0, 0, 0, 1, 0, timeMode );
+
+		pMotion->samplingRate = ( samplingRate <= 0 )
+		? 1.0f / scast<float>( FBX::FbxTime::GetFrameRate( timeMode ) )
+		: 1.0f / samplingRate;
+
+		FBX::FbxTime samplingStep;
+		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
+		samplingStep = scast<FBX::FbxLongLong>( scast<double>( samplingStep.Get() ) * pMotion->samplingRate );
+
+		for ( int i = 0; i < animationStackCount; ++i )
+		{
+			FBX::FbxString		*pAnimStackName			= animationStackNames.GetAt( i );
+			FBX::FbxAnimStack	*pCurrentAnimationStack	= pMesh->GetScene()->FindMember<FBX::FbxAnimStack>( pAnimStackName->Buffer() );
+			pMesh->GetScene()->SetCurrentAnimationStack( pCurrentAnimationStack );
+
+			FBX::FbxTakeInfo	*pTakeInfo = pMesh->GetScene()->GetTakeInfo( pAnimStackName->Buffer() );
+			if ( !pTakeInfo )	{ continue; }
+			// else
+
+			pMotion->names.emplace_back( pAnimStackName->Buffer() );
+
+			const FBX::FbxTime beginTime	= pTakeInfo->mLocalTimeSpan.GetStart();
+			const FBX::FbxTime endTime		= pTakeInfo->mLocalTimeSpan.GetStop();
+			for ( FBX::FbxTime currentTime	= beginTime; currentTime < endTime; currentTime += samplingStep )
+			{
+				Loader::Skeletal currentPosture{};
+				FetchBoneMatrices( currentTime, pMesh, &currentPosture );
+
+				pMotion->motion.emplace_back( currentPosture );
+			}
+		}
+		
+		ReleaseAnimationStackNames();
+
+		return true;
+	}
 
 #endif // USE_FBX_SDK
 
-	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::Load( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		std::string fullPath = ToFullPath( filePath );
 
@@ -165,7 +325,14 @@ namespace Donya
 
 		if ( ShouldUseFBXSDK( fullPath ) )
 		{
-			return LoadByFBXSDK( fullPath, outputErrorString );
+			OutputDebugProgress( std::string{ "Start By FBX:" + filePath }, outputProgress );
+
+			bool succeeded = LoadByFBXSDK( fullPath, outputErrorString, outputProgress );
+
+			const std::string resultString = ( succeeded ) ? "Load By FBX Successful:" : "Load By FBX Failed:";
+			OutputDebugProgress( resultString + filePath, outputProgress );
+
+			return succeeded;
 		}
 		// else
 
@@ -192,7 +359,14 @@ namespace Donya
 		auto resultExt = ShouldLoadByCereal( fullPath );
 		if ( !strcmp( ".bin", resultExt ) )
 		{
-			return LoadByCereal( fullPath, outputErrorString );
+			OutputDebugProgress( std::string{ "Start By Cereal:" + filePath }, outputProgress );
+
+			bool succeeded = LoadByCereal( fullPath, outputErrorString, outputProgress );
+
+			const std::string resultString = ( succeeded ) ? "Load By Cereal Successful:" : "Load By Cereal Failed:";
+			OutputDebugProgress( resultString + filePath, outputProgress );
+
+			return succeeded;
 		}
 
 		return false;
@@ -200,34 +374,34 @@ namespace Donya
 
 	void Loader::SaveByCereal( const std::string &filePath ) const
 	{
-		Serializer::Extension bin  = Serializer::Extension::BINARY;
+		Donya::Serializer::Extension bin  = Donya::Serializer::Extension::BINARY;
 
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
-		Serializer seria;
+		Donya::Serializer seria;
 		seria.Save( bin, filePath.c_str(),  SERIAL_ID, *this );
 	}
 	
-	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
-		Serializer::Extension ext = Serializer::Extension::BINARY;
+		Donya::Serializer::Extension ext = Donya::Serializer::Extension::BINARY;
 
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
-		Serializer seria;
-		seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
+		Donya::Serializer seria;
+		bool succeeded = seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
 
 		// I should overwrite file-directory after load, because this will overwritten by Serializer::Load().
 		fileDirectory = ExtractFileDirectoryFromFullPath( filePath );
 
-		return true;
+		return succeeded;
 	}
 
 #if USE_FBX_SDK
 
-#define USE_TRIANGULATE ( false )
+#define USE_TRIANGULATE ( true )
 
-	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
 		fileName		= filePath.substr( fileDirectory.size() );
@@ -248,8 +422,11 @@ namespace Donya
 		};
 
 		FBX::FbxScene *pScene = FBX::FbxScene::Create( pManager, "" );
-		#pragma region Import
+
+		// Import.
 		{
+			OutputDebugProgress( "Start Import.", outputProgress );
+
 			FBX::FbxImporter *pImporter		= FBX::FbxImporter::Create( pManager, "" );
 			if ( !pImporter->Initialize( absFilePath.c_str(), -1, pManager->GetIOSettings() ) )
 			{
@@ -278,16 +455,21 @@ namespace Donya
 			}
 
 			pImporter->Destroy();
+
+			OutputDebugProgress( "Finish Import.", outputProgress );
 		}
-		#pragma endregion
 
 		pLock.reset( nullptr );
 
-	#ifdef USE_TRIANGULATE
+	#if USE_TRIANGULATE
 		{
+			OutputDebugProgress( "Start Triangulate", outputProgress );
+
 			FBX::FbxGeometryConverter geometryConverter( pManager );
 			bool replace = true;
 			geometryConverter.Triangulate( pScene, replace );
+
+			OutputDebugProgress( "Finish Triangulate", outputProgress );
 		}
 	#endif
 
@@ -297,9 +479,13 @@ namespace Donya
 		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		size_t meshCount = fetchedMeshes.size();
+		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
+
 		meshes.resize( meshCount );
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
+			meshes[i].meshNo = scast<int>( i );
+			
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
 			influencesPerCtrlPoints.clear();
@@ -308,7 +494,38 @@ namespace Donya
 			FetchVertices( i, pMesh, influencesPerCtrlPoints );
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
+
+			// Convert right-hand space to left-hand space.
+			{
+				meshes[i].coordinateConversion._11 = -1.0f;
+			}
+
+			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Polygons.", outputProgress );
+
+			// Fetch the motion.
+			{
+				// The motion is fetch from FBX's mesh.
+				// but I think the mesh is not necessarily link to motion,
+				// so separate the motion from mesh, then give mesh's identifier("meshNo") to motion.
+
+				motions.push_back( {} );
+				Loader::Motion &currentMotion = motions.back();
+				bool hasMotion = FetchMotion( 0, pMesh, &currentMotion );
+				if ( hasMotion )
+				{
+					currentMotion.meshNo = scast<int>( i );
+				}
+				else
+				{
+					// "currentMotion" is disabled here.
+					motions.pop_back();
+				}
+			}
+
+			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Motion.", outputProgress );
 		}
+
+		OutputDebugProgress( "Finish Meshes load.", outputProgress );
 
 		Uninitialize();
 		return true;
@@ -374,19 +591,22 @@ namespace Donya
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
 			// The material for current face.
-			int mtlIndex = 0;
+			int  mtlIndex = 0;
 			if ( mtlCount )
 			{
 				mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
 			}
 
 			// Where should I save the vertex attribute index, according to the material.
-			auto &subset = mesh.subsets[mtlIndex];
-			int indexOffset = subset.indexStart + subset.indexCount;
+			auto &subset	= mesh.subsets[mtlIndex];
+			int indexOffset	= subset.indexStart + subset.indexCount;
 
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
+
+			Face colFace{};
+			colFace.materialIndex = mtlIndex;
 
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
@@ -404,12 +624,19 @@ namespace Donya
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );
 
+				if ( v < colFace.points.size() )
+				{
+					colFace.points[v] = position;
+				}
+
 				mesh.indices[indexOffset + v] = vertexCount;
 				vertexCount++;
 
 				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
 			}
 			subset.indexCount += size;
+
+			collisionFaces.emplace_back( colFace );
 		}
 
 		FBX::FbxStringList uvName;
@@ -420,7 +647,7 @@ namespace Donya
 		for ( int i = 0; i < uvs.GetCount(); ++i )
 		{
 			float x = scast<float>( uvs[i].mData[0] );
-			float y = 1.0f - scast<float>( uvs[i].mData[1] );
+			float y = 1.0f - scast<float>( uvs[i].mData[1] ); // For DirectX's uv space(the origin is left-top).
 			mesh.texCoords.push_back( Donya::Vector2{ x, y } );
 		}
 	}
@@ -601,39 +828,63 @@ namespace Donya
 		}
 	}
 
-	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
-	{
-		for ( int r = 0; r < 4; ++r )
-		{
-			for ( int c = 0; c < 4; ++c )
-			{
-				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
-			}
-		}
-	}
 	void Loader::FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );
-		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
+		meshes[meshIndex].globalTransform = Convert( globalTransform );
 	}
 
 #endif // USE_FBX_SDK
 
 #if USE_IMGUI
-	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
+	void Loader::AdjustParameterByImGuiNode()
+	{
+		if ( ImGui::TreeNode( u8"パラメータの変更" ) )
+		{
+			ImGui::Text( u8"ここで変更したパラメータは保存できますが，即時反映はされません" );
+
+			auto ShowFloat4x4 = []( const std::string &caption, Donya::Vector4x4 *p4x4 )
+			{
+				if ( ImGui::TreeNode( caption.c_str() ) )
+				{
+					ImGui::SliderFloat4( "11, 12, 13, 14", &p4x4->_11, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "21, 22, 23, 24", &p4x4->_21, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "31, 32, 33, 34", &p4x4->_31, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "41, 42, 43, 44", &p4x4->_41, -1.0f, 1.0f );
+
+					ImGui::TreePop();
+				}
+			};
+
+			const size_t meshCount = meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				auto &mesh = meshes[i];
+				const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+				if ( ImGui::TreeNode( meshCaption.c_str() ) )
+				{
+					ShowFloat4x4( "CoordinateConversion", &mesh.coordinateConversion );
+
+					ImGui::TreePop();
+				}
+			}
+
+			ImGui::TreePop();
+		}
+	}
+	void Loader::EnumPreservingDataToImGui() const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		size_t meshCount = meshes.size();
+		const size_t meshCount = meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			const auto &mesh = meshes[i];
-			std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+			const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
 			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
-				size_t verticesCount = mesh.indices.size();
+				const size_t verticesCount = mesh.indices.size();
 				std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
-
 				if ( ImGui::TreeNode( verticesCaption.c_str() ) )
 				{
 					if ( ImGui::TreeNode( "Positions" ) )
@@ -688,7 +939,6 @@ namespace Donya
 						for ( size_t i = 0; i < end; ++i )
 						{
 							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
-					
 						}
 						ImGui::EndChild();
 
@@ -820,7 +1070,83 @@ namespace Donya
 
 				ImGui::TreePop();
 			}
-		} // meshes loop.
+		}
+
+		const size_t motionCount = motions.size();
+		for ( size_t i = 0; i < motionCount; ++i )
+		{
+			const auto &motion = motions[i];
+			const std::string motionCaption = "Motion[" + std::to_string( i ) + "]";
+			if ( ImGui::TreeNode( motionCaption.c_str() ) )
+			{
+				ImGui::Text( "Mesh.No:%d", motion.meshNo );
+				ImGui::Text( "Mesh.SamplingRate:%5.3f", motion.samplingRate );
+
+				if ( ImGui::TreeNode( "Names" ) )
+				{
+					const size_t nameCount = motion.names.size();
+					for ( size_t n = 0; n < nameCount; ++n )
+					{
+						ImGui::Text( motion.names[n].c_str() );
+					}
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( "Skeletals" ) )
+				{
+					std::string  subscriptCaption{};
+					std::string  skeletalCaption{};
+					const size_t skeletalCount = motion.motion.size();
+					for ( size_t s = 0; s < skeletalCount; ++s )
+					{
+						auto &skeletal   = motion.motion[s];
+						subscriptCaption = "[" + std::to_string( s ) + "]";
+						skeletalCaption  = ".BoneCount : " + std::to_string( skeletal.boneCount );
+						if ( ImGui::TreeNode( ( subscriptCaption + skeletalCaption ).c_str() ) )
+						{
+							std::string  boneName{};
+							for ( size_t b = 0; b < skeletal.boneCount; ++b )
+							{
+								const auto &bone = skeletal.skeletal[b];
+								subscriptCaption = "[" + std::to_string( b ) + "]";
+								boneName = ".Name:[" + bone.name + "]";
+								ImGui::Text( ( subscriptCaption + boneName ).c_str() );
+
+								constexpr const char *FLOAT4_FORMAT = "%+05.2f, %+05.2f, %+05.2f, %+05.2f";
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._11, bone.transform._12, bone.transform._13, bone.transform._14
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._21, bone.transform._22, bone.transform._23, bone.transform._24
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._31, bone.transform._32, bone.transform._33, bone.transform._34
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._41, bone.transform._42, bone.transform._43, bone.transform._44
+								);
+								ImGui::Text( "" );
+							}
+
+							ImGui::TreePop();
+						}
+					}
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+		}
 	}
 #endif // USE_IMGUI
 }

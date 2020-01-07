@@ -155,6 +155,7 @@
     <ClCompile Include="Code\Donya\Mouse.cpp" />
     <ClCompile Include="Code\Donya\Quaternion.cpp" />
     <ClCompile Include="Code\Donya\Random.cpp" />
+    <ClCompile Include="Code\Donya\RenderingStates.cpp" />
     <ClCompile Include="Code\Donya\Resource.cpp" />
     <ClCompile Include="Code\Donya\ScreenShake.cpp" />
     <ClCompile Include="Code\Donya\Shader.cpp" />
@@ -169,6 +170,8 @@
     <ClCompile Include="Code\Fader.cpp" />
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
+    <ClCompile Include="Code\GimmickImpl\FragileBlock.cpp" />
+    <ClCompile Include="Code\GimmickImpl\HardBlock.cpp" />
     <ClCompile Include="Code\Gimmicks.cpp" />
     <ClCompile Include="Code\Hook.cpp" />
     <ClCompile Include="Code\main.cpp" />
@@ -215,6 +218,7 @@
     <ClInclude Include="Code\Donya\Mouse.h" />
     <ClInclude Include="Code\Donya\Quaternion.h" />
     <ClInclude Include="Code\Donya\Random.h" />
+    <ClInclude Include="Code\Donya\RenderingStates.h" />
     <ClInclude Include="Code\Donya\Resource.h" />
     <ClInclude Include="Code\Donya\ScreenShake.h" />
     <ClInclude Include="Code\Donya\Serializer.h" />

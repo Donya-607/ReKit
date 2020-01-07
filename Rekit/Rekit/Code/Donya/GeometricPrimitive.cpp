@@ -1,11 +1,13 @@
 #include "GeometricPrimitive.h"
 
 #include <array>
+#include <vector>
 
 #include "Color.h"
 #include "Constant.h"
 #include "Direct3DUtil.h"
 #include "Donya.h"
+#include "RenderingStates.h"
 #include "Resource.h"
 #include "Useful.h"
 
@@ -16,6 +18,8 @@ namespace Donya
 {
 	namespace Geometric
 	{
+		// TODO : User can specify some a slot.
+
 		Base::Base() :
 			iVertexBuffer(), iIndexBuffer(), iConstantBuffer(),
 			iInputLayout(), iVertexShader(), iPixelShader(),
@@ -282,9 +286,8 @@ namespace Donya
 			{
 				hr = CreateVertexBuffer<Cube::Vertex>
 				(
-					pDevice,
-					// CreateVertexBuffer want std::vector.
-					std::vector<Vertex>( arrayPair.first.begin(), arrayPair.first.end() ),
+					pDevice, arrayPair.first,
+					D3D11_USAGE_IMMUTABLE, 0,
 					iVertexBuffer.GetAddressOf()
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
@@ -615,8 +618,8 @@ namespace Donya
 			{
 				hr = CreateVertexBuffer<Sphere::Vertex>
 				(
-					pDevice,
-					arrayPair.first,
+					pDevice, arrayPair.first,
+					D3D11_USAGE_IMMUTABLE, 0,
 					iVertexBuffer.GetAddressOf()
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
@@ -974,23 +977,10 @@ namespace Donya
 
 			// Create VertexBuffer
 			{
-				D3D11_BUFFER_DESC bufferDesc{};
-				bufferDesc.ByteWidth			= sizeof( TextureBoard::Vertex ) * vertices.size();
-				bufferDesc.Usage				= D3D11_USAGE_DYNAMIC;
-				bufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
-				bufferDesc.CPUAccessFlags		= D3D11_CPU_ACCESS_WRITE;
-				bufferDesc.MiscFlags			= 0;
-				bufferDesc.StructureByteStride	= 0;
-
-				D3D11_SUBRESOURCE_DATA subResource{};
-				subResource.pSysMem				= vertices.data();
-				subResource.SysMemPitch			= 0; // Not use for vertex buffers.
-				subResource.SysMemSlicePitch	= 0; // Not use for vertex buffers.
-
-				hr = pDevice->CreateBuffer
+				hr = Donya::CreateVertexBuffer<TextureBoard::Vertex>
 				(
-					&bufferDesc,
-					&subResource,
+					pDevice, vertices,
+					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
 					iVertexBuffer.GetAddressOf()
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
@@ -1162,7 +1152,6 @@ namespace Donya
 				{
 					pVertex->texCoordTransform.x = texPartPosLT.x		/ wholeSize.x;
 					pVertex->texCoordTransform.y = texPartPosLT.y		/ wholeSize.y;
-
 					pVertex->texCoordTransform.z = texPartWholeSize.x	/ wholeSize.x;
 					pVertex->texCoordTransform.w = texPartWholeSize.y	/ wholeSize.y;
 				};
@@ -1257,6 +1246,349 @@ namespace Donya
 		}
 
 	// region TextureBoard
+	#pragma endregion
+
+	#pragma region Line
+
+		constexpr const char				*LineShaderSourceCode()
+		{
+			return
+			"struct VS_IN\n"
+			"{\n"
+			"	float4		pos			: POSITION;\n"
+			"	row_major\n"
+			"	float4x4	matVP		: VP_TRANSFORM;\n"
+			"	float		scaling		: SCALING;\n"
+			"	float3		translation	: TRANSLATION;\n"
+			"	row_major\n"
+			"	float4x4	rotation	: ROTATION;\n"
+			"	float4		color		: COLOR;\n"
+			"};\n"
+			"struct VS_OUT\n"
+			"{\n"
+			"	float4		pos			: SV_POSITION;\n"
+			"	float4		color		: COLOR;\n"
+			"};\n"
+			"VS_OUT VSMain( VS_IN vin )\n"
+			"{\n"
+			"	float4	transform		=  vin.pos;\n"
+			"			transform.xyz	*= vin.scaling;\n" // I don't want scaling the 'w' element. Because the 'w' element will divide each element, so the position can not scaling.
+			"			transform		=  mul( transform, vin.rotation );\n"
+			"			transform.xyz	+= vin.translation;\n"
+			"			transform		=  mul( transform, vin.matVP );\n"
+			"	VS_OUT vout = ( VS_OUT )( 0 );\n"
+			"	vout.pos				=  transform;\n"
+			"	vout.color				=  vin.color;\n"
+			"	return vout;\n"
+			"}\n"
+			"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
+			"{\n"
+			"	return pin.color;\n"
+			"}\n"
+			;
+		}
+		constexpr const char				*LineShaderNameVS()
+		{
+			return "LineVS";
+		}
+		constexpr const char				*LineShaderNamePS()
+		{
+			return "LinePS";
+		}
+		constexpr const char				*LineShaderEntryPointVS()
+		{
+			return "VSMain";
+		}
+		constexpr const char				*LineShaderEntryPointPS()
+		{
+			return "PSMain";
+		}
+		constexpr D3D11_DEPTH_STENCIL_DESC	LineDepthStencilDesc()
+		{
+			D3D11_DEPTH_STENCIL_DESC standard{};
+			standard.DepthEnable    = TRUE;							// default : TRUE ( Z-Test:ON )
+			standard.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;	// default : D3D11_DEPTH_WRITE_ALL ( Z-Write:ON, OFF is D3D11_DEPTH_WRITE_ZERO, does not means write zero! )
+			standard.DepthFunc      = D3D11_COMPARISON_LESS;		// default : D3D11_COMPARISION_LESS ( ALWAYS:always pass )
+			standard.StencilEnable  = FALSE;
+
+			return standard;
+		}
+		constexpr D3D11_RASTERIZER_DESC		LineRasterizerDesc()
+		{
+			D3D11_RASTERIZER_DESC standard{};
+			standard.FillMode				= D3D11_FILL_WIREFRAME;
+			standard.CullMode				= D3D11_CULL_NONE;
+			standard.FrontCounterClockwise	= FALSE;
+			standard.DepthBias				= 0;
+			standard.DepthBiasClamp			= 0;
+			standard.SlopeScaledDepthBias	= 0;
+			standard.DepthClipEnable		= TRUE;
+			standard.ScissorEnable			= FALSE;
+			standard.MultisampleEnable		= FALSE;
+			standard.AntialiasedLineEnable	= TRUE;
+
+			return standard;
+		}
+
+		Line::Line( size_t maxInstanceCount ) :
+			idDepthStencil( 0 ), idRasterizer( 0 ), wasCreated( false ),
+			lineVS(), linePS(),
+			MAX_INSTANCES( maxInstanceCount ), reserveCount( 0 ), instances(),
+			pVertexBuffer(), pInstanceBuffer()
+		{}
+		Line::~Line() = default;
+
+		bool Line::Init()
+		{
+			if ( wasCreated ) { return true; }
+			// else
+
+			HRESULT hr = S_OK;
+			ID3D11Device *pDevice = Donya::GetDevice();
+
+			// Create Bundle buffer.
+			{
+				// To front.
+				constexpr std::array<Vertex, 2> origin
+				{
+					Vertex{ Donya::Vector3::Zero().XMFloat(),  Donya::Vector4x4::Identity().XMFloat() },
+					Vertex{ Donya::Vector3::Front().XMFloat(), Donya::Vector4x4::Identity().XMFloat() }
+				};
+				hr = Donya::CreateVertexBuffer<Line::Vertex>
+				(
+					pDevice, origin,
+					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+					pVertexBuffer.GetAddressOf()
+				);
+				if ( FAILED( hr ) )
+				{
+					_ASSERT_EXPR( 0, L"Failed : Create Vertex-Buffer." );
+					return false;
+				}
+				// else
+			}
+
+			// Create Instance buffer.
+			{
+				reserveCount = 0;
+				instances.clear();
+				instances.resize( MAX_INSTANCES );
+				
+				hr = Donya::CreateVertexBuffer<Line::Instance>
+				(
+					pDevice, instances,
+					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+					pInstanceBuffer.GetAddressOf()
+				);
+				if ( FAILED( hr ) )
+				{
+					_ASSERT_EXPR( 0, L"Failed : Create Instance-Buffer." );
+					return false;
+				}
+				// else
+			}
+
+			// Create Shaders.
+			{
+				constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 12> inputElements
+				{
+					D3D11_INPUT_ELEMENT_DESC{ "POSITION",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	1, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	2, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	3, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "SCALING",		0, DXGI_FORMAT_R32_FLOAT,			1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "TRANSLATION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		1, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		2, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		3, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "COLOR",			0, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+				};
+				bool succeeded = lineVS.CreateByEmbededSourceCode
+				(
+					LineShaderNameVS(), LineShaderSourceCode(), LineShaderEntryPointVS(),
+					std::vector<D3D11_INPUT_ELEMENT_DESC>{ inputElements.begin(), inputElements.end() }
+				);
+				if ( !succeeded )
+				{
+					_ASSERT_EXPR( 0, L"Failed : Create vertex-shader of Line." );
+					return false;
+				}
+				// else
+
+				succeeded = linePS.CreateByEmbededSourceCode
+				(
+					LineShaderNamePS(), LineShaderSourceCode(), LineShaderEntryPointPS()
+				);
+				if ( !succeeded )
+				{
+					_ASSERT_EXPR( 0, L"Failed : Create pixel-shader of Line." );
+					return false;
+				}
+				// else
+			}
+
+			// Create Rendering States.
+			{
+				constexpr int DEFAULT_ID = 0;
+
+				// DepthStencil.
+				{
+					bool succeeded = false;
+					D3D11_DEPTH_STENCIL_DESC desc = LineDepthStencilDesc();
+
+					// The internal object use minus value to identifier.
+					for ( int i = -1; -INT_MAX < i; --i )
+					{
+						if ( !Donya::DepthStencil::IsUsableIdentifier( i ) ) { continue; }
+						// else
+						idDepthStencil = i;
+						break;
+					}
+
+					succeeded = Donya::DepthStencil::CreateState( idDepthStencil, desc );
+					if ( !succeeded || idDepthStencil == DEFAULT_ID/* Does not found usable-identifier. */ )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Create DepthStencil State." );
+						return false;
+					}
+					// else
+				}
+
+				// Rasterizer.
+				{
+					bool succeeded = false;
+					D3D11_RASTERIZER_DESC desc = LineRasterizerDesc();
+
+					// The internal object use minus value to identifier.
+					for ( int i = -1; -INT_MAX < i; --i )
+					{
+						if ( !Donya::Rasterizer::IsUsableIdentifier( i ) ) { continue; }
+						// else
+						idRasterizer = i;
+						break;
+					}
+
+					succeeded = Donya::Rasterizer::CreateState( idRasterizer, desc );
+					if ( !succeeded || idRasterizer == DEFAULT_ID/* Does not found usable-identifier. */ )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Create Rasterizer State." );
+						return false;
+					}
+					// else
+				}
+			}
+
+			wasCreated = true;
+			return true;
+		}
+		void Line::Uninit()
+		{
+			// Noop.
+		}
+
+		bool Line::Reserve( const Donya::Vector3 &wsStart, const Donya::Vector3 &wsEnd, const Donya::Vector4 &color ) const
+		{
+			if ( MAX_INSTANCES <= reserveCount ) { return false; }
+			// else
+
+			instances[reserveCount].scaling		= ( wsEnd - wsStart ).Length();
+			instances[reserveCount].translation	= wsStart;
+			Donya::Quaternion rotation = Donya::Quaternion::LookAt( Donya::Vector3::Front(), ( wsEnd - wsStart ).Normalized() );
+			instances[reserveCount].rotation	= rotation.RequireRotationMatrix();
+			instances[reserveCount].color		= color;
+			
+			reserveCount++;
+			return true;
+		}
+		bool Line::Reserve( const Donya::Vector3 &wsStart, const Donya::Vector3 &wsEnd, float alpha, Donya::Color::Code color ) const
+		{
+			const Donya::Vector3 converted = Donya::Color::MakeColor( color );
+			return Reserve( wsStart, wsEnd, Donya::Vector4{ converted, alpha } );
+		}
+
+		void Line::Flush( const Donya::Vector4x4 &matVP ) const
+		{
+			if ( !reserveCount ) { return; }
+			// else
+
+			HRESULT hr = S_OK;
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+
+			// Mapping.
+			{
+				// Vertex. Only change the 'matVP' by argument.
+				{
+					D3D11_MAPPED_SUBRESOURCE msrVertex{};
+					hr = pImmediateContext->Map( pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msrVertex );
+					if ( FAILED( hr ) )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Mapping at Line." );
+						return;
+					}
+					// else
+
+					const std::array<Vertex, 2> currentVertices
+					{
+						Vertex{ Donya::Vector3::Zero().XMFloat(),  matVP.XMFloat() },
+						Vertex{ Donya::Vector3::Front().XMFloat(), matVP.XMFloat() }
+					};
+					memcpy_s( msrVertex.pData, sizeof( Line::Vertex ) * currentVertices.size(), currentVertices.data(), msrVertex.RowPitch );
+
+					pImmediateContext->Unmap( pVertexBuffer.Get(), 0 );
+				}
+
+				// Instances. Apply the reserved data.
+				{
+					D3D11_MAPPED_SUBRESOURCE msrInstance{};
+
+					hr = pImmediateContext->Map( pInstanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msrInstance );
+					if ( FAILED( hr ) )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Mapping at Line." );
+						return;
+					}
+					// else
+
+					// Should change to this -> memcpy_s( msrInstance.pData, sizeof( Line::Instance ) * reserveCount, instances.data(), msrInstance.RowPitch );
+					memcpy( msrInstance.pData, instances.data(), msrInstance.RowPitch );
+
+					pImmediateContext->Unmap( pInstanceBuffer.Get(), 0 );
+				}
+			}
+
+			lineVS.Activate();
+			linePS.Activate();
+			Donya::DepthStencil::Activate( idDepthStencil );
+			Donya::Rasterizer::Activate( idRasterizer );
+
+			constexpr unsigned int BUFFER_COUNT = 2U;
+			UINT strides[BUFFER_COUNT]{ sizeof( Line::Vertex ), sizeof( Line::Instance ) };
+			UINT offsets[BUFFER_COUNT]{ 0, 0 };
+			ID3D11Buffer *pBuffers[BUFFER_COUNT]{ pVertexBuffer.Get(), pInstanceBuffer.Get() };
+			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pBuffers, strides, offsets );
+			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_LINELIST );
+
+			pImmediateContext->DrawInstanced( 2U, reserveCount, 0, 0 );
+
+			UINT disStrides[BUFFER_COUNT]{ 0, 0 };
+			UINT disOffsets[BUFFER_COUNT]{ 0, 0 };
+			ID3D11Buffer *pDisBuffers[BUFFER_COUNT]{ nullptr, nullptr };
+			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_UNDEFINED ); // Reset
+			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pDisBuffers, disStrides, disOffsets );
+
+			Donya::Rasterizer::Deactivate();
+			Donya::DepthStencil::Deactivate();
+			linePS.Deactivate();
+			lineVS.Deactivate();
+
+			reserveCount = 0U;
+			instances.clear();
+			instances.resize( MAX_INSTANCES );
+		}
+
+	// region Line
 	#pragma endregion
 
 	#pragma region Creater

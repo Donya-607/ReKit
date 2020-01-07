@@ -7,7 +7,7 @@ namespace Music
 		BGM_Title = 0,
 		BGM_Game,
 		BGM_Clear,
-		BGM_Over,
+		// BGM_Over,
 
 		ItemChoose,
 		ItemDecision,
