@@ -682,14 +682,14 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 		stick = controller.RightStick();
 
-#if 1
+#if 0
 		if ( controller.Trigger( Pad::LT ) ) { useAction	= true; }
 		if ( controller.Press  ( Pad::RT ) ) { create		= true;
 											   extend		= true; }
 		if ( controller.Press  ( Pad::RB ) ) { shrink		= true; }
 		if ( controller.Trigger( Pad::LB ) ) { erase		= true; }
 #else
-		if ( controller.Press  ( Pad::RT ) ) { useAction	= true; }
+		if ( controller.Trigger( Pad::RT ) ) { useAction	= true; }
 		if ( stick.Length() != 0 )			 { create		= true;
 											   extend		= true; }
 		else								 { shrink		= true; }
@@ -753,6 +753,8 @@ void SceneGame::HookUpdate( float elapsedTime )
 	input.playerPos = player.GetPosition();
 	input.currPress = useAction;
 	input.stickVec  = stick.Normalized();
+	input.extend	= extend;
+	input.shrink	= shrink;
 
 	pHook->Update(elapsedTime, input);
 }
