@@ -254,8 +254,25 @@ public:
 	static void UseParameterImGui();
 #endif // USE_IMGUI
 private:
-	int		ID;
-	bool	enable;
+	struct KeyMember
+	{
+
+	};
+	struct SwitchMember
+	{
+
+	};
+	struct PullMember
+	{
+		Donya::Vector3 initPos;
+	};
+private:
+	int				ID;
+	bool			enable;
+
+	KeyMember		mKey;
+	SwitchMember	mSwitch;
+	PullMember		mPull;
 public:
 	Trigger();
 	Trigger( int id, bool enable );
@@ -305,6 +322,18 @@ private:
 	int GetTriggerKindIndex() const;
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
 private:
+	void InitKey();
+	void InitSwitch();
+	void InitPull();
+
+	void UninitKey();
+	void UninitSwitch();
+	void UninitPull();
+
+	void UpdateKey( float elapsedTime );
+	void UpdateSwitch( float elapsedTime );
+	void UpdatePull( float elapsedTime );
+
 	void PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 	void PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 	void PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
