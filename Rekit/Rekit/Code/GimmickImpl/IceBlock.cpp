@@ -13,16 +13,12 @@
 #undef max
 #undef min
 
-struct ParamHardBlock final : public Donya::Singleton<ParamHardBlock>
+struct ParamIceBlock final : public Donya::Singleton<ParamIceBlock>
 {
-	friend Donya::Singleton<ParamHardBlock>;
+	friend Donya::Singleton<ParamIceBlock>;
 public:
 	struct Member
 	{
-		float	gravity{};
-		float	maxFallSpeed{};
-		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
-		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -31,10 +27,6 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP( gravity ),
-				CEREAL_NVP( maxFallSpeed ),
-				CEREAL_NVP( brakeSpeed ),
-				CEREAL_NVP( stopThreshold ),
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
@@ -44,12 +36,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "HardBlock";
+	static constexpr const char *SERIAL_ID = "IceBlock";
 	Member m;
 private:
-	ParamHardBlock() : m() {}
+	ParamIceBlock() : m() {}
 public:
-	~ParamHardBlock() = default;
+	~ParamIceBlock() = default;
 public:
 	void Init()
 	{
@@ -92,7 +84,7 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ギミック[Hard]・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[Ice]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
@@ -101,11 +93,6 @@ public:
 					ImGui::DragInt   ( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
-
-				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
-				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
-				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
-				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -138,79 +125,77 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamHardBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamIceBlock::Member, 0 )
 
-void HardBlock::ParameterInit()
+void IceBlock::ParameterInit()
 {
-	ParamHardBlock::Get().Init();
+	ParamIceBlock::Get().Init();
 }
 #if USE_IMGUI
-void HardBlock::UseParameterImGui()
+void IceBlock::UseParameterImGui()
 {
-	ParamHardBlock::Get().UseImGui();
+	ParamIceBlock::Get().UseImGui();
 }
 #endif // USE_IMGUI
 
-HardBlock::HardBlock() : GimmickBase()
+IceBlock::IceBlock() : GimmickBase()
 {}
-HardBlock::~HardBlock() = default;
+IceBlock::~IceBlock() = default;
 
-void HardBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void IceBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }
-void HardBlock::Uninit()
+void IceBlock::Uninit()
 {
 	// No op.
 }
 
-void HardBlock::Update( float elapsedTime )
+void IceBlock::Update( float elapsedTime )
 {
-	Fall( elapsedTime );
 
-	Brake( elapsedTime );
 }
-void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void IceBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
 
-void HardBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void IceBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.5f, 0.5f, 0.5f, 0.8f };
+	constexpr Donya::Vector4 color{ 0.8f, 0.9f, 1.0f, 0.9f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }
 
-void HardBlock::WakeUp()
+void IceBlock::WakeUp()
 {
 	// No op.
 }
 
-bool HardBlock::ShouldRemove() const
+bool IceBlock::ShouldRemove() const
 {
 	// Don't destroy.
 	return false;
 }
 
-Donya::Vector3 HardBlock::GetPosition() const
+Donya::Vector3 IceBlock::GetPosition() const
 {
 	return pos;
 }
-AABBEx HardBlock::GetHitBox() const
+AABBEx IceBlock::GetHitBox() const
 {
-	AABBEx base = ParamHardBlock::Get().Data().hitBox;
+	AABBEx base = ParamIceBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
 	return base;
 }
 
-Donya::Vector4x4 HardBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -229,34 +214,9 @@ Donya::Vector4x4 HardBlock::GetWorldMatrix( bool useDrawing ) const
 	return mat;
 }
 
-void HardBlock::Fall( float elapsedTime )
-{
-	const auto DATA = ParamHardBlock::Get().Data();
-	velocity.y -= DATA.gravity * elapsedTime;
-	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
-}
-
-void HardBlock::Brake( float elapsedTime )
-{
-	const float moveSign = scast<float>( Donya::SignBit( velocity.x ) );
-	if ( ZeroEqual( moveSign ) ) { return; }
-	// else
-
-	const float nowSpeed = fabsf( velocity.x );
-	if ( nowSpeed <= ParamHardBlock::Get().Data().stopThreshold )
-	{
-		velocity.x = 0.0f;
-		return;
-	}
-	// else
-
-	const float brakeSpeed = std::min( nowSpeed, ParamHardBlock::Get().Data().brakeSpeed );
-	velocity.x -= brakeSpeed * moveSign;
-}
-
 #if USE_IMGUI
 
-void HardBlock::ShowImGuiNode()
+void IceBlock::ShowImGuiNode()
 {
 	using namespace GimmickUtility;
 

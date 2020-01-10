@@ -341,9 +341,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
 
-		std::vector<BoxEx> terrainsForGimmicks = refStage.debugAllTerrains;
-		terrainsForGimmicks.emplace_back( ToBox( wsPlayerAABB ) );
-
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
@@ -354,7 +351,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			accompanyBox.exist = false;
 		}
 
-		gimmicks.PhysicUpdate( accompanyBox, terrainsForGimmicks );
+		gimmicks.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refStage.debugAllTerrains );
 	}
 
 	// 5. Add the gimmicks block.

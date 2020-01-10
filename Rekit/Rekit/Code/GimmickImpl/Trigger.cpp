@@ -19,6 +19,63 @@ struct ParamTrigger final : public Donya::Singleton<ParamTrigger>
 public:
 	struct Member
 	{
+		struct KeyMember
+		{
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				/*archive
+				(
+					CEREAL_NVP( stretchMax )
+				);*/
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
+		};
+		struct SwitchMember
+		{
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				/*archive
+				(
+					CEREAL_NVP( stretchMax )
+				);*/
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
+		};
+		struct PullMember
+		{
+			float stretchMax;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( stretchMax )
+				);
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
+		};
+
+		KeyMember		mKey;
+		SwitchMember	mSwitch;
+		PullMember		mPull;
+
 		AABBEx	hitBoxKey{};
 		AABBEx	hitBoxSwitch{};
 		AABBEx	hitBoxPull{};
@@ -34,6 +91,15 @@ public:
 				CEREAL_NVP( hitBoxPull )
 			);
 			if ( 1 <= version )
+			{
+				archive
+				(
+					CEREAL_NVP( mKey ),
+					CEREAL_NVP( mSwitch ),
+					CEREAL_NVP( mPull )
+				);
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -95,6 +161,21 @@ public:
 					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				if ( ImGui::TreeNode( u8"カギ" ) )
+				{
+					ImGui::TreePop();
+				}
+				if ( ImGui::TreeNode( u8"スイッチ" ) )
+				{
+					ImGui::TreePop();
+				}
+				if ( ImGui::TreeNode( u8"引き" ) )
+				{
+					ImGui::DragFloat( u8"引っ張る長さ", &m.mPull.stretchMax, 1.0f, 0.0f );
+
+					ImGui::TreePop();
+				}
+
 				AdjustAABB( u8"当たり判定・鍵",		&m.hitBoxKey	);
 				AdjustAABB( u8"当たり判定・スイッチ",	&m.hitBoxSwitch	);
 				AdjustAABB( u8"当たり判定・引き",		&m.hitBoxPull	);
@@ -128,7 +209,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamTrigger::Member, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member, 1 )
 
 
 
@@ -144,10 +225,12 @@ void Trigger::UseParameterImGui()
 #endif // USE_IMGUI
 
 Trigger::Trigger() : GimmickBase(),
-	id( -1 ), enable( false )
+	ID( 0 ), enable( false ),
+	mKey(), mSwitch(), mPull()
 {}
 Trigger::Trigger( int id, bool enable ) : GimmickBase(),
-	id( id ), enable( enable )
+	ID( id ), enable( enable ),
+	mKey(), mSwitch(), mPull()
 {}
 Trigger::~Trigger() = default;
 
@@ -156,19 +239,69 @@ void Trigger::Init( int gimmickKind, const Donya::Vector3 &wsPos )
 	kind		= gimmickKind;
 	pos			= wsPos;
 	velocity	= 0.0f;
+
+	switch ( kind )
+	{
+	case scast<int>( GimmickKind::TriggerKey ) :
+		InitKey();
+		break;
+	case scast<int>( GimmickKind::TriggerSwitch ) :
+		InitSwitch();
+		break;
+	case scast<int>( GimmickKind::TriggerPull ) :
+		InitPull();
+		break;
+	default: return;
+	}
 }
 void Trigger::Uninit()
 {
-	// No op.
+	switch ( kind )
+	{
+	case scast<int>( GimmickKind::TriggerKey ) :
+		UninitKey();
+		break;
+	case scast<int>( GimmickKind::TriggerSwitch ) :
+		UninitSwitch();
+		break;
+	case scast<int>( GimmickKind::TriggerPull ) :
+		UninitPull();
+		break;
+	default: return;
+	}
 }
 
 void Trigger::Update( float elapsedTime )
 {
-
+	switch ( kind )
+	{
+	case scast<int>( GimmickKind::TriggerKey ) :
+		UpdateKey( elapsedTime );
+		break;
+	case scast<int>( GimmickKind::TriggerSwitch ) :
+		UpdateSwitch( elapsedTime );
+		break;
+	case scast<int>( GimmickKind::TriggerPull ) :
+		UpdatePull( elapsedTime );
+		break;
+	default: return;
+	}
 }
-void Trigger::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
-
+	switch ( kind )
+	{
+	case scast<int>( GimmickKind::TriggerKey ) :
+		PhysicUpdateKey( player, accompanyBox, terrains );
+		break;
+	case scast<int>( GimmickKind::TriggerSwitch ) :
+		PhysicUpdateSwitch( player, accompanyBox, terrains );
+		break;
+	case scast<int>( GimmickKind::TriggerPull ) :
+		PhysicUpdatePull( player, accompanyBox, terrains );
+		break;
+	default: return;
+	}
 }
 
 void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -178,13 +311,22 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 
 	constexpr Donya::Vector4 colors[]
 	{
-		{ 0.8f, 1.0f, 0.0f, 0.8f },		// key
-		{ 1.0f, 0.0f, 0.8f, 0.8f },		// switch
-		{ 0.0f, 0.8f, 1.0f, 0.8f }		// pull
+		{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
+		{ 1.0f, 0.0f, 0.8f, 0.8f },		// Switch
+		{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
 	};
-	const int kindIndex = kind - scast<int>( GimmickKind::TriggerKey );
+	constexpr Donya::Vector4 lightenFactors[]
+	{
+		{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
+		{ 0.0f, 1.0f, 0.2f, 0.0f },		// Switch
+		{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+	};
+	const int kindIndex = GetTriggerKindIndex();
 
-	BaseDraw( WVP, W, lightDir, colors[std::max( 0, kindIndex )] );
+	Donya::Vector4 color = colors[kindIndex];
+	if ( enable ) { color += lightenFactors[kindIndex]; }
+
+	BaseDraw( WVP, W, lightDir, color );
 }
 
 void Trigger::WakeUp()
@@ -209,12 +351,26 @@ AABBEx Trigger::GetHitBox() const
 		ParamTrigger::Get().Data().hitBoxSwitch,
 		ParamTrigger::Get().Data().hitBoxPull
 	};
-	const int kindIndex = kind - scast<int>( GimmickKind::TriggerKey );
+	const bool hitBoxExists[]
+	{
+		false,					// Key
+		true,					// Switch
+		false					// Pull
+	};
+	const int kindIndex =  GetTriggerKindIndex();
 
 	AABBEx wsHitBox		=  hitBoxes[kindIndex];
 	wsHitBox.pos		+= pos;
 	wsHitBox.velocity	=  velocity;
+	wsHitBox.exist		=  hitBoxExists[kindIndex];
 	return wsHitBox;
+}
+
+int Trigger::GetTriggerKindIndex() const
+{
+	const int kindIndex = kind - scast<int>( GimmickKind::TriggerKey );
+	_ASSERT_EXPR( 0 <= kindIndex, L"Error : A trigger's kind is invalid!" );
+	return kindIndex;
 }
 
 Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
@@ -234,6 +390,74 @@ Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
 	return mat;
+}
+
+void Trigger::InitKey()
+{
+
+}
+void Trigger::InitSwitch()
+{
+
+}
+void Trigger::InitPull()
+{
+	mPull.initPos = pos;
+}
+
+void Trigger::UninitKey()
+{
+
+}
+void Trigger::UninitSwitch()
+{
+
+}
+void Trigger::UninitPull()
+{
+
+}
+
+void Trigger::UpdateKey( float elapsedTime )
+{
+
+}
+void Trigger::UpdateSwitch( float elapsedTime )
+{
+
+}
+void Trigger::UpdatePull( float elapsedTime )
+{
+
+}
+
+void Trigger::PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+{
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ false, /* ignoreHitBoxExist = */ true );
+
+	if ( !enable && Donya::Box::IsHitBox( player, GetHitBox().Get2D(), /* ignoreHitBoxExist = */ true ) )
+	{
+		enable = true;
+	}
+}
+void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+{
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+}
+void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+{
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ false, /* ignoreHitBoxExist = */ true );
+
+	// Restrict the direction of stretch.
+	pos.x = mPull.initPos.x;
+
+	const Donya::Vector3 stretched = pos - mPull.initPos;
+	const float stretchMax = ParamTrigger::Get().Data().mPull.stretchMax;
+	if ( stretchMax < stretched.Length() )
+	{
+		pos = mPull.initPos + ( stretched.Normalized() * stretchMax );
+		enable = true;
+	}
 }
 
 #if USE_IMGUI

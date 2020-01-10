@@ -199,6 +199,123 @@ void Player::Update( float elapsedTime, Input controller )
 void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
 	/// <summary>
+	/// The Version retrieved from a gimmick.
+	/// </summary>
+	auto Version_3 = [&]()
+	{
+		auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
+		{
+			for ( const auto &it : terrains )
+			{
+				// if ( it.mass < myself.mass ) { continue; }
+				if ( it == previousMyself ) { continue; }
+				// else
+
+				if ( Donya::Box::IsHitBox( it, myself ) )
+				{
+					return it;
+				}
+			}
+
+			return BoxEx::Nil();
+		};
+
+		const AABBEx actualBody		= GetHitBox();
+		const BoxEx  previousXYBody	= actualBody.Get2D();
+
+		Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+		Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+		{
+			scast<float>( Donya::SignBit( xyVelocity.x ) ),
+			scast<float>( Donya::SignBit( xyVelocity.y ) )
+		};
+
+		BoxEx movedXYBody = previousXYBody;
+		movedXYBody.pos  += xyVelocity;
+
+		BoxEx other{};
+
+		constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+		unsigned int loopCount{};
+		while ( ++loopCount < MAX_LOOP_COUNT )
+		{
+			other = CalcCollidingBox( movedXYBody, previousXYBody );
+			if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
+			// else
+
+			// if ( other.mass < movedXYBody.mass ) { continue; }
+			// else
+
+			if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+			{
+				// The myself's moving direction is considered the inverse of other's moving direction.
+				moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+			}
+			if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+			{
+				// The myself's moving direction is considered the inverse of other's moving direction.
+				moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+			}
+
+			if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+			// else
+
+			Donya::Vector2 penetration{}; // Store absolute value.
+			Donya::Vector2 plusPenetration
+			{
+				fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+				fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+			};
+			Donya::Vector2 minusPenetration
+			{
+				fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+				fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+			};
+			penetration.x
+				= ( moveSign.x < 0.0f ) ? minusPenetration.x
+				: ( moveSign.x > 0.0f ) ? plusPenetration.x
+				: 0.0f;
+			penetration.y
+				= ( moveSign.y < 0.0f ) ? minusPenetration.y
+				: ( moveSign.y > 0.0f ) ? plusPenetration.y
+				: 0.0f;
+
+			constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+			Donya::Vector2 resolver
+			{
+				( penetration.x + ERROR_MARGIN ) * -moveSign.x,
+				( penetration.y + ERROR_MARGIN ) * -moveSign.y
+			};
+
+			// Repulse to the more little(but greater than zero) axis side of penetration.
+			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
+			{
+				enum Dir { Up = 1, Down = -1 };
+				int  verticalSign =  Donya::SignBit( velocity.y );
+				if ( verticalSign == Down )
+				{
+					Landing();
+				}	
+
+				movedXYBody.pos.y += resolver.y;
+				velocity.y = 0.0f;
+				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+			}
+			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+			{
+				movedXYBody.pos.x += resolver.x;
+				velocity.x = 0.0f;
+				moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+			}
+		}
+
+		pos.x =  movedXYBody.pos.x;
+		pos.y =  movedXYBody.pos.y;
+		pos.z += velocity.z;
+	};
+
+	/// <summary>
 	/// The collision detective and resolving a penetrate process.
 	/// </summary>
 	auto Version_2 = [&]()
@@ -433,7 +550,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		pos.z += velocity.z;
 	};
 
-	Version_2();
+	Version_3();
 }
 
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const

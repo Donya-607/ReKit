@@ -2,6 +2,7 @@
 
 #include <array>			// Use at collision.
 #include <algorithm>		// Use std::remove_if.
+#include <map>
 #include <vector>			// use at collision.
 
 #include "Donya/GeometricPrimitive.h"
@@ -41,10 +42,45 @@ namespace GimmickUtility
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
+		case GimmickKind::Ice:				return "Ice";			// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
 		return "ERROR_KIND";
+	}
+}
+
+namespace GimmickStatus
+{
+	static std::map<int, bool> statuses{};
+
+	void Reset()
+	{
+		statuses.clear();
+	}
+	void Register( int id, bool configure )
+	{
+		auto found =  statuses.find( id );
+		if ( found == statuses.end() )
+		{
+			statuses.insert( std::pair<int, bool>( id, configure ) );
+		}
+		else
+		{
+			found->second = configure;
+		}
+	}
+	bool Refer( int id )
+	{
+		auto found =  statuses.find( id );
+		if ( found == statuses.end() ) { return false; }
+		// else
+
+		return found->second;
+	}
+	void Remove( int id )
+	{
+		statuses.erase( id );
 	}
 }
 
@@ -57,17 +93,23 @@ GimmickBase::GimmickBase() :
 {}
 GimmickBase::~GimmickBase() = default;
 
-void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
+	std::vector<BoxEx> wholeCollisions = terrains;
+	if ( collideToPlayer )
+	{
+		wholeCollisions.emplace_back( player );
+	}
+
 	auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
 	{
-		for ( const auto &it : terrains )
+		for ( const auto &it : wholeCollisions )
 		{
 			if ( it.mass < myself.mass ) { continue; }
 			if ( it == previousMyself  ) { continue; }
 			// else
 
-			if ( Donya::Box::IsHitBox( it, myself ) )
+			if ( Donya::Box::IsHitBox( it, myself, ignoreHitBoxExist ) )
 			{
 				return it;
 			}
@@ -79,7 +121,7 @@ void GimmickBase::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<Box
 	const AABBEx actualBody		= GetHitBox();
 	const BoxEx  previousXYBody	= actualBody.Get2D();
 
-	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody ) )
+	if ( Donya::Box::IsHitBox( accompanyBox, previousXYBody, ignoreHitBoxExist ) )
 	{
 		// Following to "accompanyBox".
 		// My velocity consider to be as accompanyBox's velocity.
@@ -209,6 +251,7 @@ void Gimmick::Init( int stageNumber )
 	FragileBlock::ParameterInit();
 	HardBlock::ParameterInit();
 	Trigger::ParameterInit();
+	IceBlock::ParameterInit();
 
 	LoadParameter();
 
@@ -233,7 +276,7 @@ void Gimmick::Update( float elapsedTime )
 		it->Update( elapsedTime );
 	}
 }
-void Gimmick::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 	const size_t blockCount = pGimmicks.size();
 
@@ -270,7 +313,7 @@ void Gimmick::PhysicUpdate( const BoxEx &accompanyBox, const std::vector<BoxEx> 
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
-		pGimmicks[i]->PhysicUpdate( accompanyBox, allTerrains );
+		pGimmicks[i]->PhysicUpdate( player, accompanyBox, allTerrains );
 		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
 	}
 
@@ -339,6 +382,7 @@ void Gimmick::UseImGui()
 	FragileBlock::UseParameterImGui();
 	HardBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
+	IceBlock::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -372,6 +416,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<IceBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
