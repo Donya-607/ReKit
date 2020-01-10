@@ -2,6 +2,7 @@
 
 #include <array>			// Use at collision.
 #include <algorithm>		// Use std::remove_if.
+#include <map>
 #include <vector>			// use at collision.
 
 #include "Donya/GeometricPrimitive.h"
@@ -41,10 +42,45 @@ namespace GimmickUtility
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
+		case GimmickKind::Ice:				return "Ice";			// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
 		return "ERROR_KIND";
+	}
+}
+
+namespace GimmickStatus
+{
+	static std::map<int, bool> statuses{};
+
+	void Reset()
+	{
+		statuses.clear();
+	}
+	void Register( int id, bool configure )
+	{
+		auto found =  statuses.find( id );
+		if ( found == statuses.end() )
+		{
+			statuses.insert( std::pair<int, bool>( id, configure ) );
+		}
+		else
+		{
+			found->second = configure;
+		}
+	}
+	bool Refer( int id )
+	{
+		auto found =  statuses.find( id );
+		if ( found == statuses.end() ) { return false; }
+		// else
+
+		return found->second;
+	}
+	void Remove( int id )
+	{
+		statuses.erase( id );
 	}
 }
 
@@ -215,6 +251,7 @@ void Gimmick::Init( int stageNumber )
 	FragileBlock::ParameterInit();
 	HardBlock::ParameterInit();
 	Trigger::ParameterInit();
+	IceBlock::ParameterInit();
 
 	LoadParameter();
 
@@ -345,6 +382,7 @@ void Gimmick::UseImGui()
 	FragileBlock::UseParameterImGui();
 	HardBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
+	IceBlock::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -378,6 +416,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<IceBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
