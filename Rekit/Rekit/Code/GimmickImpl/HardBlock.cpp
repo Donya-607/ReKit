@@ -207,6 +207,7 @@ AABBEx HardBlock::GetHitBox() const
 	AABBEx base = ParamHardBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
+	base.attr		= kind;
 	return base;
 }
 

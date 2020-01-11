@@ -281,25 +281,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 #endif // USE_IMGUI
 
-	auto ToBox = []( const AABBEx &aabb )
-	{
-		BoxEx box{};
-		box.pos.x		= aabb.pos.x;
-		box.pos.y		= aabb.pos.y;
-		box.size.x		= aabb.size.x;
-		box.size.y		= aabb.size.y;
-		box.exist		= aabb.exist;
-		box.velocity.x	= aabb.velocity.x;
-		box.velocity.y	= aabb.velocity.y;
-		box.mass		= aabb.mass;
-		return box;
-	};
-	auto AppendGimmicksBox = [&ToBox]( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
+	auto AppendGimmicksBox = []( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : boxes )
 		{
-			pTerrains->emplace_back( ToBox( it ) );
+			pTerrains->emplace_back( it.Get2D() );
 		}
 	};
 
@@ -344,7 +331,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			accompanyBox = ToBox( pHook->GetHitBox() );
+			accompanyBox = pHook->GetHitBox().Get2D();
 		}
 		else
 		{

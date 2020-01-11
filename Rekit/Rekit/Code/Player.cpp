@@ -14,6 +14,7 @@
 #endif // DEBUG_MODE
 
 #include "FilePath.h"
+#include "Gimmicks.h"		// Use for confirm to slip ground.
 #include "Music.h"
 
 #undef max
@@ -27,6 +28,7 @@ public:
 	{
 		int		maxJumpCount{};	// 0 is can not jump, 1 ~ is can jump.
 		float	moveSpeed{};	// Use for a horizontal move. It will influenced by "elapsedTime".
+		float	brakeSpeed{};	// Use for represent a slipping. It will influenced by "elapsedTime".
 		float	jumpPower{};	// Use for a just moment of using a jump.
 		float	maxFallSpeed{};	// Use for a limit of falling speed.
 		float	gravity{};		// Always use to fall. It will influenced by "elapsedTime".
@@ -48,7 +50,11 @@ public:
 			);
 			if ( 1 <= version )
 			{
-				// CEREAL_NVP( x )
+				archive( CEREAL_NVP( brakeSpeed ) );
+			}
+			if ( 2 <= version )
+			{
+				// archive( CEREAL_NVP( x ) )
 			}
 		}
 	};
@@ -113,6 +119,7 @@ public:
 
 				ImGui::DragInt( u8"最大ジャンプ回数",		&m.maxJumpCount,	1.0f, 0		);
 				ImGui::DragFloat( u8"横移動速度",		&m.moveSpeed,		1.0f, 0.0f	);
+				ImGui::DragFloat( u8"減速力（氷床）",		&m.brakeSpeed,		1.0f, 0.0f	);
 				ImGui::DragFloat( u8"ジャンプ初速",		&m.jumpPower,		1.0f, 0.0f	);
 				ImGui::DragFloat( u8"最大落下速度",		&m.maxFallSpeed,	1.0f, 0.0f	);
 				ImGui::DragFloat( u8"重力",				&m.gravity,			1.0f, 0.0f	);
@@ -149,12 +156,13 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( PlayerParam::Member, 0 )
+CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
 
 Player::Player() :
 	remainJumpCount( 1 ),
 	pos(), velocity(),
-	drawModel( Donya::Geometric::CreateSphere() ), cbuffer(), VSDemo(), PSDemo()
+	drawModel( Donya::Geometric::CreateSphere() ), cbuffer(), VSDemo(), PSDemo(),
+	aboveSlipGround( false )
 {}
 Player::~Player() = default;
 
@@ -198,6 +206,123 @@ void Player::Update( float elapsedTime, Input controller )
 
 void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
+	/// <summary>
+	/// Support an attribute.
+	/// </summary>
+	auto Version_4 = [&]()
+	{
+		aboveSlipGround = false; // This flag must be reset before collision.
+
+		auto CalcCollidingBox = [&]( const BoxEx &myself, const BoxEx &previousMyself )->BoxEx
+		{
+			for ( const auto &it : terrains )
+			{
+				if ( it == previousMyself ) { continue; }
+				// else
+
+				if ( Donya::Box::IsHitBox( it, myself ) )
+				{
+					return it;
+				}
+			}
+
+			return BoxEx::Nil();
+		};
+
+		const AABBEx actualBody		= GetHitBox();
+		const BoxEx  previousXYBody	= actualBody.Get2D();
+
+		Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
+		Donya::Vector2 moveSign // The moving direction of myself. Take a value of +1.0f or -1.0f.
+		{
+			scast<float>( Donya::SignBit( xyVelocity.x ) ),
+			scast<float>( Donya::SignBit( xyVelocity.y ) )
+		};
+
+		BoxEx movedXYBody = previousXYBody;
+		movedXYBody.pos  += xyVelocity;
+
+		BoxEx other{};
+
+		constexpr unsigned int MAX_LOOP_COUNT = 1000U;
+		unsigned int loopCount{};
+		while ( ++loopCount < MAX_LOOP_COUNT )
+		{
+			other = CalcCollidingBox( movedXYBody, previousXYBody );
+			if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
+			// else
+
+			if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
+			{
+				// The myself's moving direction is considered the inverse of other's moving direction.
+				moveSign.x = scast<float>( Donya::SignBit( -other.velocity.x ) );
+			}
+			if ( ZeroEqual( moveSign.y ) && !ZeroEqual( other.velocity.y ) )
+			{
+				// The myself's moving direction is considered the inverse of other's moving direction.
+				moveSign.y = scast<float>( Donya::SignBit( -other.velocity.y ) );
+			}
+
+			if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+			// else
+
+			Donya::Vector2 penetration{}; // Store absolute value.
+			Donya::Vector2 plusPenetration
+			{
+				fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
+				fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
+			};
+			Donya::Vector2 minusPenetration
+			{
+				fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
+				fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
+			};
+			penetration.x
+				= ( moveSign.x < 0.0f ) ? minusPenetration.x
+				: ( moveSign.x > 0.0f ) ? plusPenetration.x
+				: 0.0f;
+			penetration.y
+				= ( moveSign.y < 0.0f ) ? minusPenetration.y
+				: ( moveSign.y > 0.0f ) ? plusPenetration.y
+				: 0.0f;
+
+			constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
+
+			Donya::Vector2 resolver
+			{
+				( penetration.x + ERROR_MARGIN ) * -moveSign.x,
+				( penetration.y + ERROR_MARGIN ) * -moveSign.y
+			};
+
+			// Repulse to the more little(but greater than zero) axis side of penetration.
+			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
+			{
+				enum Dir { Up = 1, Down = -1 };
+				int  verticalSign =  Donya::SignBit( velocity.y );
+				if ( verticalSign == Down )
+				{
+					Landing();
+
+					aboveSlipGround = Gimmick::HasSlipAttribute( other );
+				}
+
+				movedXYBody.pos.y += resolver.y;
+				velocity.y = 0.0f;
+				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+			}
+			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+			{
+				movedXYBody.pos.x += resolver.x;
+				velocity.x = 0.0f;
+				moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+			}
+		}
+
+		pos.x =  movedXYBody.pos.x;
+		pos.y =  movedXYBody.pos.y;
+		pos.z += velocity.z;
+	};
+
 	/// <summary>
 	/// The Version retrieved from a gimmick.
 	/// </summary>
@@ -550,7 +675,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		pos.z += velocity.z;
 	};
 
-	Version_3();
+	Version_4();
 }
 
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
@@ -605,8 +730,68 @@ void Player::CreateRenderingObjects()
 
 void Player::Move( float elapsedTime, Input controller )
 {
-	const float moveSpeed = PlayerParam::Get().Data().moveSpeed;
-	velocity.x = controller.moveVelocity.x * moveSpeed * elapsedTime;
+	const float moveSpeed = PlayerParam::Get().Data().moveSpeed * elapsedTime;
+
+	auto AssignMoveSpeed = [&]()
+	{
+		velocity.x = controller.moveVelocity.x * moveSpeed;
+	};
+
+	if ( aboveSlipGround )
+	{
+		// This slipping behavior referred to the Megaman.
+
+		const Donya::Int2 moveSign
+		{
+			Donya::SignBit( velocity.x ),
+			Donya::SignBit( velocity.y )
+		};
+		const Donya::Int2 inputSign
+		{
+			Donya::SignBit( controller.moveVelocity.x ),
+			Donya::SignBit( controller.moveVelocity.y )
+		};
+
+		auto Brake = [&]()
+		{
+			const float brakeSpeed = PlayerParam::Get().Data().brakeSpeed * elapsedTime;
+
+			if ( fabsf( velocity.x ) <= brakeSpeed )
+			{
+				velocity.x = 0.0f;
+			}
+			else
+			{
+				velocity.x -= brakeSpeed * moveSign.x;
+			}
+		};
+
+		if ( !inputSign.x )
+		{
+			if ( moveSign.x != 0 )
+			{
+				Brake();
+			}
+
+			return;
+		}
+		// else
+
+		// Player can move as usual if the input direction is same as the slipping direction.
+		if ( inputSign.x == moveSign.x || !moveSign.x )
+		{
+			AssignMoveSpeed();
+		}
+		else
+		{
+			Brake();
+		}
+
+		return;
+	}
+	// else
+
+	AssignMoveSpeed();
 }
 
 void Player::Fall( float elapsedTime, Input controller )
@@ -642,6 +827,7 @@ void Player::UseImGui()
 			ImGui::DragInt( u8"のこりジャンプ回数",	&remainJumpCount	);
 			ImGui::DragFloat3( u8"ワールド座標",		&pos.x				);
 			ImGui::DragFloat3( u8"移動速度",			&velocity.x			);
+			ImGui::Checkbox( u8"氷床の上にいる？",	&aboveSlipGround	);
 
 			ImGui::TreePop();
 		}

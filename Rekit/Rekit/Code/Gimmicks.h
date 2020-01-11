@@ -434,6 +434,9 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, Trigger )
 
 class Gimmick
 {
+public:
+	static bool HasSlipAttribute( const BoxEx  &gimmickHitBox );
+	static bool HasSlipAttribute( const AABBEx &gimmickHitBox );
 private:
 	int stageNo;
 	std::vector<std::unique_ptr<GimmickBase>> pGimmicks;
