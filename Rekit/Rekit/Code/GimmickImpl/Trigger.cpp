@@ -38,15 +38,24 @@ public:
 		};
 		struct SwitchMember
 		{
+			// The switch gather a block in direction to me.
+			// And the switch have the collisions look like 'U'.
+			// The "hitBoxLeft", "Right" roles a side wall, the "Member::hitBoxSwitch" roles bottom wall.
+
+			Donya::Vector3 gatheringPos{};
+			AABBEx hitBoxLeft{};
+			AABBEx hitBoxRight{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				/*archive
+				archive
 				(
-					CEREAL_NVP( stretchMax )
-				);*/
+					CEREAL_NVP( gatheringPos ),
+					CEREAL_NVP( hitBoxLeft ),
+					CEREAL_NVP( hitBoxRight )
+				);
 				if ( 1 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
@@ -167,18 +176,23 @@ public:
 				}
 				if ( ImGui::TreeNode( u8"スイッチ" ) )
 				{
+					ImGui::DragFloat3( u8"引き寄せる位置（相対）", &m.mSwitch.gatheringPos.x, 0.1f );
+
+					AdjustAABB( u8"当たり判定・左壁", &m.mSwitch.hitBoxLeft  );
+					AdjustAABB( u8"当たり判定・右壁", &m.mSwitch.hitBoxRight );
+
 					ImGui::TreePop();
 				}
-				if ( ImGui::TreeNode( u8"引き" ) )
+				if ( ImGui::TreeNode( u8"引き手" ) )
 				{
 					ImGui::DragFloat( u8"引っ張る長さ", &m.mPull.stretchMax, 1.0f, 0.0f );
 
 					ImGui::TreePop();
 				}
 
-				AdjustAABB( u8"当たり判定・鍵",		&m.hitBoxKey	);
-				AdjustAABB( u8"当たり判定・スイッチ",	&m.hitBoxSwitch	);
-				AdjustAABB( u8"当たり判定・引き",		&m.hitBoxPull	);
+				AdjustAABB( u8"当たり判定・鍵",				&m.hitBoxKey	);
+				AdjustAABB( u8"当たり判定・スイッチ（底）",	&m.hitBoxSwitch	);
+				AdjustAABB( u8"当たり判定・引き手",			&m.hitBoxPull	);
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
 				{
@@ -210,6 +224,9 @@ public:
 #endif // USE_IMGUI
 };
 CEREAL_CLASS_VERSION( ParamTrigger::Member, 1 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::KeyMember, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 0 )
 
 
 
@@ -345,17 +362,18 @@ Donya::Vector3 Trigger::GetPosition() const
 }
 AABBEx Trigger::GetHitBox() const
 {
+	const auto &param = ParamTrigger::Get().Data();
 	const AABBEx hitBoxes[]
 	{
-		ParamTrigger::Get().Data().hitBoxKey,
-		ParamTrigger::Get().Data().hitBoxSwitch,
-		ParamTrigger::Get().Data().hitBoxPull
+		param.hitBoxKey,
+		param.hitBoxSwitch,
+		param.hitBoxPull
 	};
 	const bool hitBoxExists[]
 	{
-		false,					// Key
-		true,					// Switch
-		false					// Pull
+		false,	// Key
+		true,	// Switch
+		false	// Pull
 	};
 	const int kindIndex =  GetTriggerKindIndex();
 
@@ -363,8 +381,40 @@ AABBEx Trigger::GetHitBox() const
 	wsHitBox.pos		+= pos;
 	wsHitBox.velocity	=  velocity;
 	wsHitBox.exist		=  hitBoxExists[kindIndex];
-	wsHitBox.attr		= kind;
+	wsHitBox.attr		=  kind;
 	return wsHitBox;
+}
+bool Trigger::HasMultipleHitBox() const
+{
+	return true;
+}
+std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
+{
+	const auto &param = ParamTrigger::Get().Data();
+	const AABBEx hitBoxes[]
+	{
+		param.mSwitch.hitBoxLeft,
+		param.mSwitch.hitBoxRight,
+	};
+
+	auto ToWorldSpace = [&]( AABBEx lsHitBox )
+	{
+		lsHitBox.pos		+= pos;
+		lsHitBox.velocity	=  velocity;
+		lsHitBox.exist		=  true;
+		lsHitBox.attr		=  kind;
+		return lsHitBox;
+	};
+
+	std::vector<AABBEx> multiHitBoxes{};
+	multiHitBoxes.reserve( ArraySize( hitBoxes ) );
+
+	for ( const auto &it : hitBoxes )
+	{
+		multiHitBoxes.emplace_back( ToWorldSpace( it ) );
+	}
+
+	return multiHitBoxes;
 }
 
 int Trigger::GetTriggerKindIndex() const
@@ -443,7 +493,7 @@ void Trigger::PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, c
 }
 void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	// No op.
 }
 void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {

@@ -238,6 +238,12 @@ void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4
 int				GimmickBase::GetKind()		const { return kind;	}
 Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
 
+bool GimmickBase::HasMultipleHitBox() const { return false; }
+std::vector<AABBEx> GimmickBase::GetAnotherHitBoxes() const
+{
+	return std::vector<AABBEx>();
+}
+
 // region Base
 #pragma endregion
 
@@ -367,12 +373,22 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 std::vector<AABBEx> Gimmick::RequireHitBoxes() const
 {
 	std::vector<AABBEx> boxes{};
+	std::vector<AABBEx> anotherBoxes{};
 	for ( const auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
 		boxes.emplace_back( it->GetHitBox() );
+
+		if ( it->HasMultipleHitBox() )
+		{
+			anotherBoxes = it->GetAnotherHitBoxes();
+			for ( const auto &itr : anotherBoxes )
+			{
+				boxes.emplace_back( itr );
+			}
+		}
 	}
 	return boxes;
 }
@@ -416,53 +432,54 @@ void Gimmick::UseImGui()
 			ImGui::SliderFloat3 ( u8"シャッターの開く方向", &shutterDirection.x, -1, 1 );
 			// Resizing.
 			{
+				constexpr Donya::Vector3 GENERATE_POS = Donya::Vector3::Zero();
 				const std::string prefix{ u8"末尾に追加・" };
 
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<FragileBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<HardBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<IceBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<SpikeBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<Shutter>( NULL, shutterDirection.Normalized() ) );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<XXX>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind:: ), Donya::Vector3::Zero() );
+					pGimmicks.back()->Init( ToInt( GimmickKind:: ), GENERATE_POS );
 				}
 				*/
 

@@ -23,7 +23,7 @@ enum class GimmickKind
 	Ice,
 	Spike,
 	TriggerKey,
-	TriggerSwitch,
+	TriggerSwitch, // Linking to Shutter. Gather a block.
 	TriggerPull,
 	Shutter,
 
@@ -117,6 +117,14 @@ public:
 	/// Returns world space hit-box.
 	/// </summary>
 	virtual AABBEx GetHitBox() const = 0;
+	/// <summary>
+	/// If returns true, please also fetch the another hit-boxes with GetAnotherHitBoxes().
+	/// </summary>
+	virtual bool HasMultipleHitBox() const;
+	/// <summary>
+	/// Usually returns empty. If the HasMultipleHitBox() returns true, I returns another hit-boxes(the hit-box that returns by GetHitBox() isn't contain).
+	/// </summary>
+	virtual std::vector<AABBEx> GetAnotherHitBoxes() const;
 
 #if USE_IMGUI
 	virtual void ShowImGuiNode() {}
@@ -479,6 +487,8 @@ public:
 	/// Returns world space hit-box.
 	/// </summary>
 	AABBEx GetHitBox() const override;
+	bool HasMultipleHitBox() const override;
+	std::vector<AABBEx> GetAnotherHitBoxes() const override;
 private:
 	/// <summary>
 	/// Returns index is kind of triggers(following the GimmickKind, start by TriggerKey), 0-based.
