@@ -448,9 +448,9 @@ public:
 	static void UseParameterImGui ();
 #endif // USE_IMGUI
 private:
-private:
 	int				id;
 	Donya::Vector3	direction;
+	float			movedWidth;
 public:
 	Shutter ();
 	Shutter ( int id, const Donya::Vector3& direction );

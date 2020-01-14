@@ -225,7 +225,7 @@ void Trigger::UseParameterImGui()
 #endif // USE_IMGUI
 
 Trigger::Trigger() : GimmickBase(),
-	id ( 0 ), enable( false ),
+	id ( -1 ), enable( false ),
 	mKey(), mSwitch(), mPull()
 {}
 Trigger::Trigger( int id, bool enable ) : GimmickBase(),
