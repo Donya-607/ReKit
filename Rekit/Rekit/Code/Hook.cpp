@@ -225,7 +225,7 @@ void Hook::Update(float elapsedTime, Input controller)
 	{
 	case ActionState::Throw:
 		ThrowUpdate(elapsedTime,controller);
-		if (prevPress && !controller.currPress)
+		if (controller.currPress)
 		{
 			state = ( placeablePoint ) ? ActionState::Stay : ActionState::Erase;
 			Donya::Sound::Play( Music::Appearance );
@@ -489,17 +489,25 @@ void Hook::CreateRenderingObjects()
 
 void Hook::ThrowUpdate(float elapsedTime, Input controller)
 {
-	if ( controller.stickVec.IsZero() ) { return; }
+//	if ( controller.stickVec.IsZero() ) { return; }
 	// else
-
-	direction.x = controller.stickVec.x;
-	direction.y = controller.stickVec.y;
+	if (!controller.stickVec.IsZero ())
+	{
+		direction.x = controller.stickVec.x;
+		direction.y = controller.stickVec.y;
+	}
 
 	const float moveSpeed = HookParam::Get().Data().throwSpeed * elapsedTime;
-	distance += moveSpeed;
+	if (controller.extend) { distance += moveSpeed; }
+	if (controller.shrink) { distance -= moveSpeed; }
+	
 	if ( HookParam::Get().Data().lengthLimit < distance )
 	{
 		distance = HookParam::Get().Data().lengthLimit;
+	}
+	if (0 >= distance)
+	{
+		distance = 0;
 	}
 }
 

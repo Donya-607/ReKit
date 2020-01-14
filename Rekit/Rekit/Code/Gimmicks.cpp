@@ -44,6 +44,7 @@ namespace GimmickUtility
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
+		case GimmickKind::Shutter:			return "Shutter";		// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -272,6 +273,7 @@ void Gimmick::Init( int stageNumber )
 	IceBlock::ParameterInit();
 	SpikeBlock::ParameterInit();
 	Trigger::ParameterInit();
+	Shutter::ParameterInit();
 
 	LoadParameter();
 
@@ -404,11 +406,14 @@ void Gimmick::UseImGui()
 	IceBlock::UseParameterImGui();
 	SpikeBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
+	Shutter::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
+			static Donya::Vector3 shutterDirection;
+			ImGui::SliderFloat3 ( u8"シャッターの向き", &shutterDirection.x, -1, 1 );
 			// Resizing.
 			{
 				const std::string prefix{ u8"末尾に追加・" };
@@ -447,6 +452,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
+				}
+				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Shutter )).c_str () ))
+				{
+					pGimmicks.push_back ( std::make_unique<Shutter> ( 0, shutterDirection ) );
+					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Shutter ), Donya::Vector3::Zero () );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
