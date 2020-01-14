@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "Donya/Camera.h"
 #include "Donya/GamepadXInput.h"
 #include "Donya/Vector.h"
@@ -8,6 +9,19 @@
 #include "Gimmicks.h"
 #include "Player.h"
 #include "Scene.h"
+
+enum class SelectGimmick
+{
+	Normal = 0,
+	Fragile,
+	Hard,
+	TriggerKey,
+	TriggerSwitch,
+	TriggerPull,
+	Ice,
+
+	GimmicksCount
+};
 
 class SceneEditor : public Scene
 {
@@ -30,8 +44,11 @@ private:
 	Donya::Vector2			mousePos;
 
 
-
 	Scene::Type				nextSceneType;
+
+
+
+	bool					isPressG;
 
 public:
 	SceneEditor();
@@ -54,6 +71,8 @@ private:
 	// Edit Function
 	void GenerateBlockIfCleck();
 	void EraseBlockIfRightCleck();
+	void CorrectionGridCursor();
+	void SaveEditParameter();
 
 private:
 	Result	ReturnResult();

@@ -1,6 +1,9 @@
 #include "SceneEditor.h"
 
 #include <cereal/types/vector.hpp>
+#include <memory>
+#include <vector>
+
 
 #include "Donya/Keyboard.h"
 #include "Donya/Camera.h"
@@ -21,6 +24,7 @@
 #include "Fader.h"
 #include "FilePath.h"
 #include "DerivedCollision.h"
+#include "Gimmicks.h"
 
 #pragma region EditParam
 class EditParam final : public Donya::Singleton<EditParam>
@@ -30,10 +34,13 @@ public:
 	struct Member
 	{
 	public:
-		std::vector<BoxEx>	debugTerrains{};
+		std::vector<BoxEx>	editBlocks{};
 		std::vector<BoxEx>	debugAllTerrains{};		// Use for collision and drawing.
+		std::vector<std::shared_ptr<GimmickBase>> pEditGimmicks;
 
 		Donya::Vector3		transformMousePos{};
+		int					stageNum = 1;
+		SelectGimmick		nowSelect;
 
 		BoxEx debugCompressor{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
 		BoxEx debugClearTrigger{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
@@ -48,7 +55,7 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP(debugTerrains)
+				CEREAL_NVP(editBlocks)
 			);
 			if (1 <= version)
 			{
@@ -96,46 +103,99 @@ public:
 private:
 	void LoadParameter(bool fromBinary = true)
 	{
-		std::string filePath = GenerateSerializePath(SERIAL_ID, fromBinary);
-		Donya::Serializer::Load(m, filePath.c_str(), SERIAL_ID, fromBinary);
+		std::string id = "EdittedStage:" + std::to_string(m.stageNum);
+
+		std::string filePath = GenerateSerializePath(id, fromBinary);
+		Donya::Serializer::Load(m, filePath.c_str(), id.c_str(), fromBinary);
 	}
 
 #if USE_IMGUI
-
+public:
 	void SaveParameter()
 	{
 		bool useBinary = true;
 		std::string filePath{};
 
-		filePath = GenerateSerializePath(SERIAL_ID, useBinary);
-		Donya::Serializer::Save(m, filePath.c_str(), SERIAL_ID, useBinary);
+		std::string id = "EdittedStage:" + std::to_string(m.stageNum);
+
+		filePath = GenerateSerializePath(id, useBinary);
+		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
 
 		useBinary = false;
 
-		filePath = GenerateSerializePath(SERIAL_ID, useBinary);
-		Donya::Serializer::Save(m, filePath.c_str(), SERIAL_ID, useBinary);
+		filePath = GenerateSerializePath(id, useBinary);
+		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
 	}
-public:
 	void GenerateBlock()
 	{
+#if 0
 		auto mousePos = EditParam::Get().Data().transformMousePos;
-		BoxEx changeable{ { mousePos.x, mousePos.y, 2.0f, 2.0f, true }, 1 };
-		EditParam::Get().DataRef().debugTerrains.emplace_back(changeable);
+		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 1 };
+		EditParam::Get().DataRef().editBlocks.emplace_back(changeable);
+#else
+		auto mousePos = EditParam::Get().Data().transformMousePos;
+
+		auto ToInt = [&](GimmickKind kind)
+		{
+			return scast<int>(kind);
+		};
+		auto debug = EditParam::Data().nowSelect;
+
+		switch (EditParam::Data().nowSelect)
+		{
+		case SelectGimmick::Normal:
+			// 別の処理する
+			break;
+		case SelectGimmick::Fragile:
+			m.pEditGimmicks.push_back(std::make_unique<FragileBlock>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Hard:
+			m.pEditGimmicks.push_back(std::make_unique<HardBlock>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::TriggerKey:
+			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::TriggerSwitch:
+			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::TriggerPull:
+			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Ice:
+			m.pEditGimmicks.push_back(std::make_unique<IceBlock>());
+			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		default:
+			break;
+		}
+#endif
 	}
 	void EraseBlock()
 	{
 		auto mousePos = EditParam::Get().Data().transformMousePos;
-		for (auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
+		for (auto itr = m.editBlocks.begin(); itr != m.editBlocks.end(); )
 		{
 			auto box = *itr;
 			auto mousePos = m.transformMousePos;
-			if (box.pos.x - box.size.x > mousePos.x) { itr++; continue; }
-			if (box.pos.x + box.size.x < mousePos.x) { itr++; continue; }
-			if (box.pos.y - box.size.y > mousePos.y) { itr++; continue; }
-			if (box.pos.y + box.size.y < mousePos.y) { itr++; continue; }
+			if (box.pos.x - box.size.x/2 > mousePos.x) { itr++; continue; }
+			if (box.pos.x + box.size.x/2 < mousePos.x) { itr++; continue; }
+			if (box.pos.y - box.size.y/2 > mousePos.y) { itr++; continue; }
+			if (box.pos.y + box.size.y/2 < mousePos.y) { itr++; continue; }
 
-			itr = m.debugTerrains.erase(itr);
+			itr = m.editBlocks.erase(itr);
 			break;
+		}
+	}
+	void EraseBlockAll()
+	{
+		for (auto itr = m.editBlocks.begin(); itr != m.editBlocks.end(); )
+		{
+			itr = m.editBlocks.erase(itr);
 		}
 	}
 
@@ -147,8 +207,17 @@ public:
 		{
 			if (ImGui::TreeNode(u8"地形エディタ"))
 			{
-				static int stageNum = 0;
-				ImGui::InputInt(u8"ステージ", &stageNum);
+				static int lastStageNum;
+				lastStageNum = m.stageNum;
+				ImGui::InputInt(u8"ステージ", &m.stageNum);
+				if (m.stageNum <= 1)m.stageNum = 1;
+				if (m.stageNum >= 20)m.stageNum = 20;
+				// ステージ切り替えた時にブロックを全消去する
+				if (lastStageNum != m.stageNum)
+				{
+					EraseBlockAll();
+				}
+
 				if (ImGui::TreeNode(u8"ファイル操作"))
 				{
 					static bool isBinary = true;
@@ -171,9 +240,60 @@ public:
 
 				if (ImGui::TreeNode(u8"オブジェクト種類"))
 				{
+					static int doorID = 0;
+					ImGui::InputInt(u8"ドアのID", &doorID);
+					if (doorID >= 5)doorID = 5;
+					if (doorID <= 0)doorID = 0;
+
+					ImGui::Text("");
+
+					// Select Gimmicks
+					{
+						ImGui::BeginChild(u8"Select"/*ImGui::GetID((void*)0)*/, ImVec2(250, 100));
+						auto data = EditParam::DataRef().nowSelect;
+						if (ImGui::Button(u8"Normal Block"))
+						{
+							data = SelectGimmick::Normal;
+						}
+						if (ImGui::Button(u8"Fragile"))
+						{
+							data = SelectGimmick::Fragile;
+						}
+						if (ImGui::Button(u8"Hard"))
+						{
+							data = SelectGimmick::Hard;
+						}
+						if (ImGui::Button(u8"TriggerKey"))
+						{
+							data = SelectGimmick::TriggerKey;
+						}
+						if (ImGui::Button(u8"TriggerSwitch"))
+						{
+							data = SelectGimmick::TriggerSwitch;
+						}
+						if (ImGui::Button(u8"TriggerPull"))
+						{
+							data = SelectGimmick::TriggerPull;
+						}
+						if (ImGui::Button(u8"Ice"))
+						{
+							data = SelectGimmick::Ice;
+						}
+						EditParam::DataRef().nowSelect = data;
+						ImGui::EndChild();
+					}
 					ImGui::Text(u8"to be continued");
 					ImGui::TreePop();
 				}
+				ImGui::Text("");
+				if (ImGui::TreeNode(u8"操作方法"))
+				{
+					ImGui::Text(u8"左クリック : 選択中のブロックを配置");
+					ImGui::Text(u8"右クリック : カーソル上のブロックを削除");
+					ImGui::Text(u8"Ctrl + S  : 現在の状態を、選択中のステージデータに上書き保存");
+					ImGui::TreePop();
+				}
+
 				ImGui::TreePop();
 			}
 
@@ -189,9 +309,15 @@ CEREAL_CLASS_VERSION(EditParam::Member, 2)
 
 
 SceneEditor::SceneEditor() :
+	controller(Donya::Gamepad::PAD_1),
 	iCamera(),
+	dirLight{},
+	player{},
+	gimmicks{},
+	line(256),
+	mousePos(Donya::Vector2(0.0f,0.0f)),
 	nextSceneType(Scene::Type::Null),
-	controller(Donya::Gamepad::PAD_1)
+	isPressG(false)
 {
 
 }
@@ -253,13 +379,15 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 
 	GenerateBlockIfCleck();
 	EraseBlockIfRightCleck();
+	SaveEditParameter();
+	isPressG = Donya::Keyboard::Press('G');
+
 
 	return ReturnResult();
 }
 
 void SceneEditor::Draw(float elapsedTime)
 {
-	bool isPressG = Donya::Keyboard::Press( 'G' );
 
 	const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
@@ -271,7 +399,8 @@ void SceneEditor::Draw(float elapsedTime)
 	}
 
 	static auto cirsolBox = Donya::Geometric::CreateCube();
-	// Drawing cirsol box.
+
+	// Drawing cursor box.
 	{
 		constexpr Donya::Vector4 cubeColor{ 0.9f, 0.6f, 0.6f, 0.6f };
 		Donya::Vector4x4 cubeT{};
@@ -280,9 +409,10 @@ void SceneEditor::Draw(float elapsedTime)
 
 		// スクリーン座標 -> ワールド座標
 		CalcScreenToXY(&EditParam::Get().DataRef().transformMousePos, scast<int>(mousePos.x), scast<int>(mousePos.y), Common::ScreenWidth(), Common::ScreenHeight(), V, P);
-
+		if( !isPressG ) CorrectionGridCursor();
+		auto pos = EditParam::Get().DataRef().transformMousePos;
 		cubeT = Donya::Vector4x4::MakeTranslation(EditParam::Get().DataRef().transformMousePos);
-		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f*2.0f, 1.0f*2.0f, 1.0f });
+		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f * 4.0f, 1.0f * 4.0f, 1.0f });
 		cubeW = cubeS * cubeT;
 
 		cirsolBox.Render
@@ -305,7 +435,7 @@ void SceneEditor::Draw(float elapsedTime)
 		Donya::Vector4x4 cubeT{};
 		Donya::Vector4x4 cubeS{};
 		Donya::Vector4x4 cubeW{};
-		for (const auto& it : EditParam::Get().Data().debugTerrains)
+		for (const auto& it : EditParam::Get().Data().editBlocks)
 		{
 			// The drawing size is whole size.
 			// But a collision class's size is half size.
@@ -327,17 +457,60 @@ void SceneEditor::Draw(float elapsedTime)
 		}
 	}
 
+	// Drawing Objects.
+	{
+		for (auto& it : EditParam::Get().Data().pEditGimmicks)
+		{
+			if (!it) { continue; }
+			// else
 
-	Donya::Vector3 start = Donya::Vector3(0.0f, 0.0f, 0.0f);
-	Donya::Vector3 end = Donya::Vector3(10.0f, 0.0f, 0.0f);
-	line.Reserve(start, end, Donya::Vector4(1.0f,1.0f,1.0f,1.0f));
+			it->Draw(V, P, dirLight.dir);
+		}
+	}
 
-	start = Donya::Vector3(0.0f, 10.0f, 0.0f);
-	end = Donya::Vector3(10.0f, 10.0f, 0.0f);
-	line.Reserve(start, end, Donya::Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+	if (isPressG)return;
+	// Drawing GridLine
+	{
+		Donya::Vector3 start = Donya::Vector3(0.0f, 0.0f, 0.0f);
+		Donya::Vector3 end = Donya::Vector3(0.0f, 0.0f, 0.0f);
 
-	Donya::Vector4x4 VP = V * P;
-	line.Flush(VP);
+
+		auto rightUpPos = Donya::Vector2(-38.101f, 21.392f);
+		for (int c = 0; c < 6; c++) // 縦
+		{
+			start = Donya::Vector3(-30.101f, c * 4.0f, 0.0f);
+			end =	Donya::Vector3(34.101f, c * 4.0f, 0.0f);
+
+			line.Reserve(start, end, Donya::Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+		}
+		for (int c = 0; c < 5; c++)
+		{
+			start = Donya::Vector3(-30.101f, c * -4.0f, 0.0f);
+			end = Donya::Vector3(34.101f, c *    -4.0f, 0.0f);
+
+			line.Reserve(start, end, Donya::Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+		}
+
+		for (int r = 0; r < 9; r++) // 横
+		{
+			start = Donya::Vector3(r * 4.0f, 22.392f, 0.0f);
+			end = Donya::Vector3(r * 4.0f, -18.392f, 0.0f);
+
+			line.Reserve(start, end, Donya::Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+		}
+
+		for (int r = 0; r < 8; r++) // 横
+		{
+			start = Donya::Vector3(r * -4.0f, 22.392f, 0.0f);
+			end = Donya::Vector3(r * -4.0f, -18.392f, 0.0f);
+			line.Reserve(start, end, Donya::Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+		}
+
+
+		Donya::Vector4x4 VP = V * P;
+		line.Flush(VP);
+	}
+
 }
 
 void SceneEditor::StartFade()const
@@ -390,8 +563,12 @@ Scene::Result SceneEditor::ReturnResult()
 void SceneEditor::GenerateBlockIfCleck()
 {
 	bool cleckLeftButton = Donya::Mouse::Trigger(Donya::Mouse::LEFT);
+	//bool pushCtrlButton = Donya::Keyboard::Press(VK_LCONTROL) | Donya::Keyboard::Press(VK_RCONTROL);
+	bool pressZButton = Donya::Keyboard::Press('Z');
+	
+	if(ImGui::IsMouseHoveringAnyWindow())return;
 
-	if ( !cleckLeftButton )return;
+	if ( !cleckLeftButton || pressZButton)return;
 
 	EditParam::Get().GenerateBlock();
 }
@@ -403,6 +580,49 @@ void SceneEditor::EraseBlockIfRightCleck()
 	if (!cleckRightButton)return;
 
 	EditParam::Get().EraseBlock();
+}
+
+void SceneEditor::CorrectionGridCursor()
+{
+	auto mousePos = EditParam::Get().DataRef().transformMousePos;
+
+	int div{};
+//	if (mousePos.x >= 0.0f)
+//	{
+//		div = mousePos.x / 2.0f;
+//	}
+//	else
+//	{
+//		div = mousePos.x / 2.0f;
+//	}
+
+	div = mousePos.x / 4.0f;
+	mousePos.x = div * 4.0f;
+
+//	if (mousePos.y >= 0.0f)
+//	{
+//		div = mousePos.y / 2.0f;
+//	}
+//	else
+//	{
+//		div = mousePos.y / 2.0f;
+//	}
+
+	div = mousePos.y / 4.0f;
+	mousePos.y = div * 4.0f;
+
+	EditParam::Get().DataRef().transformMousePos = mousePos;
+}
+
+void SceneEditor::SaveEditParameter()
+{
+	bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL);
+	bool pressSButton = Donya::Keyboard::Press('S');
+
+	if (!pressCtrl || !pressSButton) return;
+
+
+	EditParam::Get().SaveParameter();
 }
 
 
