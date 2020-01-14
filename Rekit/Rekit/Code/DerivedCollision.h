@@ -6,6 +6,7 @@
 class BoxEx : public Donya::Box
 {
 public:
+	int attr{};	// Will used for identify an attribute.
 	int mass{};	// Will used for consider an object will be compressed.
 public:
 	BoxEx() : Box(), mass() {}
@@ -23,6 +24,10 @@ private:
 
 		if ( 1 <= version )
 		{
+			archive( CEREAL_NVP( attr ) );
+		}
+		if ( 2 <= version )
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
@@ -32,10 +37,12 @@ public:
 		return BoxEx{};
 	}
 };
+CEREAL_CLASS_VERSION( BoxEx, 1 )
 
 class AABBEx : public Donya::AABB
 {
 public:
+	int attr{};	// Will used for identify an attribute.
 	int mass{};	// Will used for consider an object will be compressed.
 private:
 	friend class cereal::access;
@@ -49,6 +56,10 @@ private:
 		);
 
 		if ( 1 <= version )
+		{
+			archive( CEREAL_NVP( attr ) );
+		}
+		if ( 2 <= version )
 		{
 			// archive( CEREAL_NVP( x ) );
 		}
@@ -67,6 +78,7 @@ public:
 		xy.velocity.x	= velocity.x;
 		xy.velocity.y	= velocity.y;
 		xy.exist		= exist;
+		xy.attr			= attr;
 		xy.mass			= mass;
 		return xy;
 	}
@@ -76,3 +88,4 @@ public:
 		return AABBEx{};
 	}
 };
+CEREAL_CLASS_VERSION( AABBEx, 1 )

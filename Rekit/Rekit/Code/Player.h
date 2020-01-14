@@ -37,6 +37,8 @@ private:
 	Donya::CBuffer<Constants>	cbuffer;
 	Donya::VertexShader			VSDemo;
 	Donya::PixelShader			PSDemo;
+
+	bool						aboveSlipGround;
 public:
 	Player();
 	~Player();
