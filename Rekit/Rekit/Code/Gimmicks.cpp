@@ -39,10 +39,11 @@ namespace GimmickUtility
 		{
 		case GimmickKind::Fragile:			return "Fragile";		// break;
 		case GimmickKind::Hard:				return "Hard";			// break;
+		case GimmickKind::Ice:				return "Ice";			// break;
+		case GimmickKind::Spike:			return "Spike";			// break;
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
-		case GimmickKind::Ice:				return "Ice";			// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -259,8 +260,9 @@ void Gimmick::Init( int stageNumber )
 {
 	FragileBlock::ParameterInit();
 	HardBlock::ParameterInit();
-	Trigger::ParameterInit();
 	IceBlock::ParameterInit();
+	SpikeBlock::ParameterInit();
+	Trigger::ParameterInit();
 
 	LoadParameter();
 
@@ -390,8 +392,9 @@ void Gimmick::UseImGui()
 {
 	FragileBlock::UseParameterImGui();
 	HardBlock::UseParameterImGui();
-	Trigger::UseParameterImGui();
 	IceBlock::UseParameterImGui();
+	SpikeBlock::UseParameterImGui();
+	Trigger::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -411,6 +414,16 @@ void Gimmick::UseImGui()
 					pGimmicks.push_back( std::make_unique<HardBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), Donya::Vector3::Zero() );
 				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<IceBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<SpikeBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), Donya::Vector3::Zero() );
+				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
@@ -425,11 +438,6 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
-				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
-				{
-					pGimmicks.push_back( std::make_unique<IceBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
