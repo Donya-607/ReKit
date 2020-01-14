@@ -251,6 +251,15 @@ bool Gimmick::HasSlipAttribute( const AABBEx &gimmick )
 	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
 }
 
+bool Gimmick::HasDangerAttribute( const BoxEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
+}
+bool Gimmick::HasDangerAttribute( const AABBEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
+}
+
 Gimmick::Gimmick() :
 	stageNo(), pGimmicks()
 {}

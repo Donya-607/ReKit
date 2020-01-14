@@ -517,6 +517,9 @@ class Gimmick
 public:
 	static bool HasSlipAttribute( const BoxEx  &gimmickHitBox );
 	static bool HasSlipAttribute( const AABBEx &gimmickHitBox );
+	
+	static bool HasDangerAttribute( const BoxEx  &gimmickHitBox );
+	static bool HasDangerAttribute( const AABBEx &gimmickHitBox );
 private:
 	int stageNo;
 	std::vector<std::unique_ptr<GimmickBase>> pGimmicks;

@@ -28,8 +28,17 @@ private:
 		DirectX::XMFLOAT4	lightColor;
 		DirectX::XMFLOAT4	materialColor;
 	};
+	enum class State
+	{
+		Normal,
+		Dead,
+	};
 private:
+	State						status;
+
 	int							remainJumpCount;	// 0 is can not jump, 1 ~ is can jump.
+	float						drawAlpha;			// Use for dead animation.
+
 	Donya::Vector3				pos;				// World space.
 	Donya::Vector3				velocity;
 
@@ -59,8 +68,13 @@ public:
 	/// Returns hit-box is world space.
 	/// </summary>
 	AABBEx GetHitBox() const;
+
+	bool IsDead() const;
 private:
 	void CreateRenderingObjects();
+
+	void NormalUpdate( float elapsedTime, Input controller );
+	void DeadUpdate( float elapsedTime, Input controller );
 
 	void Move( float elapsedTime, Input controller );
 
@@ -68,6 +82,8 @@ private:
 	void JumpIfUsed( float elapsedTime, Input controller );
 
 	void Landing();
+
+	void KillMe();
 
 #if USE_IMGUI
 private:

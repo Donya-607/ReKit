@@ -346,6 +346,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	
 	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
+	if ( player.IsDead() && !Fader::Get().IsExist() )
+	{
+		StartFade();
+	}
 
 	CameraUpdate();
 
