@@ -363,6 +363,7 @@ AABBEx Trigger::GetHitBox() const
 	wsHitBox.pos		+= pos;
 	wsHitBox.velocity	=  velocity;
 	wsHitBox.exist		=  hitBoxExists[kindIndex];
+	wsHitBox.attr		= kind;
 	return wsHitBox;
 }
 

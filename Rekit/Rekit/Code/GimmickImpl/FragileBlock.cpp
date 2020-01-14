@@ -222,6 +222,7 @@ AABBEx FragileBlock::GetHitBox() const
 	AABBEx base = ParamFragileBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
+	base.attr		=  kind;
 	return base;
 }
 

@@ -241,6 +241,15 @@ Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
 
 #pragma region Gimmick
 
+bool Gimmick::HasSlipAttribute( const BoxEx  &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+}
+bool Gimmick::HasSlipAttribute( const AABBEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+}
+
 Gimmick::Gimmick() :
 	stageNo(), pGimmicks()
 {}

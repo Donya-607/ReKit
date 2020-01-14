@@ -281,25 +281,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 #endif // USE_IMGUI
 
-	auto ToBox = []( const AABBEx &aabb )
-	{
-		BoxEx box{};
-		box.pos.x		= aabb.pos.x;
-		box.pos.y		= aabb.pos.y;
-		box.size.x		= aabb.size.x;
-		box.size.y		= aabb.size.y;
-		box.exist		= aabb.exist;
-		box.velocity.x	= aabb.velocity.x;
-		box.velocity.y	= aabb.velocity.y;
-		box.mass		= aabb.mass;
-		return box;
-	};
-	auto AppendGimmicksBox = [&ToBox]( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
+	auto AppendGimmicksBox = []( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : boxes )
 		{
-			pTerrains->emplace_back( ToBox( it ) );
+			pTerrains->emplace_back( it.Get2D() );
 		}
 	};
 
@@ -344,7 +331,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			accompanyBox = ToBox( pHook->GetHitBox() );
+			accompanyBox = pHook->GetHitBox().Get2D();
 		}
 		else
 		{
@@ -642,13 +629,13 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 	}
 	else
 	{
-		bool pressLeft  = Donya::Keyboard::Press( 'A' )/* || Donya::Keyboard::Press( VK_LEFT  )*/;
-		bool pressRight = Donya::Keyboard::Press( 'D' )/* || Donya::Keyboard::Press( VK_RIGHT )*/;
-		if ( pressLeft  )		{ moveLeft  = true; }
-		if ( pressRight )		{ moveRight = true; }
+		bool pressLeft  = Donya::Keyboard::Press( 'Z' )/* || Donya::Keyboard::Press( VK_LEFT  )*/;
+		bool pressRight = Donya::Keyboard::Press( 'X' )/* || Donya::Keyboard::Press( VK_RIGHT )*/;
+		if ( pressLeft  ) { moveLeft  = true; }
+		if ( pressRight ) { moveRight = true; }
 		
-		bool trgJump    = Donya::Keyboard::Trigger( 'S' )/* || Donya::Keyboard::Trigger( VK_LSHIFT )*/;
-		if ( trgJump )			{ useJump = true; }
+		bool trgJump = Donya::Keyboard::Trigger( VK_SPACE )/* || Donya::Keyboard::Trigger( VK_LSHIFT )*/;
+		if ( trgJump ) { useJump = true; }
 	}
 
 	if ( moveLeft  ) { input.moveVelocity.x -= 1.0f; }
@@ -695,22 +682,6 @@ void SceneGame::HookUpdate( float elapsedTime )
 	}
 	else
 	{
-		// OLD
-		/*
-		POINT mousePoint = Donya::Mouse::Coordinate();
-		stick.x = scast<float>(mousePoint.x) - player.GetPosition().x;
-		stick.y = scast<float>(mousePoint.y) - player.GetPosition().y;
-
-		if (Donya::Mouse::Press(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
-		{
-			useAction = true;
-		}
-		if (Donya::Mouse::Trigger(Donya::Mouse::LEFT) && !Donya::Keyboard::Press(VK_SPACE))
-		{
-			trigger = true;
-		}
-		*/
-
 		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x		-= 1.0f; }
 		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x		+= 1.0f; }
 		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y		+= 1.0f; }

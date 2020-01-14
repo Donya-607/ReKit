@@ -192,6 +192,7 @@ AABBEx IceBlock::GetHitBox() const
 	AABBEx base = ParamIceBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
+	base.attr		= kind;
 	return base;
 }
 
