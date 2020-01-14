@@ -331,7 +331,7 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 		auto itr = std::remove_if
 		(
 			pGimmicks.begin(), pGimmicks.end(),
-			[]( std::unique_ptr<GimmickBase> &pElement )
+			[]( std::shared_ptr<GimmickBase> &pElement )
 			{
 				return ( !pElement ) ? false : pElement->ShouldRemove();
 			}
@@ -403,38 +403,38 @@ void Gimmick::UseImGui()
 
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<FragileBlock>() );
+					pGimmicks.push_back( std::make_shared<FragileBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), Donya::Vector3::Zero() );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<HardBlock>() );
+					pGimmicks.push_back( std::make_shared<HardBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), Donya::Vector3::Zero() );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), Donya::Vector3::Zero() );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), Donya::Vector3::Zero() );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<IceBlock>() );
+					pGimmicks.push_back( std::make_shared<IceBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<XXX>() );
+					pGimmicks.push_back( std::make_shared<XXX>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind:: ), Donya::Vector3::Zero() );
 				}
 				*/
@@ -457,7 +457,7 @@ void Gimmick::UseImGui()
 				for ( auto it = pGimmicks.begin(); it != pGimmicks.end(); )
 				{
 					bool doRemove = false;
-					std::unique_ptr<GimmickBase> &elem = *it;
+					std::shared_ptr<GimmickBase> &elem = *it;
 
 					if ( !elem ) { continue; }
 					// else
