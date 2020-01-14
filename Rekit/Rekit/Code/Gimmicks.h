@@ -24,6 +24,7 @@ enum class GimmickKind
 	TriggerSwitch,
 	TriggerPull,
 	Ice,
+	Shutter,
 
 	GimmicksCount
 };
