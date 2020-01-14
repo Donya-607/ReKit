@@ -413,7 +413,7 @@ void Gimmick::UseImGui()
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
 			static Donya::Vector3 shutterDirection;
-			ImGui::SliderFloat3 ( u8"シャッターの向き", &shutterDirection.x, -1, 1 );
+			ImGui::SliderFloat3 ( u8"シャッターの開く方向", &shutterDirection.x, -1, 1 );
 			// Resizing.
 			{
 				const std::string prefix{ u8"末尾に追加・" };
@@ -453,10 +453,10 @@ void Gimmick::UseImGui()
 					pGimmicks.push_back( std::make_unique<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
 				}
-				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Shutter )).c_str () ))
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter ) ).c_str() ) )
 				{
-					pGimmicks.push_back ( std::make_unique<Shutter> ( 0, shutterDirection ) );
-					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Shutter ), Donya::Vector3::Zero () );
+					pGimmicks.push_back( std::make_unique<Shutter>( NULL, shutterDirection.Normalized() ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), Donya::Vector3::Zero() );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
