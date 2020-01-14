@@ -372,7 +372,7 @@ private:
 		archive
 		(
 			cereal::base_class<GimmickBase>( this ),
-			CEREAL_NVP( ID )
+			CEREAL_NVP( id )
 		);
 		if ( 1 <= version )
 		{
@@ -463,7 +463,7 @@ private:
 		archive
 		(
 			cereal::base_class<GimmickBase> ( this ),
-			CEREAL_NVP ( ID )
+			CEREAL_NVP ( id )
 		);
 		if (1 <= version)
 		{

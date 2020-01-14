@@ -6,6 +6,7 @@
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
 #include "Donya/Sound.h"
+#include "Donya/Keyboard.h"
 
 #include "FilePath.h"
 #include "Music.h"
@@ -29,7 +30,7 @@ public:
 			archive
 			(
 				CEREAL_NVP ( openSpeed ),
-				CEREAL_NVP ( hitBox ),
+				CEREAL_NVP ( hitBox )
 			);
 			if (1 <= version)
 			{
@@ -162,22 +163,29 @@ void Shutter::Uninit ()
 
 void Shutter::Update ( float elapsedTime )
 {
-	if (!GimmickStatus::Refer ( id )) { return; }
+	bool move = true;
+	if (!Donya::Keyboard::Trigger ( 'Q' ) && movedWidth == 0)
+	{
+		return;
+	}
+
+//	if (!GimmickStatus::Refer ( id ))	{ return; }
 
 	// ³•ûŒ`‚È‚Ì‚Åx‚Å‚ày‚Å‚à‚Ç‚Á‚¿‚Å‚à—Ç‚¢‚Ì‚Å‚Í‚È‚¢‚©à
-	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x)
+	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
 	{
 		velocity = 0;
 		GimmickStatus::Remove ( id );
+		movedWidth = 0;
 		return;
 	}
 
 	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
 	movedWidth += ParamShutter::Get ().Data ().openSpeed;
 }
-void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist = false )
+void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
-
+	pos += velocity;
 }
 
 void Shutter::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const Donya::Vector4 & lightDir ) const
