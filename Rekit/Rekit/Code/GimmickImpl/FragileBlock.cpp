@@ -236,10 +236,13 @@ Donya::Vector4x4 FragileBlock::GetWorldMatrix( bool useDrawing ) const
 		wsBox.size *= 2.0f;
 	}
 
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
 	mat._33 = wsBox.size.z;
+	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;

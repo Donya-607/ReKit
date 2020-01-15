@@ -207,7 +207,7 @@ Donya::Vector4x4 SpikeBlock::GetWorldMatrix( bool useDrawing ) const
 		wsBox.size *= 2.0f;
 	}
 
-	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), radian );
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), radian + ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	const Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsBox.size );
 
