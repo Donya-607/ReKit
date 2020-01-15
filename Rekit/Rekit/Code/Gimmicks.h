@@ -685,7 +685,7 @@ public:
 	static bool HasGatherAttribute( const AABBEx &gimmickHitBox );
 private:
 	int stageNo;
-	std::vector<std::unique_ptr<GimmickBase>> pGimmicks;
+	std::vector<std::shared_ptr<GimmickBase>> pGimmicks;
 private:
 	friend class cereal::access;
 	template<class Archive>

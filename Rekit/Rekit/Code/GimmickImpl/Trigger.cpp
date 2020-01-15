@@ -59,11 +59,13 @@ public:
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				/*archive
-				(
-					CEREAL_NVP( stretchMax )
-				);*/
+				// archive();
+
 				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -85,14 +87,19 @@ public:
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				archive
-				(
-					CEREAL_NVP( gatheringPos ),
-					CEREAL_NVP( gatheringArea ),
-					CEREAL_NVP( hitBoxLeft ),
-					CEREAL_NVP( hitBoxRight )
-				);
+				// archive();
+
 				if ( 1 <= version )
+				{
+					archive
+					(
+						CEREAL_NVP( gatheringPos ),
+						CEREAL_NVP( gatheringArea ),
+						CEREAL_NVP( hitBoxLeft ),
+						CEREAL_NVP( hitBoxRight )
+					);
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -267,7 +274,7 @@ public:
 };
 CEREAL_CLASS_VERSION( ParamTrigger::Member, 1 )
 CEREAL_CLASS_VERSION( ParamTrigger::Member::KeyMember, 0 )
-CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 1 )
 CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 0 )
 
 
