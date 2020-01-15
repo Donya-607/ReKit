@@ -13,6 +13,39 @@
 #undef max
 #undef min
 
+namespace
+{
+	const int GATHER_SIGN_ID = GimmickUtility::ToInt( GimmickKind::TriggerSwitch );
+	BoxEx	ToGatherBox( BoxEx  source )
+	{
+		source.attr  = GATHER_SIGN_ID;
+		source.mass  = GATHER_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	AABBEx	ToGatherBox( AABBEx source )
+	{
+		source.attr  = GATHER_SIGN_ID;
+		source.mass  = GATHER_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	bool	IsGatherBox( const BoxEx  &source )
+	{
+		if ( source.attr  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.mass  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.exist != false )			{ return false; }
+		return true;
+	}
+	bool	IsGatherBox( const AABBEx &source )
+	{
+		if ( source.attr  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.mass  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.exist != false )			{ return false; }
+		return true;
+	}
+}
+
 struct ParamTrigger final : public Donya::Singleton<ParamTrigger>
 {
 	friend Donya::Singleton<ParamTrigger>;
@@ -41,8 +74,10 @@ public:
 			// The switch gather a block in direction to me.
 			// And the switch have the collisions look like 'U'.
 			// The "hitBoxLeft", "Right" roles a side wall, the "Member::hitBoxSwitch" roles bottom wall.
+			// The "gatheringArea" represents a gathering area only, has not collision.
 
 			Donya::Vector3 gatheringPos{};
+			AABBEx gatheringArea{};
 			AABBEx hitBoxLeft{};
 			AABBEx hitBoxRight{};
 		private:
@@ -53,6 +88,7 @@ public:
 				archive
 				(
 					CEREAL_NVP( gatheringPos ),
+					CEREAL_NVP( gatheringArea ),
 					CEREAL_NVP( hitBoxLeft ),
 					CEREAL_NVP( hitBoxRight )
 				);
@@ -176,10 +212,16 @@ public:
 				}
 				if ( ImGui::TreeNode( u8"スイッチ" ) )
 				{
-					ImGui::DragFloat3( u8"引き寄せる位置（相対）", &m.mSwitch.gatheringPos.x, 0.1f );
+					ImGui::DragFloat3( u8"引き寄せる位置（相対）",		&m.mSwitch.gatheringPos.x,			0.1f		);
+					ImGui::DragFloat2( u8"引き寄せるサイズ（半分を指定）",	&m.mSwitch.gatheringArea.size.x,	0.1f, 0.0f	);
+					{
+						m.mSwitch.gatheringArea = ToGatherBox( m.mSwitch.gatheringArea );
+						m.mSwitch.gatheringArea.pos = m.mSwitch.gatheringPos;
+						m.mSwitch.gatheringArea.velocity = 0.0f;
+					}
 
-					AdjustAABB( u8"当たり判定・左壁", &m.mSwitch.hitBoxLeft  );
-					AdjustAABB( u8"当たり判定・右壁", &m.mSwitch.hitBoxRight );
+					AdjustAABB( u8"当たり判定・左壁",		&m.mSwitch.hitBoxLeft		);
+					AdjustAABB( u8"当たり判定・右壁",		&m.mSwitch.hitBoxRight		);
 
 					ImGui::TreePop();
 				}
@@ -229,6 +271,15 @@ CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 0 )
 CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 0 )
 
 
+
+bool Trigger::IsGatherBox( const BoxEx  &source )
+{
+	return ::IsGatherBox( source );
+}
+bool Trigger::IsGatherBox( const AABBEx &source )
+{
+	return ::IsGatherBox( source );
+}
 
 void Trigger::ParameterInit()
 {
@@ -395,6 +446,7 @@ std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
 	{
 		param.mSwitch.hitBoxLeft,
 		param.mSwitch.hitBoxRight,
+		param.mSwitch.gatheringArea
 	};
 
 	auto ToWorldSpace = [&]( AABBEx lsHitBox )
@@ -409,9 +461,16 @@ std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
 	std::vector<AABBEx> multiHitBoxes{};
 	multiHitBoxes.reserve( ArraySize( hitBoxes ) );
 
+	bool isGathering = false;
 	for ( const auto &it : hitBoxes )
 	{
+		isGathering = IsGatherBox( it ); // Must be judge before ToWorldSpace().
 		multiHitBoxes.emplace_back( ToWorldSpace( it ) );
+
+		if ( isGathering )
+		{
+			multiHitBoxes.back() = ToGatherBox( multiHitBoxes.back() );
+		}
 	}
 
 	return multiHitBoxes;

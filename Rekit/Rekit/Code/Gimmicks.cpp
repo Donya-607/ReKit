@@ -41,6 +41,7 @@ namespace GimmickUtility
 		case GimmickKind::Hard:				return "Hard";			// break;
 		case GimmickKind::Ice:				return "Ice";			// break;
 		case GimmickKind::Spike:			return "Spike";			// break;
+		case GimmickKind::SwitchBlock:		return "SwitchBlock";	// break;
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
@@ -258,13 +259,22 @@ bool Gimmick::HasSlipAttribute( const AABBEx &gimmick )
 	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
 }
 
-bool Gimmick::HasDangerAttribute( const BoxEx &gimmick )
+bool Gimmick::HasDangerAttribute( const BoxEx  &gimmick )
 {
 	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
 }
 bool Gimmick::HasDangerAttribute( const AABBEx &gimmick )
 {
 	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
+}
+
+bool Gimmick::HasGatherAttribute( const BoxEx  &gimmick )
+{
+	return Trigger::IsGatherBox( gimmick );
+}
+bool Gimmick::HasGatherAttribute( const AABBEx &gimmick )
+{
+	return Trigger::IsGatherBox( gimmick );
 }
 
 Gimmick::Gimmick() :
@@ -278,6 +288,7 @@ void Gimmick::Init( int stageNumber )
 	HardBlock::ParameterInit();
 	IceBlock::ParameterInit();
 	SpikeBlock::ParameterInit();
+	SwitchBlock::ParameterInit();
 	Trigger::ParameterInit();
 	Shutter::ParameterInit();
 
@@ -421,6 +432,7 @@ void Gimmick::UseImGui()
 	HardBlock::UseParameterImGui();
 	IceBlock::UseParameterImGui();
 	SpikeBlock::UseParameterImGui();
+	SwitchBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
 	Shutter::UseParameterImGui();
 
@@ -454,6 +466,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_unique<SpikeBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_unique<SwitchBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::SwitchBlock ), GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
 				{

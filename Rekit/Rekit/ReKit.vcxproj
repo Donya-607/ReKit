@@ -175,6 +175,7 @@
     <ClCompile Include="Code\GimmickImpl\IceBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\Spike.cpp" />
     <ClCompile Include="Code\GimmickImpl\Shutter.cpp" />
+    <ClCompile Include="Code\GimmickImpl\SwitchBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\Trigger.cpp" />
     <ClCompile Include="Code\Gimmicks.cpp" />
     <ClCompile Include="Code\Hook.cpp" />
