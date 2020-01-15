@@ -155,9 +155,10 @@ HardBlock::HardBlock() : GimmickBase()
 {}
 HardBlock::~HardBlock() = default;
 
-void HardBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void HardBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }

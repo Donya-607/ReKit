@@ -61,7 +61,8 @@ class GimmickBase
 {
 protected:
 	int				kind;
-	Donya::Vector3	pos;			// World space.
+	float			rollDegree;	// The rotation amount with Z-axis.
+	Donya::Vector3	pos;		// World space.
 	Donya::Vector3	velocity;
 public:
 	GimmickBase();
@@ -79,11 +80,15 @@ private:
 		);
 		if ( 1 <= version )
 		{
+			archive( CEREAL_NVP( rollDegree ) );
+		}
+		if ( 2 <= version )
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
 public:
-	virtual void Init( int kind, const Donya::Vector3 &wsInitPos ) = 0;
+	virtual void Init( int kind, float rollDegree, const Donya::Vector3 &wsInitPos ) = 0;
 	virtual void Uninit() = 0;
 
 	virtual void Update( float elapsedTime ) = 0;
@@ -131,6 +136,7 @@ public:
 	virtual void ShowImGuiNode() {}
 #endif // USE_IMGUI
 };
+CEREAL_CLASS_VERSION( GimmickBase, 1 )
 
 /// <summary>
 /// Compressable block. Movable.
@@ -168,7 +174,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -241,7 +247,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -312,7 +318,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -381,7 +387,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -444,7 +450,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -537,7 +543,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3 &wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -632,7 +638,7 @@ private:
 		}
 	}
 public:
-	void Init( int kind, const Donya::Vector3& wsPos ) override;
+	void Init( int kind, float rollDegree, const Donya::Vector3& wsPos ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;

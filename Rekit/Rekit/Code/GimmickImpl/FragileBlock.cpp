@@ -168,9 +168,10 @@ FragileBlock::FragileBlock() : GimmickBase(),
 {}
 FragileBlock::~FragileBlock() = default;
 
-void FragileBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void FragileBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }

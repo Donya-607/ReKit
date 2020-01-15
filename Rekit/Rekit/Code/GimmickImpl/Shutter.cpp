@@ -150,11 +150,12 @@ Shutter::Shutter ( int id, const Donya::Vector3 & direction ) : GimmickBase (),
 {}
 Shutter::~Shutter () = default;
 
-void Shutter::Init ( int gimmickKind, const Donya::Vector3 & wsPos )
+void Shutter::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
 {
-	kind = gimmickKind;
-	pos = wsPos;
-	velocity = 0.0f;
+	kind		= gimmickKind;
+	rollDegree	= roll;
+	pos			= wsPos;
+	velocity	= 0.0f;
 }
 void Shutter::Uninit ()
 {

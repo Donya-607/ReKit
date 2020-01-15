@@ -147,9 +147,10 @@ SpikeBlock::SpikeBlock() : GimmickBase(),
 {}
 SpikeBlock::~SpikeBlock() = default;
 
-void SpikeBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void SpikeBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }

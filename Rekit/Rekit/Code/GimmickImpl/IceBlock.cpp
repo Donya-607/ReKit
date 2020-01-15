@@ -142,9 +142,10 @@ IceBlock::IceBlock() : GimmickBase()
 {}
 IceBlock::~IceBlock() = default;
 
-void IceBlock::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void IceBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }

@@ -211,6 +211,7 @@ public:
 					ImGui::DragFloat2( ( prefix + u8"サイズ（半分を指定）" ).c_str(), &pHitBox->size.x );
 					ImGui::DragInt( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
 					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
+					ImGui::Text( "" );
 				};
 
 				if ( ImGui::TreeNode( u8"カギ" ) )
@@ -226,6 +227,7 @@ public:
 						m.mSwitch.gatheringArea.pos = m.mSwitch.gatheringPos;
 						m.mSwitch.gatheringArea.velocity = 0.0f;
 					}
+					ImGui::Text( "" );
 
 					AdjustAABB( u8"当たり判定・左壁",		&m.mSwitch.hitBoxLeft		);
 					AdjustAABB( u8"当たり判定・右壁",		&m.mSwitch.hitBoxRight		);
@@ -309,9 +311,10 @@ Trigger::Trigger( int id, bool enable ) : GimmickBase(),
 {}
 Trigger::~Trigger() = default;
 
-void Trigger::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void Trigger::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 
