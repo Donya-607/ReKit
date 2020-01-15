@@ -440,63 +440,71 @@ void Gimmick::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			static Donya::Vector3 shutterDirection;
-			ImGui::SliderFloat3 ( u8"シャッターの開く方向", &shutterDirection.x, -1, 1 );
+			static float rollDegree{};
+			static Donya::Vector3 shutterDirection{};
+			if ( ImGui::TreeNode( u8"設置オプション" ) )
+			{
+				ImGui::DragFloat( u8"Ｚ軸回転量", &rollDegree );
+				ImGui::SliderFloat3( u8"シャッターの開く方向", &shutterDirection.x, -1.0f, 1.0f );
+
+				ImGui::TreePop();
+			}
+
 			// Resizing.
 			{
 				constexpr Donya::Vector3 GENERATE_POS = Donya::Vector3::Zero();
 				const std::string prefix{ u8"末尾に追加・" };
 
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<FragileBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<HardBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<IceBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<SpikeBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock	) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<SwitchBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::SwitchBlock ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::SwitchBlock ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey	) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch	) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull	) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<XXX>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind:: ), GENERATE_POS );
+					pGimmicks.back()->Init( ToInt( GimmickKind:: ), rollDegree, GENERATE_POS );
 				}
 				*/
 
