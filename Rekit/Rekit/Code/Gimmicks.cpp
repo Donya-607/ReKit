@@ -92,7 +92,7 @@ using namespace GimmickUtility;
 #pragma region Base
 
 GimmickBase::GimmickBase() :
-	kind(), pos(), velocity()
+	kind(), rollDegree(), pos(), velocity()
 {}
 GimmickBase::~GimmickBase() = default;
 

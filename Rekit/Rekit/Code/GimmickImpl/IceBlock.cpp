@@ -223,6 +223,7 @@ void IceBlock::ShowImGuiNode()
 	using namespace GimmickUtility;
 
 	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
 }
