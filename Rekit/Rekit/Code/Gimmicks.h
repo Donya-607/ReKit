@@ -686,6 +686,11 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, Shutter )
 class Gimmick
 {
 public:
+	/// <summary>
+	/// Retuns the result of loadings.
+	/// </summary>
+	static bool LoadModels();
+public:
 	static bool HasSlipAttribute( const BoxEx  &gimmickHitBox );
 	static bool HasSlipAttribute( const AABBEx &gimmickHitBox );
 	

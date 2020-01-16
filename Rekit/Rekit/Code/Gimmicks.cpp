@@ -3,12 +3,14 @@
 #include <array>			// Use at collision.
 #include <algorithm>		// Use std::remove_if.
 #include <map>
-#include <vector>			// use at collision.
+#include <vector>			// Use at collision, and load models.
 
 #include "Donya/GeometricPrimitive.h"
+#include "Donya/Loader.h"
+#include "Donya/Sound.h"
+#include "Donya/StaticMesh.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
-#include "Donya/Sound.h"
 
 #include "Common.h"
 #include "FilePath.h"
@@ -249,6 +251,90 @@ std::vector<AABBEx> GimmickBase::GetAnotherHitBoxes() const
 #pragma endregion
 
 #pragma region Gimmick
+
+namespace GimmickModels
+{
+	// These named by GimmickKind.
+
+	Donya::StaticMesh fragile{};
+	Donya::StaticMesh hard{};
+	Donya::StaticMesh ice{};
+	Donya::StaticMesh spike{};
+	Donya::StaticMesh switchBlock{};
+	Donya::StaticMesh trgKey{};
+	Donya::StaticMesh trgSwitch{};
+	Donya::StaticMesh trgPull{};
+	Donya::StaticMesh shutter{};
+}
+bool Gimmick::LoadModels()
+{
+	const int gimmicksCount = ToInt( GimmickKind::GimmicksCount );
+
+	struct Info
+	{
+		Donya::StaticMesh	*pMesh{};
+		std::string			kindName{};
+	};
+	std::vector<Info> loadModels
+	{
+		Info{ &GimmickModels::fragile,		ToString( GimmickKind::Fragile			)	},
+		Info{ &GimmickModels::hard,			ToString( GimmickKind::Hard				)	},
+		Info{ &GimmickModels::ice,			ToString( GimmickKind::Ice				)	},
+		Info{ &GimmickModels::spike,		ToString( GimmickKind::Spike			)	},
+		Info{ &GimmickModels::switchBlock,	ToString( GimmickKind::SwitchBlock		)	},
+		Info{ &GimmickModels::trgKey,		ToString( GimmickKind::TriggerKey		)	},
+		Info{ &GimmickModels::trgSwitch,	ToString( GimmickKind::TriggerSwitch	)	},
+		Info{ &GimmickModels::trgPull,		ToString( GimmickKind::TriggerPull		)	},
+		Info{ &GimmickModels::shutter,		ToString( GimmickKind::Shutter			)	},
+	};
+
+	auto MakeModelPath			= []( const std::string &kindName )
+	{
+		const std::string directory{ "./Data/Models/Gimmicks/" };
+		const std::string extension{ ".bin" };
+
+		return directory + kindName + extension;
+	};
+	auto AssertAboutLoading		= []( const std::string &kindName )
+	{
+		const std::wstring errMsg{ L"Failed : Load a gimmicks model. That is : " };
+		_ASSERT_EXPR( 0, ( errMsg + Donya::MultiToWide( kindName ) ).c_str() );
+	};
+	auto AssertAboutCreation	= []( const std::string &kindName )
+	{
+		const std::wstring errMsg{ L"Failed : Create a gimmicks model. That is : " };
+		_ASSERT_EXPR( 0, ( errMsg + Donya::MultiToWide( kindName ) ).c_str() );
+	};
+
+	Donya::Loader loader{};
+
+	bool result{};
+	bool succeeded = true;
+	for ( auto &it : loadModels )
+	{
+		result = loader.Load( MakeModelPath( it.kindName ), nullptr );
+		if ( !result )
+		{
+			AssertAboutLoading( it.kindName );
+
+			succeeded = false;
+			continue;
+		}
+		// else
+
+		result = Donya::StaticMesh::Create( loader, *it.pMesh );
+		if ( !result )
+		{
+			AssertAboutCreation( it.kindName );
+
+			succeeded = false;
+			continue;
+		}
+		// else
+	}
+
+	return succeeded;
+}
 
 bool Gimmick::HasSlipAttribute( const BoxEx  &gimmick )
 {
