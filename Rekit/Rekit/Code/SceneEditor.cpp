@@ -40,6 +40,7 @@ public:
 
 		Donya::Vector3		transformMousePos{};
 		int					stageNum = 1;
+		int					doorID = 0;
 		SelectGimmick		nowSelect;
 
 		BoxEx debugCompressor{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
@@ -71,7 +72,11 @@ public:
 			}
 			if (3 <= version)
 			{
-				// archive( CEREAL_NVP( x ) );
+				 archive( CEREAL_NVP( pEditGimmicks ) );
+			}
+			if (4 <= version)
+			{
+				//archive(CEREAL_NVP( x ));
 			}
 		}
 	};
@@ -100,7 +105,7 @@ public:
 	{
 		return m;
 	}
-private:
+	public:
 	void LoadParameter(bool fromBinary = true)
 	{
 		std::string id = "EdittedStage:" + std::to_string(m.stageNum);
@@ -150,27 +155,27 @@ public:
 			EditParam::Get().DataRef().editBlocks.emplace_back(changeable);
 			break;
 		case SelectGimmick::Fragile:
-			m.pEditGimmicks.push_back(std::make_unique<FragileBlock>());
+			m.pEditGimmicks.push_back(std::make_shared<FragileBlock>());
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Hard:
-			m.pEditGimmicks.push_back(std::make_unique<HardBlock>());
+			m.pEditGimmicks.push_back(std::make_shared<HardBlock>());
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerKey:
-			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerSwitch:
-			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerPull:
-			m.pEditGimmicks.push_back(std::make_unique<Trigger>());
+			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Ice:
-			m.pEditGimmicks.push_back(std::make_unique<IceBlock>());
+			m.pEditGimmicks.push_back(std::make_shared<IceBlock>());
 			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		default:
@@ -237,10 +242,11 @@ public:
 					EraseBlockAll();
 				}
 
-				if (ImGui::TreeNode(u8"ファイル操作"))
-				{
+				//if (ImGui::TreeNode(u8"ファイル操作"))
+				//{
 					static bool isBinary = true;
 					if (ImGui::RadioButton( "Binary", isBinary) ) { isBinary = true; }
+					ImGui::SameLine(170);
 					if (ImGui::RadioButton( "JSON", !isBinary) ) { isBinary = false; }
 					std::string loadStr{ "読み込み " };
 					loadStr += (isBinary) ? "Binary" : "JSON";
@@ -250,21 +256,21 @@ public:
 						SceneEditor::isChanges = false;
 						SaveParameter();
 					}
+					ImGui::SameLine(100);
 					if (ImGui::Button( Donya::MultiToUTF8( loadStr ).c_str()) )
 					{
 						SceneEditor::isChanges = false;
 						LoadParameter( isBinary );
 					}
-					ImGui::TreePop();
-				}
+					//ImGui::TreePop();
+				//}
 				ImGui::Text(" ");
 
-				if (ImGui::TreeNode(u8"オブジェクト種類"))
+				if (ImGui::TreeNode(u8"オブジェクト"))
 				{
-					static int doorID = 0;
-					ImGui::InputInt(u8"ドアのID", &doorID);
-					if (doorID >= 5)doorID = 5;
-					if (doorID <= 0)doorID = 0;
+					ImGui::InputInt(u8"ドアのID", &m.doorID);
+					if (m.doorID >= 5)m.doorID = 5;
+					if (m.doorID <= 0)m.doorID = 0;
 
 					ImGui::Text("");
 
@@ -328,7 +334,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION(EditParam::Member, 2)
+CEREAL_CLASS_VERSION(EditParam::Member, 3)
 #pragma endregion
 
 
@@ -405,6 +411,7 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 	GenerateBlockIfCleck();
 	EraseBlockIfRightCleck();
 	SaveEditParameter();
+	LoadEditParameter();
 	isPressG = Donya::Keyboard::Press('G');
 
 
@@ -650,6 +657,17 @@ void SceneEditor::SaveEditParameter()
 
 	isChanges = false;
 	EditParam::Get().SaveParameter();
+}
+
+void SceneEditor::LoadEditParameter()
+{
+	bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL);
+	bool pressRButton = Donya::Keyboard::Press('R');
+
+	if (!pressCtrl || !pressRButton) return;
+
+	isChanges = false;
+	EditParam::Get().LoadParameter();
 }
 
 

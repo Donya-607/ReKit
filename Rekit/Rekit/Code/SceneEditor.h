@@ -76,6 +76,7 @@ private:
 	void EraseBlockIfRightCleck();
 	void CorrectionGridCursor();
 	void SaveEditParameter();
+	void LoadEditParameter();
 
 private:
 	Result	ReturnResult();
