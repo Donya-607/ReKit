@@ -3,9 +3,9 @@
 #include <algorithm>		// Use std::max, min.
 #include <string>
 
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
-#include "Donya/Sound.h"
 
 #include "FilePath.h"
 #include "Music.h"

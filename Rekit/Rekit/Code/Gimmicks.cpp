@@ -46,6 +46,8 @@ namespace GimmickUtility
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
+		case GimmickKind::Bomb:				return "Bomb";			// break;
+		case GimmickKind::BombGenerator:	return "BombGenerator";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
@@ -275,7 +277,10 @@ namespace GimmickModels
 	static Donya::StaticMesh trgKey{};
 	static Donya::StaticMesh trgSwitch{};
 	static Donya::StaticMesh trgPull{};
+	static Donya::StaticMesh bomb{};
+	static Donya::StaticMesh bombGenerator{};
 	static Donya::StaticMesh shutter{};
+	static bool wasLoaded{ false };
 
 	// This is in the order of GimmickKind.
 	static std::array<Donya::StaticMesh *, scast<int>( GimmickKind::GimmicksCount )> pModels
@@ -288,6 +293,8 @@ namespace GimmickModels
 		&trgKey,
 		&trgSwitch,
 		&trgPull,
+		&bomb,
+		&bombGenerator,
 		&shutter,
 	};
 	Donya::StaticMesh *GetModelAddress( GimmickKind kind )
@@ -300,7 +307,10 @@ namespace GimmickModels
 }
 bool Gimmick::LoadModels()
 {
-	std::vector<GimmickKind> loadKinds
+	if ( GimmickModels::wasLoaded ) { return true; }
+	// else
+
+	const std::vector<GimmickKind> loadKinds
 	{
 		GimmickKind::Fragile,
 		GimmickKind::Hard,
@@ -310,6 +320,8 @@ bool Gimmick::LoadModels()
 		GimmickKind::TriggerKey,
 		GimmickKind::TriggerSwitch,
 		GimmickKind::TriggerPull,
+		GimmickKind::Bomb,
+		GimmickKind::BombGenerator,
 		GimmickKind::Shutter,
 	};
 
@@ -335,7 +347,7 @@ bool Gimmick::LoadModels()
 	std::string		kindName{};
 	bool result{};
 	bool succeeded = true;
-	for ( auto &it : loadKinds )
+	for ( const auto &it : loadKinds )
 	{
 		kindName = ToString( it );
 
@@ -359,6 +371,11 @@ bool Gimmick::LoadModels()
 			continue;
 		}
 		// else
+	}
+
+	if ( succeeded )
+	{
+		GimmickModels::wasLoaded = true;
 	}
 
 	return succeeded;
@@ -417,6 +434,8 @@ void Gimmick::Init( int stageNumber )
 	SpikeBlock::ParameterInit();
 	SwitchBlock::ParameterInit();
 	Trigger::ParameterInit();
+	Bomb::ParameterInit();
+	BombGenerator::ParameterInit();
 	Shutter::ParameterInit();
 
 	LoadParameter();
@@ -567,6 +586,8 @@ void Gimmick::UseImGui()
 	SpikeBlock::UseParameterImGui();
 	SwitchBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
+	Bomb::UseParameterImGui();
+	BombGenerator::UseParameterImGui();
 	Shutter::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
@@ -627,6 +648,16 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Bomb			) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Bomb>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Bomb ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BombGenerator	) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<BombGenerator>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::BombGenerator ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter		) ).c_str() ) )
 				{
