@@ -8,7 +8,6 @@
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Loader.h"
 #include "Donya/Sound.h"
-#include "Donya/StaticMesh.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
 
@@ -256,36 +255,50 @@ namespace GimmickModels
 {
 	// These named by GimmickKind.
 
-	Donya::StaticMesh fragile{};
-	Donya::StaticMesh hard{};
-	Donya::StaticMesh ice{};
-	Donya::StaticMesh spike{};
-	Donya::StaticMesh switchBlock{};
-	Donya::StaticMesh trgKey{};
-	Donya::StaticMesh trgSwitch{};
-	Donya::StaticMesh trgPull{};
-	Donya::StaticMesh shutter{};
+	static Donya::StaticMesh fragile{};
+	static Donya::StaticMesh hard{};
+	static Donya::StaticMesh ice{};
+	static Donya::StaticMesh spike{};
+	static Donya::StaticMesh switchBlock{};
+	static Donya::StaticMesh trgKey{};
+	static Donya::StaticMesh trgSwitch{};
+	static Donya::StaticMesh trgPull{};
+	static Donya::StaticMesh shutter{};
+
+	// This is in the order of GimmickKind.
+	static std::array<Donya::StaticMesh *, scast<int>( GimmickKind::GimmicksCount )> pModels
+	{
+		&fragile,
+		&hard,
+		&ice,
+		&spike,
+		&switchBlock,
+		&trgKey,
+		&trgSwitch,
+		&trgPull,
+		&shutter,
+	};
+	Donya::StaticMesh *GetModelAddress( GimmickKind kind )
+	{
+		const int index = ToInt( kind );
+		_ASSERT_EXPR( 0 <= index && index < ToInt( GimmickKind::GimmicksCount ), L"Error : The passed index over than conut of models! You should check the contents of models." );
+
+		return pModels[index];
+	}
 }
 bool Gimmick::LoadModels()
 {
-	const int gimmicksCount = ToInt( GimmickKind::GimmicksCount );
-
-	struct Info
+	std::vector<GimmickKind> loadKinds
 	{
-		Donya::StaticMesh	*pMesh{};
-		std::string			kindName{};
-	};
-	std::vector<Info> loadModels
-	{
-		Info{ &GimmickModels::fragile,		ToString( GimmickKind::Fragile			)	},
-		Info{ &GimmickModels::hard,			ToString( GimmickKind::Hard				)	},
-		Info{ &GimmickModels::ice,			ToString( GimmickKind::Ice				)	},
-		Info{ &GimmickModels::spike,		ToString( GimmickKind::Spike			)	},
-		Info{ &GimmickModels::switchBlock,	ToString( GimmickKind::SwitchBlock		)	},
-		Info{ &GimmickModels::trgKey,		ToString( GimmickKind::TriggerKey		)	},
-		Info{ &GimmickModels::trgSwitch,	ToString( GimmickKind::TriggerSwitch	)	},
-		Info{ &GimmickModels::trgPull,		ToString( GimmickKind::TriggerPull		)	},
-		Info{ &GimmickModels::shutter,		ToString( GimmickKind::Shutter			)	},
+		GimmickKind::Fragile,
+		GimmickKind::Hard,
+		GimmickKind::Ice,
+		GimmickKind::Spike,
+		GimmickKind::SwitchBlock,
+		GimmickKind::TriggerKey,
+		GimmickKind::TriggerSwitch,
+		GimmickKind::TriggerPull,
+		GimmickKind::Shutter,
 	};
 
 	auto MakeModelPath			= []( const std::string &kindName )
@@ -306,26 +319,29 @@ bool Gimmick::LoadModels()
 		_ASSERT_EXPR( 0, ( errMsg + Donya::MultiToWide( kindName ) ).c_str() );
 	};
 
-	Donya::Loader loader{};
-
+	Donya::Loader	loader{};
+	std::string		kindName{};
 	bool result{};
 	bool succeeded = true;
-	for ( auto &it : loadModels )
+	for ( auto &it : loadKinds )
 	{
-		result = loader.Load( MakeModelPath( it.kindName ), nullptr );
+		kindName = ToString( it );
+
+		result = loader.Load( MakeModelPath( kindName ), nullptr );
 		if ( !result )
 		{
-			AssertAboutLoading( it.kindName );
+			AssertAboutLoading( kindName );
 
 			succeeded = false;
 			continue;
 		}
 		// else
 
-		result = Donya::StaticMesh::Create( loader, *it.pMesh );
+		Donya::StaticMesh *pModel = GimmickModels::GetModelAddress( it );
+		result = Donya::StaticMesh::Create( loader, *pModel );
 		if ( !result )
 		{
-			AssertAboutCreation( it.kindName );
+			AssertAboutCreation( kindName );
 
 			succeeded = false;
 			continue;
@@ -334,6 +350,10 @@ bool Gimmick::LoadModels()
 	}
 
 	return succeeded;
+}
+Donya::StaticMesh *Gimmick::GetModelAddress( GimmickKind kind )
+{
+	return GimmickModels::GetModelAddress( kind );
 }
 
 bool Gimmick::HasSlipAttribute( const BoxEx  &gimmick )

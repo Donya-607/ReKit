@@ -12,6 +12,7 @@
 #include "Donya/Collision.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Serializer.h"
+#include "Donya/StaticMesh.h"
 #include "Donya/Vector.h"
 
 #include "DerivedCollision.h"
@@ -690,6 +691,7 @@ public:
 	/// Retuns the result of loadings.
 	/// </summary>
 	static bool LoadModels();
+	static Donya::StaticMesh *GetModelAddress( GimmickKind kind );
 public:
 	static bool HasSlipAttribute( const BoxEx  &gimmickHitBox );
 	static bool HasSlipAttribute( const AABBEx &gimmickHitBox );
