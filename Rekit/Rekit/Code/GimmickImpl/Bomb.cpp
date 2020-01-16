@@ -536,7 +536,7 @@ AABBEx BombGenerator::GetHitBox() const
 
 void BombGenerator::CountDown( float elapsedTime )
 {
-	generateTimer - elapsedTime;
+	generateTimer -= elapsedTime;
 }
 void BombGenerator::Generate()
 {
