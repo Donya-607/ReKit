@@ -46,6 +46,7 @@ namespace GimmickUtility
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
+		case GimmickKind::Door:				return "Door";			// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -299,7 +300,8 @@ void Gimmick::Init( int stageNumber )
 	SpikeBlock::ParameterInit();
 	SwitchBlock::ParameterInit();
 	Trigger::ParameterInit();
-	Shutter::ParameterInit();
+	Shutter::ParameterInit ();
+	Door::ParameterInit();
 
 	LoadParameter();
 
@@ -449,7 +451,8 @@ void Gimmick::UseImGui()
 	SpikeBlock::UseParameterImGui();
 	SwitchBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
-	Shutter::UseParameterImGui();
+	Shutter::UseParameterImGui ();
+	Door::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -514,6 +517,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
+				}
+				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Door )).c_str () ))
+				{
+					pGimmicks.push_back ( std::make_shared<Door> ( NULL, shutterDirection.Normalized () ) );
+					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Door ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )

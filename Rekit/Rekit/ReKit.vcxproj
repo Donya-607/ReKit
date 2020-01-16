@@ -170,6 +170,7 @@
     <ClCompile Include="Code\Fader.cpp" />
     <ClCompile Include="Code\FilePath.cpp" />
     <ClCompile Include="Code\Framework.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Door.cpp" />
     <ClCompile Include="Code\GimmickImpl\Elevator.cpp" />
     <ClCompile Include="Code\GimmickImpl\FragileBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\HardBlock.cpp" />
