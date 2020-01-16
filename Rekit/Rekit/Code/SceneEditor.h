@@ -51,6 +51,9 @@ private:
 	bool					isPressG;
 
 public:
+	static bool				isChanges; // •ÏX‰ÓŠ‚ª‚ ‚é
+
+public:
 	SceneEditor();
 	~SceneEditor();
 public:

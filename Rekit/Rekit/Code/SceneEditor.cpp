@@ -133,18 +133,21 @@ public:
 		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 1 };
 		EditParam::Get().DataRef().editBlocks.emplace_back(changeable);
 #else
-		auto mousePos = EditParam::Get().Data().transformMousePos;
 
 		auto ToInt = [&](GimmickKind kind)
 		{
 			return scast<int>(kind);
 		};
-		auto debug = EditParam::Data().nowSelect;
 
+		auto debug = EditParam::Data().nowSelect;
+		auto mousePos = EditParam::Get().Data().transformMousePos;
+
+
+		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 1 };
 		switch (EditParam::Data().nowSelect)
 		{
 		case SelectGimmick::Normal:
-			// 別の処理する
+			EditParam::Get().DataRef().editBlocks.emplace_back(changeable);
 			break;
 		case SelectGimmick::Fragile:
 			m.pEditGimmicks.push_back(std::make_unique<FragileBlock>());
@@ -181,13 +184,28 @@ public:
 		for (auto itr = m.editBlocks.begin(); itr != m.editBlocks.end(); )
 		{
 			auto box = *itr;
-			auto mousePos = m.transformMousePos;
+			//auto mousePos = m.transformMousePos;
 			if (box.pos.x - box.size.x/2 > mousePos.x) { itr++; continue; }
 			if (box.pos.x + box.size.x/2 < mousePos.x) { itr++; continue; }
 			if (box.pos.y - box.size.y/2 > mousePos.y) { itr++; continue; }
 			if (box.pos.y + box.size.y/2 < mousePos.y) { itr++; continue; }
 
 			itr = m.editBlocks.erase(itr);
+			break;
+		}
+
+		for (auto itr = m.pEditGimmicks.begin(); itr != m.pEditGimmicks.end();)
+		{
+			auto obj = *itr;
+			auto pos = obj->GetPosition();
+			Donya::Vector3 size(2.0f, 2.0f, 2.0f);
+
+			if (pos.x - size.x / 2 > mousePos.x) { itr++; continue; }
+			if (pos.x + size.x / 2 < mousePos.x) { itr++; continue; }
+			if (pos.y - size.y / 2 > mousePos.y) { itr++; continue; }
+			if (pos.y + size.y / 2 < mousePos.y) { itr++; continue; }
+
+			itr = m.pEditGimmicks.erase(itr);
 			break;
 		}
 	}
@@ -215,6 +233,7 @@ public:
 				// ステージ切り替えた時にブロックを全消去する
 				if (lastStageNum != m.stageNum)
 				{
+					SceneEditor::isChanges = false;
 					EraseBlockAll();
 				}
 
@@ -228,10 +247,12 @@ public:
 
 					if (ImGui::Button( u8"保存") )
 					{
+						SceneEditor::isChanges = false;
 						SaveParameter();
 					}
 					if (ImGui::Button( Donya::MultiToUTF8( loadStr ).c_str()) )
 					{
+						SceneEditor::isChanges = false;
 						LoadParameter( isBinary );
 					}
 					ImGui::TreePop();
@@ -282,7 +303,10 @@ public:
 						EditParam::DataRef().nowSelect = data;
 						ImGui::EndChild();
 					}
-					ImGui::Text(u8"to be continued");
+					if (SceneEditor::isChanges)
+					{
+						ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.5f, 1.0f), u8"変更されていない箇所があります");
+					}
 					ImGui::TreePop();
 				}
 				ImGui::Text("");
@@ -308,6 +332,7 @@ CEREAL_CLASS_VERSION(EditParam::Member, 2)
 #pragma endregion
 
 
+bool SceneEditor::isChanges;
 SceneEditor::SceneEditor() :
 	controller(Donya::Gamepad::PAD_1),
 	iCamera(),
@@ -402,7 +427,7 @@ void SceneEditor::Draw(float elapsedTime)
 
 	// Drawing cursor box.
 	{
-		constexpr Donya::Vector4 cubeColor{ 0.9f, 0.6f, 0.6f, 0.6f };
+		constexpr Donya::Vector4 cubeColor{ 0.9f, 0.6f, 0.6f, 0.2f };
 		Donya::Vector4x4 cubeT{};
 		Donya::Vector4x4 cubeS{};
 		Donya::Vector4x4 cubeW{};
@@ -570,6 +595,7 @@ void SceneEditor::GenerateBlockIfCleck()
 
 	if ( !cleckLeftButton || pressZButton)return;
 
+	SceneEditor::isChanges = true;
 	EditParam::Get().GenerateBlock();
 }
 
@@ -579,6 +605,7 @@ void SceneEditor::EraseBlockIfRightCleck()
 
 	if (!cleckRightButton)return;
 
+	SceneEditor::isChanges = true;
 	EditParam::Get().EraseBlock();
 }
 
@@ -621,7 +648,7 @@ void SceneEditor::SaveEditParameter()
 
 	if (!pressCtrl || !pressSButton) return;
 
-
+	isChanges = false;
 	EditParam::Get().SaveParameter();
 }
 
@@ -730,19 +757,20 @@ Donya::Vector3* SceneEditor::CalcScreenToXY(
 #if USE_IMGUI
 void SceneEditor::UseImGui()
 {
-	if (ImGui::BeginIfAllowed())
-	{
-		if (ImGui::TreeNode(u8"エディターの数値見る用"))
-		{
-
-			ImGui::SliderFloat3(u8"変換後のマウス座標", &EditParam::Get().DataRef().transformMousePos.x, -5.0f, 5.0f);
-
-			ImGui::TreePop();
-		}
-		ImGui::End();
-	}
-
+//	if (ImGui::BeginIfAllowed())
+//	{
+//		if (ImGui::TreeNode(u8"エディターの数値見る用"))
+//		{
+//
+//			ImGui::SliderFloat3(u8"変換後のマウス座標", &EditParam::Get().DataRef().transformMousePos.x, -5.0f, 5.0f);
+//
+//			ImGui::TreePop();
+//		}
+//		ImGui::End();
+//	}
+//
 	// エディタImGui
 	EditParam::Get().UseImGui();
+	ImGui::ShowDemoWindow();
 }
 #endif // USE_IMGUI
