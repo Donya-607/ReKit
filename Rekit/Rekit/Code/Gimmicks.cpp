@@ -252,20 +252,20 @@ std::vector<AABBEx> GimmickBase::GetAnotherHitBoxes() const
 
 bool Gimmick::HasSlipAttribute( const BoxEx  &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+	return HasAttribute( GimmickKind::Ice, gimmick );
 }
 bool Gimmick::HasSlipAttribute( const AABBEx &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+	return HasAttribute( GimmickKind::Ice, gimmick );
 }
 
 bool Gimmick::HasDangerAttribute( const BoxEx  &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
+	return HasAttribute( GimmickKind::Spike, gimmick );
 }
 bool Gimmick::HasDangerAttribute( const AABBEx &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Spike ) ? true : false;
+	return HasAttribute( GimmickKind::Spike, gimmick );
 }
 
 bool Gimmick::HasGatherAttribute( const BoxEx  &gimmick )
@@ -275,6 +275,15 @@ bool Gimmick::HasGatherAttribute( const BoxEx  &gimmick )
 bool Gimmick::HasGatherAttribute( const AABBEx &gimmick )
 {
 	return Trigger::IsGatherBox( gimmick );
+}
+
+bool Gimmick::HasAttribute( GimmickKind attribute, const BoxEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == attribute ) ? true : false;
+}
+bool Gimmick::HasAttribute( GimmickKind attribute, const AABBEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == attribute ) ? true : false;
 }
 
 Gimmick::Gimmick() :

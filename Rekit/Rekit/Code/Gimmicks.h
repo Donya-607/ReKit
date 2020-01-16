@@ -591,6 +591,9 @@ private:
 	void PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 	void PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 	void PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+private:
+	void TurnOn();
+	bool IsEnable() const { return enable; }
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;
@@ -691,6 +694,9 @@ public:
 	
 	static bool HasGatherAttribute( const BoxEx  &gimmickHitBox );
 	static bool HasGatherAttribute( const AABBEx &gimmickHitBox );
+	
+	static bool HasAttribute( GimmickKind attribute, const BoxEx  &gimmickHitBox );
+	static bool HasAttribute( GimmickKind attribute, const AABBEx &gimmickHitBox );
 private:
 	int stageNo;
 	std::vector<std::shared_ptr<GimmickBase>> pGimmicks;

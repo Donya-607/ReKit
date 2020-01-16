@@ -412,14 +412,14 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 			{ 1.0f, 0.0f, 0.8f, 0.8f },
 			{ 1.0f, 0.0f, 0.8f, 0.8f },
 			{ 1.0f, 0.0f, 0.8f, 0.8f },
-			{ 0.8f, 1.0f, 0.0f, 0.0f },
+			{ 1.0f, 1.0f, 1.0f, 0.0f },
 		};
 		const Donya::Vector4 lightenFactors[DrawCount]
 		{
 			{ 0.0f, 1.0f, 0.2f, 0.0f },
 			{ 0.0f, 1.0f, 0.2f, 0.0f },
 			{ 0.0f, 1.0f, 0.2f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.6f },
+			{ 0.0f, 0.0f, 0.0f, 0.8f },
 		};
 
 		const int kindIndex = GetTriggerKindIndex();
@@ -433,7 +433,7 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 			WVP = W * VP;
 
 			color = colors[i];
-			if ( enable ) { color += lightenFactors[i]; }
+			if ( IsEnable() ) { color += lightenFactors[i]; }
 
 			BaseDraw( WVP, W, lightDir, color );
 		}
@@ -458,7 +458,7 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 		const int kindIndex  = GetTriggerKindIndex();
 
 		Donya::Vector4 color = colors[kindIndex];
-		if ( enable ) { color += lightenFactors[kindIndex]; }
+		if ( IsEnable() ) { color += lightenFactors[kindIndex]; }
 
 		BaseDraw( WVP, W, lightDir, color );
 	};
@@ -645,14 +645,49 @@ void Trigger::PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, c
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ false, /* ignoreHitBoxExist = */ true );
 
-	if ( !enable && Donya::Box::IsHitBox( player, GetHitBox().Get2D(), /* ignoreHitBoxExist = */ true ) )
+	if ( !IsEnable() && Donya::Box::IsHitBox( player, GetHitBox().Get2D(), /* ignoreHitBoxExist = */ true ) )
 	{
-		enable = true;
+		TurnOn();
 	}
 }
 void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	// No op.
+	if ( IsEnable() ) { return; }
+	// else
+
+	BoxEx triggerArea = BoxEx::Nil();
+	{
+		const auto anotherBoxes = GetAnotherHitBoxes();
+		for ( const auto &it : anotherBoxes )
+		{
+			if ( !IsGatherBox( it ) ) { continue; }
+			// else
+			triggerArea = it.Get2D();
+		}
+	
+		if ( triggerArea == BoxEx::Nil() ) { return; }
+		// else
+	}
+
+	std::vector<BoxEx> correspondingBoxes{};
+	{
+		for ( const auto &it : terrains )
+		{
+			if ( !Gimmick::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
+			// else
+
+			correspondingBoxes.emplace_back( it );
+		}
+	}
+
+	for ( const auto &it : correspondingBoxes )
+	{
+		if ( !Donya::Box::IsHitBox( triggerArea, it, /* ignoreExistFlag = */ true ) ) { continue; }
+		// else
+
+		TurnOn();
+		break;
+	}
 }
 void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
@@ -666,8 +701,15 @@ void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, 
 	if ( stretchMax < stretched.Length() )
 	{
 		pos = mPull.initPos + ( stretched.Normalized() * stretchMax );
-		enable = true;
+
+		if ( !IsEnable() ) { TurnOn(); }
 	}
+}
+
+void Trigger::TurnOn()
+{
+	enable = true;
+	GimmickStatus::Register( kind, true );
 }
 
 #if USE_IMGUI

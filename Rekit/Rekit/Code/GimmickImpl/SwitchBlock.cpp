@@ -272,7 +272,8 @@ void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 
 		const Donya::Vector3 otherPos  = Donya::Vector3{ it.pos, pos.z };
 		const Donya::Vector3 vecToDest = otherPos - pos;
-		const float gatherSpeed = ParamSwitchBlock::Get().Data().gatherSpeed;
+		const float currentSpeed = velocity.Length();
+		const float gatherSpeed	 = std::max( currentSpeed, ParamSwitchBlock::Get().Data().gatherSpeed );
 
 		velocity =	( vecToDest.Length() < gatherSpeed )
 					? vecToDest
