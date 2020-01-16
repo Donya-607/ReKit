@@ -572,7 +572,9 @@ private:
 	/// Returns index is kind of triggers(following the GimmickKind, start by TriggerKey), 0-based.
 	/// </summary>
 	int GetTriggerKindIndex() const;
-	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
+	Donya::Vector4x4 GetWorldMatrix( const AABBEx &wsBox, bool useDrawing = false, bool enableRotation = true ) const;
+private:
+	AABBEx RollHitBox( AABBEx source ) const;
 private:
 	void InitKey();
 	void InitSwitch();

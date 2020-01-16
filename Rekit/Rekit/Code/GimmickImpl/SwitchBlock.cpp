@@ -267,10 +267,16 @@ void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 		if ( !Gimmick::HasGatherAttribute( it ) ) { continue; }
 		// else
 
+		if ( !Donya::Box::IsHitBox( it, GetHitBox().Get2D(), /* ignoreExistFlag = */ true ) ) { continue; }
+		// else
+
 		const Donya::Vector3 otherPos  = Donya::Vector3{ it.pos, pos.z };
 		const Donya::Vector3 vecToDest = otherPos - pos;
+		const float gatherSpeed = ParamSwitchBlock::Get().Data().gatherSpeed;
 
-		velocity = vecToDest.Normalized() * ParamSwitchBlock::Get().Data().gatherSpeed;
+		velocity =	( vecToDest.Length() < gatherSpeed )
+					? vecToDest
+					: vecToDest.Normalized() * gatherSpeed;
 		break; // I expect don't collide at the same time to or-more-two the destination.
 	}
 }

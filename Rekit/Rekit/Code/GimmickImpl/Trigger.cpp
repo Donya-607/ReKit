@@ -124,9 +124,9 @@ public:
 			}
 		};
 
-		KeyMember		mKey;
-		SwitchMember	mSwitch;
-		PullMember		mPull;
+		KeyMember		mKey{};
+		SwitchMember	mSwitch{};
+		PullMember		mPull{};
 
 		AABBEx	hitBoxKey{};
 		AABBEx	hitBoxSwitch{};
@@ -384,27 +384,93 @@ void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 
 void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
-	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
-	Donya::Vector4x4 WVP = W * V * P;
-
-	constexpr Donya::Vector4 colors[]
+	auto DrawSwitch = [&]()
 	{
-		{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
-		{ 1.0f, 0.0f, 0.8f, 0.8f },		// Switch
-		{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
+		enum DrawParts
+		{
+			Base = 0,
+			Left,
+			Right,
+			Area,
+
+			DrawCount
+		};
+
+		// This hit-boxes should be contain like this: [0]:left, [1]:right, [2]:area.
+		const auto anotherHitBoxes = GetAnotherHitBoxes();
+		_ASSERT_EXPR( anotherHitBoxes.size() == scast<size_t>( DrawCount - 1 ), L"LogicalError : The switch's configuration parts count is not matching!" );
+
+		const AABBEx wsHitBoxes[DrawCount]
+		{
+			GetHitBox(),
+			anotherHitBoxes[0],
+			anotherHitBoxes[1],
+			anotherHitBoxes[2],
+		};
+		const Donya::Vector4 colors[DrawCount]
+		{
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 0.8f, 1.0f, 0.0f, 0.0f },
+		};
+		const Donya::Vector4 lightenFactors[DrawCount]
+		{
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.6f },
+		};
+
+		const int kindIndex = GetTriggerKindIndex();
+		Donya::Vector4		color{};
+		Donya::Vector4x4	W{}, WVP{};
+		Donya::Vector4x4	VP = V * P;
+
+		for ( int i = 0; i < DrawCount; ++i )
+		{
+			W = GetWorldMatrix( wsHitBoxes[i], /* useDrawing = */ true, /* enableRotation = */ false );
+			WVP = W * VP;
+
+			color = colors[i];
+			if ( enable ) { color += lightenFactors[i]; }
+
+			BaseDraw( WVP, W, lightDir, color );
+		}
 	};
-	constexpr Donya::Vector4 lightenFactors[]
+	auto DrawOther  = [&]()
 	{
-		{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
-		{ 0.0f, 1.0f, 0.2f, 0.0f },		// Switch
-		{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+		Donya::Vector4x4 W = GetWorldMatrix( GetHitBox(), /* useDrawing = */ true );
+		Donya::Vector4x4 WVP = W * V * P;
+
+		constexpr Donya::Vector4 colors[]
+		{
+			{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
+			{},								// Switch
+			{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
+		};
+		constexpr Donya::Vector4 lightenFactors[]
+		{
+			{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
+			{},								// Switch
+			{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+		};
+		const int kindIndex  = GetTriggerKindIndex();
+
+		Donya::Vector4 color = colors[kindIndex];
+		if ( enable ) { color += lightenFactors[kindIndex]; }
+
+		BaseDraw( WVP, W, lightDir, color );
 	};
-	const int kindIndex = GetTriggerKindIndex();
 
-	Donya::Vector4 color = colors[kindIndex];
-	if ( enable ) { color += lightenFactors[kindIndex]; }
-
-	BaseDraw( WVP, W, lightDir, color );
+	if ( GimmickUtility::ToKind( kind ) == GimmickKind::TriggerSwitch )
+	{
+		DrawSwitch();
+	}
+	else
+	{
+		DrawOther();
+	}
 }
 
 void Trigger::WakeUp()
@@ -427,7 +493,7 @@ AABBEx Trigger::GetHitBox() const
 	const AABBEx hitBoxes[]
 	{
 		param.hitBoxKey,
-		param.hitBoxSwitch,
+		RollHitBox( param.hitBoxSwitch ),
 		param.hitBoxPull
 	};
 	const bool hitBoxExists[]
@@ -454,8 +520,8 @@ std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
 	const auto &param = ParamTrigger::Get().Data();
 	const AABBEx hitBoxes[]
 	{
-		param.mSwitch.hitBoxLeft,
-		param.mSwitch.hitBoxRight,
+		RollHitBox( param.mSwitch.hitBoxLeft ),
+		RollHitBox( param.mSwitch.hitBoxRight ),
 		param.mSwitch.gatheringArea
 	};
 
@@ -493,9 +559,9 @@ int Trigger::GetTriggerKindIndex() const
 	return kindIndex;
 }
 
-Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 Trigger::GetWorldMatrix( const AABBEx &inputBox, bool useDrawing, bool enableRotation ) const
 {
-	auto wsBox = GetHitBox();
+	auto wsBox = inputBox;
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
@@ -508,11 +574,32 @@ Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
 	mat._33 = wsBox.size.z;
-	mat *= R;
+
+	if ( enableRotation ) { mat *= R; }
+
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
 	return mat;
+}
+
+AABBEx Trigger::RollHitBox( AABBEx box ) const
+{
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+
+	auto Rotate = [&rotation]( Donya::Vector3 *pVec )
+	{
+		*pVec = rotation.RotateVector( *pVec );
+	};
+
+	Rotate( &box.pos		);
+	Rotate( &box.size		);
+	Rotate( &box.velocity	);
+
+	box.size.x = fabsf( box.size.x );
+	box.size.y = fabsf( box.size.y );
+
+	return box;
 }
 
 void Trigger::InitKey()

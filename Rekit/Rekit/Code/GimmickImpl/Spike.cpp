@@ -19,8 +19,8 @@ struct ParamSpikeBlock final : public Donya::Singleton<ParamSpikeBlock>
 public:
 	struct Member
 	{
-		float	rotationSpeed;
-		AABBEx	hitBox{};	// Hit-Box of using to the collision to the stage.
+		float	rotationSpeed{};
+		AABBEx	hitBox{};		// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>

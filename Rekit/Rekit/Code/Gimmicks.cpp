@@ -317,43 +317,49 @@ void Gimmick::Update( float elapsedTime )
 }
 void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	const size_t blockCount = pGimmicks.size();
-
-	auto ToBox = []( const AABBEx &aabb )
-	{
-		BoxEx box{};
-		box.pos.x		= aabb.pos.x;
-		box.pos.y		= aabb.pos.y;
-		box.size.x		= aabb.size.x;
-		box.size.y		= aabb.size.y;
-		box.velocity.x	= aabb.velocity.x;
-		box.velocity.y	= aabb.velocity.y;
-		box.exist		= aabb.exist;
-		box.mass		= aabb.mass;
-		return box;
-	};
-
 	// The "pGimmicks" will update at PhysicUpdate().
 	// So I prepare a temporary vector of terrains and update this every time update elements.
-	std::vector<BoxEx> boxes{ blockCount }; // Necessary for AABB to Box.
-	for ( size_t i = 0; i < blockCount; ++i )
+
+	const size_t gimmickCount = pGimmicks.size();
+
+	std::vector<BoxEx> boxes{};			// Contains main hit-boxes of all gimmicks.
+	std::vector<BoxEx> anotherBoxes{};	// Contains another hit-boxes of all gimmicks.
+
+	// Prepare the blocks hit-boxes.
+	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
-		if ( !pGimmicks[i] ) { continue; }
+		const auto &pElement = pGimmicks[i];
+		if ( !pElement ) { continue; }
 		// else
 
-		boxes[i] = ToBox( pGimmicks[i]->GetHitBox() );
+		boxes.emplace_back( pElement->GetHitBox().Get2D() );
+
+		if ( pElement->HasMultipleHitBox() )
+		{
+			auto anotherHitBoxes = pElement->GetAnotherHitBoxes();
+			for ( const auto &it : anotherHitBoxes )
+			{
+				anotherBoxes.emplace_back( it.Get2D() );
+			}
+		}
 	}
 
-	std::vector<BoxEx> allTerrains = boxes; // [blocks][terrains]
-	allTerrains.insert( allTerrains.end(), terrains.begin(), terrains.end() );
+	// This "allTerrains" stores boxes arranged in the order : [gimmicks][anothers][terrains],
+	// so I can access to the gimmicks hit-box by index.
+	// The reason for that arranges is I should update a hit-box after every PhysicUpdate().
+	// Because that method will moves the gimmicks.
+	// I want to update is the gimmicks, but I should send to gimmicks all hit-boxes.
+	std::vector<BoxEx>  allTerrains = boxes; // [gimmicks][anothers][terrains]
+	allTerrains.insert( allTerrains.end(), anotherBoxes.begin(), anotherBoxes.end() );
+	allTerrains.insert( allTerrains.end(), terrains.begin(),     terrains.end()     );
 
-	for ( size_t i = 0; i < blockCount; ++i )
+	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
 		pGimmicks[i]->PhysicUpdate( player, accompanyBox, allTerrains );
-		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
+		allTerrains[i] = pGimmicks[i]->GetHitBox().Get2D();
 	}
 
 	// Erase the should remove blocks.
