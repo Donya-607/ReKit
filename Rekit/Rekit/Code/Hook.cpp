@@ -185,7 +185,7 @@ Donya::PixelShader				Hook::PSDemo{};
 Hook::Hook(const Donya::Vector3& playerPos) :
 	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
 	easingTime(0), distance(0), momentPullDist(0),
-	prevPress(false), exist(true), placeablePoint(true)
+	prevPress(false), exist(true), isHitCheckEnable(), placeablePoint(true)
 {}
 Hook::~Hook() = default;
 

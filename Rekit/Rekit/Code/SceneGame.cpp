@@ -346,6 +346,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	
 	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
+	if ( player.IsDead() && !Fader::Get().IsExist() )
+	{
+		StartFade();
+	}
 
 	CameraUpdate();
 
@@ -682,14 +686,22 @@ void SceneGame::HookUpdate( float elapsedTime )
 	}
 	else
 	{
-		if ( Donya::Keyboard::Press  ( VK_LEFT   ) ) { stick.x		-= 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_RIGHT  ) ) { stick.x		+= 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_UP     ) ) { stick.y		+= 1.0f; }
-		if ( Donya::Keyboard::Press  ( VK_DOWN   ) ) { stick.y		-= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_LEFT		) ) { stick.x	-= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_RIGHT		) ) { stick.x	+= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_UP		) ) { stick.y	+= 1.0f; }
+		if ( Donya::Keyboard::Press  ( VK_DOWN		) ) { stick.y	-= 1.0f; }
+		if ( stick.IsZero() )
+		{
+			shrink = true;
+		}
+		else
+		{
+			create = true;
+			extend = true;
+		}
 
-		if ( Donya::Keyboard::Press  ( VK_RSHIFT ) ) { useAction	= true; }
-		if ( Donya::Keyboard::Trigger( VK_RSHIFT ) ) { create		= true; }
-		if ( Donya::Keyboard::Trigger( VK_END    ) ) { erase		= true; }
+		if ( Donya::Keyboard::Trigger( VK_RSHIFT	) ) { useAction	= true; }
+		if ( Donya::Keyboard::Trigger( VK_END		) ) { erase		= true; }
 	}
 
 	if ( create )
@@ -700,7 +712,7 @@ void SceneGame::HookUpdate( float elapsedTime )
 			Donya::Sound::Play( Music::Throw );
 		}
 	}
-	if ( erase )
+	if ( erase  )
 	{
 		pHook.reset();
 

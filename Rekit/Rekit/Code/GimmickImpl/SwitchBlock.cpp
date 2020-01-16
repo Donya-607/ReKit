@@ -13,12 +13,17 @@
 #undef max
 #undef min
 
-struct ParamIceBlock final : public Donya::Singleton<ParamIceBlock>
+struct ParamSwitchBlock final : public Donya::Singleton<ParamSwitchBlock>
 {
-	friend Donya::Singleton<ParamIceBlock>;
+	friend Donya::Singleton<ParamSwitchBlock>;
 public:
 	struct Member
 	{
+		float	gravity{};
+		float	maxFallSpeed{};
+		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
+		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
+		float	gatherSpeed{};		// Gather to switch.
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -27,6 +32,11 @@ public:
 		{
 			archive
 			(
+				CEREAL_NVP( gravity ),
+				CEREAL_NVP( maxFallSpeed ),
+				CEREAL_NVP( brakeSpeed ),
+				CEREAL_NVP( stopThreshold ),
+				CEREAL_NVP( gatherSpeed ),
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
@@ -36,12 +46,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "IceBlock";
+	static constexpr const char *SERIAL_ID = "SwitchBlock";
 	Member m;
 private:
-	ParamIceBlock() : m() {}
+	ParamSwitchBlock() : m() {}
 public:
-	~ParamIceBlock() = default;
+	~ParamSwitchBlock() = default;
 public:
 	void Init()
 	{
@@ -84,7 +94,7 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ギミック[Ice]・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[SwitchBlock]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
@@ -93,6 +103,12 @@ public:
 					ImGui::DragInt   ( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
+
+				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
+				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
+				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
+				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
+				ImGui::DragFloat( u8"スイッチに近づく速度",	&m.gatherSpeed,		0.1f	);
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -125,79 +141,79 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamIceBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamSwitchBlock::Member, 0 )
 
-void IceBlock::ParameterInit()
+void SwitchBlock::ParameterInit()
 {
-	ParamIceBlock::Get().Init();
+	ParamSwitchBlock::Get().Init();
 }
 #if USE_IMGUI
-void IceBlock::UseParameterImGui()
+void SwitchBlock::UseParameterImGui()
 {
-	ParamIceBlock::Get().UseImGui();
+	ParamSwitchBlock::Get().UseImGui();
 }
 #endif // USE_IMGUI
 
-IceBlock::IceBlock() : GimmickBase()
+SwitchBlock::SwitchBlock() : GimmickBase()
 {}
-IceBlock::~IceBlock() = default;
+SwitchBlock::~SwitchBlock() = default;
 
-void IceBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
+void SwitchBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }
-void IceBlock::Uninit()
+void SwitchBlock::Uninit()
 {
 	// No op.
 }
 
-void IceBlock::Update( float elapsedTime )
+void SwitchBlock::Update( float elapsedTime )
 {
+	Fall( elapsedTime );
 
+	Brake( elapsedTime );
 }
-void IceBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
+	GatherToTheTarget( terrains );
+
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
 
-void IceBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void SwitchBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.8f, 0.9f, 1.0f, 0.9f };
+	constexpr Donya::Vector4 color{ 0.7f, 0.7f, 0.7f, 0.8f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }
 
-void IceBlock::WakeUp()
+void SwitchBlock::WakeUp()
 {
 	// No op.
 }
 
-bool IceBlock::ShouldRemove() const
+bool SwitchBlock::ShouldRemove() const
 {
 	// Don't destroy.
 	return false;
 }
 
-Donya::Vector3 IceBlock::GetPosition() const
+AABBEx SwitchBlock::GetHitBox() const
 {
-	return pos;
-}
-AABBEx IceBlock::GetHitBox() const
-{
-	AABBEx base = ParamIceBlock::Get().Data().hitBox;
+	AABBEx base = ParamSwitchBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
-	base.attr		= kind;
+	base.attr		=  kind;
 	return base;
 }
 
-Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 SwitchBlock::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -219,9 +235,56 @@ Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
 	return mat;
 }
 
+void SwitchBlock::Fall( float elapsedTime )
+{
+	const auto DATA = ParamSwitchBlock::Get().Data();
+	velocity.y -= DATA.gravity * elapsedTime;
+	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
+}
+
+void SwitchBlock::Brake( float elapsedTime )
+{
+	const float moveSign = scast<float>( Donya::SignBit( velocity.x ) );
+	if ( ZeroEqual( moveSign ) ) { return; }
+	// else
+
+	const float nowSpeed = fabsf( velocity.x );
+	if ( nowSpeed <= ParamSwitchBlock::Get().Data().stopThreshold )
+	{
+		velocity.x = 0.0f;
+		return;
+	}
+	// else
+
+	const float brakeSpeed = std::min( nowSpeed, ParamSwitchBlock::Get().Data().brakeSpeed );
+	velocity.x -= brakeSpeed * moveSign;
+}
+
+void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
+{
+	for ( const auto &it : terrains )
+	{
+		if ( !Gimmick::HasGatherAttribute( it ) ) { continue; }
+		// else
+
+		if ( !Donya::Box::IsHitBox( it, GetHitBox().Get2D(), /* ignoreExistFlag = */ true ) ) { continue; }
+		// else
+
+		const Donya::Vector3 otherPos  = Donya::Vector3{ it.pos, pos.z };
+		const Donya::Vector3 vecToDest = otherPos - pos;
+		const float currentSpeed = velocity.Length();
+		const float gatherSpeed	 = std::max( currentSpeed, ParamSwitchBlock::Get().Data().gatherSpeed );
+
+		velocity =	( vecToDest.Length() < gatherSpeed )
+					? vecToDest
+					: vecToDest.Normalized() * gatherSpeed;
+		break; // I expect don't collide at the same time to or-more-two the destination.
+	}
+}
+
 #if USE_IMGUI
 
-void IceBlock::ShowImGuiNode()
+void SwitchBlock::ShowImGuiNode()
 {
 	using namespace GimmickUtility;
 

@@ -39,10 +39,12 @@ namespace GimmickUtility
 		{
 		case GimmickKind::Fragile:			return "Fragile";		// break;
 		case GimmickKind::Hard:				return "Hard";			// break;
+		case GimmickKind::Ice:				return "Ice";			// break;
+		case GimmickKind::Spike:			return "Spike";			// break;
+		case GimmickKind::SwitchBlock:		return "SwitchBlock";	// break;
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
-		case GimmickKind::Ice:				return "Ice";			// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
@@ -90,7 +92,7 @@ using namespace GimmickUtility;
 #pragma region Base
 
 GimmickBase::GimmickBase() :
-	kind(), pos(), velocity()
+	kind(), rollDegree(), pos(), velocity()
 {}
 GimmickBase::~GimmickBase() = default;
 
@@ -237,6 +239,12 @@ void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4
 int				GimmickBase::GetKind()		const { return kind;	}
 Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
 
+bool GimmickBase::HasMultipleHitBox() const { return false; }
+std::vector<AABBEx> GimmickBase::GetAnotherHitBoxes() const
+{
+	return std::vector<AABBEx>();
+}
+
 // region Base
 #pragma endregion
 
@@ -244,11 +252,38 @@ Donya::Vector3	GimmickBase::GetPosition()	const { return pos;		}
 
 bool Gimmick::HasSlipAttribute( const BoxEx  &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+	return HasAttribute( GimmickKind::Ice, gimmick );
 }
 bool Gimmick::HasSlipAttribute( const AABBEx &gimmick )
 {
-	return ( ToKind( gimmick.attr ) == GimmickKind::Ice ) ? true : false;
+	return HasAttribute( GimmickKind::Ice, gimmick );
+}
+
+bool Gimmick::HasDangerAttribute( const BoxEx  &gimmick )
+{
+	return HasAttribute( GimmickKind::Spike, gimmick );
+}
+bool Gimmick::HasDangerAttribute( const AABBEx &gimmick )
+{
+	return HasAttribute( GimmickKind::Spike, gimmick );
+}
+
+bool Gimmick::HasGatherAttribute( const BoxEx  &gimmick )
+{
+	return Trigger::IsGatherBox( gimmick );
+}
+bool Gimmick::HasGatherAttribute( const AABBEx &gimmick )
+{
+	return Trigger::IsGatherBox( gimmick );
+}
+
+bool Gimmick::HasAttribute( GimmickKind attribute, const BoxEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == attribute ) ? true : false;
+}
+bool Gimmick::HasAttribute( GimmickKind attribute, const AABBEx &gimmick )
+{
+	return ( ToKind( gimmick.attr ) == attribute ) ? true : false;
 }
 
 Gimmick::Gimmick() :
@@ -260,8 +295,10 @@ void Gimmick::Init( int stageNumber )
 {
 	FragileBlock::ParameterInit();
 	HardBlock::ParameterInit();
+	IceBlock::ParameterInit();
+	SpikeBlock::ParameterInit();
+	SwitchBlock::ParameterInit();
 	Trigger::ParameterInit();
-	IceBlock::ParameterInit ();
 	Shutter::ParameterInit();
 
 	LoadParameter();
@@ -289,43 +326,49 @@ void Gimmick::Update( float elapsedTime )
 }
 void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	const size_t blockCount = pGimmicks.size();
-
-	auto ToBox = []( const AABBEx &aabb )
-	{
-		BoxEx box{};
-		box.pos.x		= aabb.pos.x;
-		box.pos.y		= aabb.pos.y;
-		box.size.x		= aabb.size.x;
-		box.size.y		= aabb.size.y;
-		box.velocity.x	= aabb.velocity.x;
-		box.velocity.y	= aabb.velocity.y;
-		box.exist		= aabb.exist;
-		box.mass		= aabb.mass;
-		return box;
-	};
-
 	// The "pGimmicks" will update at PhysicUpdate().
 	// So I prepare a temporary vector of terrains and update this every time update elements.
-	std::vector<BoxEx> boxes{ blockCount }; // Necessary for AABB to Box.
-	for ( size_t i = 0; i < blockCount; ++i )
+
+	const size_t gimmickCount = pGimmicks.size();
+
+	std::vector<BoxEx> boxes{};			// Contains main hit-boxes of all gimmicks.
+	std::vector<BoxEx> anotherBoxes{};	// Contains another hit-boxes of all gimmicks.
+
+	// Prepare the blocks hit-boxes.
+	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
-		if ( !pGimmicks[i] ) { continue; }
+		const auto &pElement = pGimmicks[i];
+		if ( !pElement ) { continue; }
 		// else
 
-		boxes[i] = ToBox( pGimmicks[i]->GetHitBox() );
+		boxes.emplace_back( pElement->GetHitBox().Get2D() );
+
+		if ( pElement->HasMultipleHitBox() )
+		{
+			auto anotherHitBoxes = pElement->GetAnotherHitBoxes();
+			for ( const auto &it : anotherHitBoxes )
+			{
+				anotherBoxes.emplace_back( it.Get2D() );
+			}
+		}
 	}
 
-	std::vector<BoxEx> allTerrains = boxes; // [blocks][terrains]
-	allTerrains.insert( allTerrains.end(), terrains.begin(), terrains.end() );
+	// This "allTerrains" stores boxes arranged in the order : [gimmicks][anothers][terrains],
+	// so I can access to the gimmicks hit-box by index.
+	// The reason for that arranges is I should update a hit-box after every PhysicUpdate().
+	// Because that method will moves the gimmicks.
+	// I want to update is the gimmicks, but I should send to gimmicks all hit-boxes.
+	std::vector<BoxEx>  allTerrains = boxes; // [gimmicks][anothers][terrains]
+	allTerrains.insert( allTerrains.end(), anotherBoxes.begin(), anotherBoxes.end() );
+	allTerrains.insert( allTerrains.end(), terrains.begin(),     terrains.end()     );
 
-	for ( size_t i = 0; i < blockCount; ++i )
+	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
 		pGimmicks[i]->PhysicUpdate( player, accompanyBox, allTerrains );
-		allTerrains[i] = ToBox( pGimmicks[i]->GetHitBox() );
+		allTerrains[i] = pGimmicks[i]->GetHitBox().Get2D();
 	}
 
 	// Erase the should remove blocks.
@@ -333,7 +376,7 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 		auto itr = std::remove_if
 		(
 			pGimmicks.begin(), pGimmicks.end(),
-			[]( std::unique_ptr<GimmickBase> &pElement )
+			[]( std::shared_ptr<GimmickBase> &pElement )
 			{
 				return ( !pElement ) ? false : pElement->ShouldRemove();
 			}
@@ -356,12 +399,22 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 std::vector<AABBEx> Gimmick::RequireHitBoxes() const
 {
 	std::vector<AABBEx> boxes{};
+	std::vector<AABBEx> anotherBoxes{};
 	for ( const auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
 		boxes.emplace_back( it->GetHitBox() );
+
+		if ( it->HasMultipleHitBox() )
+		{
+			anotherBoxes = it->GetAnotherHitBoxes();
+			for ( const auto &itr : anotherBoxes )
+			{
+				boxes.emplace_back( itr );
+			}
+		}
 	}
 	return boxes;
 }
@@ -392,60 +445,81 @@ void Gimmick::UseImGui()
 {
 	FragileBlock::UseParameterImGui();
 	HardBlock::UseParameterImGui();
-	Trigger::UseParameterImGui();
 	IceBlock::UseParameterImGui();
+	SpikeBlock::UseParameterImGui();
+	SwitchBlock::UseParameterImGui();
+	Trigger::UseParameterImGui();
 	Shutter::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			static Donya::Vector3 shutterDirection;
-			ImGui::SliderFloat3 ( u8"シャッターの向き", &shutterDirection.x, -1, 1 );
+			static float rollDegree{};
+			static Donya::Vector3 shutterDirection{};
+			if ( ImGui::TreeNode( u8"設置オプション" ) )
+			{
+				ImGui::DragFloat( u8"Ｚ軸回転量", &rollDegree );
+				ImGui::SliderFloat3( u8"シャッターの開く方向", &shutterDirection.x, -1.0f, 1.0f );
+
+				ImGui::TreePop();
+			}
+
 			// Resizing.
 			{
+				constexpr Donya::Vector3 GENERATE_POS = Donya::Vector3::Zero();
 				const std::string prefix{ u8"末尾に追加・" };
 
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<FragileBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<FragileBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard			) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<HardBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<HardBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice			) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<IceBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike			) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<SpikeBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock	) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<Trigger>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<SwitchBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::SwitchBlock ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey	) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<IceBlock>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), rollDegree, GENERATE_POS );
 				}
-				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Shutter )).c_str () ))
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch	) ).c_str() ) )
 				{
-					pGimmicks.push_back ( std::make_unique<Shutter> ( 0, shutterDirection ) );
-					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Shutter ), Donya::Vector3::Zero () );
+					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull	) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter		) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_unique<XXX>() );
-					pGimmicks.back()->Init( ToInt( GimmickKind:: ), Donya::Vector3::Zero() );
+					pGimmicks.push_back( std::make_shared<XXX>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind:: ), rollDegree, GENERATE_POS );
 				}
 				*/
 
@@ -467,7 +541,7 @@ void Gimmick::UseImGui()
 				for ( auto it = pGimmicks.begin(); it != pGimmicks.end(); )
 				{
 					bool doRemove = false;
-					std::unique_ptr<GimmickBase> &elem = *it;
+					auto &elem = *it;
 
 					if ( !elem ) { continue; }
 					// else

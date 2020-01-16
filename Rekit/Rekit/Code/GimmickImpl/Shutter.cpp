@@ -150,11 +150,12 @@ Shutter::Shutter ( int id, const Donya::Vector3 & direction ) : GimmickBase (),
 {}
 Shutter::~Shutter () = default;
 
-void Shutter::Init ( int gimmickKind, const Donya::Vector3 & wsPos )
+void Shutter::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
 {
-	kind = gimmickKind;
-	pos = wsPos;
-	velocity = 0.0f;
+	kind		= gimmickKind;
+	rollDegree	= roll;
+	pos			= wsPos;
+	velocity	= 0.0f;
 }
 void Shutter::Uninit ()
 {
@@ -231,10 +232,13 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 		wsBox.size *= 2.0f;
 	}
 
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
 	mat._33 = wsBox.size.z;
+	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
@@ -248,8 +252,9 @@ void Shutter::ShowImGuiNode ()
 	using namespace GimmickUtility;
 
 	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
-	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
-	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
+	ImGui::DragFloat ( u8"Ｚ軸回転量", &rollDegree, 1.0f );
+	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
+	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );
 }
 
 #endif // USE_IMGUI

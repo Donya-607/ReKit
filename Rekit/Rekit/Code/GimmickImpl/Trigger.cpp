@@ -13,6 +13,39 @@
 #undef max
 #undef min
 
+namespace
+{
+	const int GATHER_SIGN_ID = GimmickUtility::ToInt( GimmickKind::TriggerSwitch );
+	BoxEx	ToGatherBox( BoxEx  source )
+	{
+		source.attr  = GATHER_SIGN_ID;
+		source.mass  = GATHER_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	AABBEx	ToGatherBox( AABBEx source )
+	{
+		source.attr  = GATHER_SIGN_ID;
+		source.mass  = GATHER_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	bool	IsGatherBox( const BoxEx  &source )
+	{
+		if ( source.attr  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.mass  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.exist != false )			{ return false; }
+		return true;
+	}
+	bool	IsGatherBox( const AABBEx &source )
+	{
+		if ( source.attr  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.mass  != GATHER_SIGN_ID )	{ return false; }
+		if ( source.exist != false )			{ return false; }
+		return true;
+	}
+}
+
 struct ParamTrigger final : public Donya::Singleton<ParamTrigger>
 {
 	friend Donya::Singleton<ParamTrigger>;
@@ -26,11 +59,13 @@ public:
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				/*archive
-				(
-					CEREAL_NVP( stretchMax )
-				);*/
+				// archive();
+
 				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -38,16 +73,33 @@ public:
 		};
 		struct SwitchMember
 		{
+			// The switch gather a block in direction to me.
+			// And the switch have the collisions look like 'U'.
+			// The "hitBoxLeft", "Right" roles a side wall, the "Member::hitBoxSwitch" roles bottom wall.
+			// The "gatheringArea" represents a gathering area only, has not collision.
+
+			Donya::Vector3 gatheringPos{};
+			AABBEx gatheringArea{};
+			AABBEx hitBoxLeft{};
+			AABBEx hitBoxRight{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				/*archive
-				(
-					CEREAL_NVP( stretchMax )
-				);*/
+				// archive();
+
 				if ( 1 <= version )
+				{
+					archive
+					(
+						CEREAL_NVP( gatheringPos ),
+						CEREAL_NVP( gatheringArea ),
+						CEREAL_NVP( hitBoxLeft ),
+						CEREAL_NVP( hitBoxRight )
+					);
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -72,9 +124,9 @@ public:
 			}
 		};
 
-		KeyMember		mKey;
-		SwitchMember	mSwitch;
-		PullMember		mPull;
+		KeyMember		mKey{};
+		SwitchMember	mSwitch{};
+		PullMember		mPull{};
 
 		AABBEx	hitBoxKey{};
 		AABBEx	hitBoxSwitch{};
@@ -159,6 +211,7 @@ public:
 					ImGui::DragFloat2( ( prefix + u8"サイズ（半分を指定）" ).c_str(), &pHitBox->size.x );
 					ImGui::DragInt( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
 					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
+					ImGui::Text( "" );
 				};
 
 				if ( ImGui::TreeNode( u8"カギ" ) )
@@ -167,18 +220,30 @@ public:
 				}
 				if ( ImGui::TreeNode( u8"スイッチ" ) )
 				{
+					ImGui::DragFloat3( u8"引き寄せる位置（相対）",		&m.mSwitch.gatheringPos.x,			0.1f		);
+					ImGui::DragFloat2( u8"引き寄せるサイズ（半分を指定）",	&m.mSwitch.gatheringArea.size.x,	0.1f, 0.0f	);
+					{
+						m.mSwitch.gatheringArea = ToGatherBox( m.mSwitch.gatheringArea );
+						m.mSwitch.gatheringArea.pos = m.mSwitch.gatheringPos;
+						m.mSwitch.gatheringArea.velocity = 0.0f;
+					}
+					ImGui::Text( "" );
+
+					AdjustAABB( u8"当たり判定・左壁",		&m.mSwitch.hitBoxLeft		);
+					AdjustAABB( u8"当たり判定・右壁",		&m.mSwitch.hitBoxRight		);
+
 					ImGui::TreePop();
 				}
-				if ( ImGui::TreeNode( u8"引き" ) )
+				if ( ImGui::TreeNode( u8"引き手" ) )
 				{
 					ImGui::DragFloat( u8"引っ張る長さ", &m.mPull.stretchMax, 1.0f, 0.0f );
 
 					ImGui::TreePop();
 				}
 
-				AdjustAABB( u8"当たり判定・鍵",		&m.hitBoxKey	);
-				AdjustAABB( u8"当たり判定・スイッチ",	&m.hitBoxSwitch	);
-				AdjustAABB( u8"当たり判定・引き",		&m.hitBoxPull	);
+				AdjustAABB( u8"当たり判定・鍵",				&m.hitBoxKey	);
+				AdjustAABB( u8"当たり判定・スイッチ（底）",	&m.hitBoxSwitch	);
+				AdjustAABB( u8"当たり判定・引き手",			&m.hitBoxPull	);
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
 				{
@@ -210,8 +275,20 @@ public:
 #endif // USE_IMGUI
 };
 CEREAL_CLASS_VERSION( ParamTrigger::Member, 1 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::KeyMember, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 1 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 0 )
 
 
+
+bool Trigger::IsGatherBox( const BoxEx  &source )
+{
+	return ::IsGatherBox( source );
+}
+bool Trigger::IsGatherBox( const AABBEx &source )
+{
+	return ::IsGatherBox( source );
+}
 
 void Trigger::ParameterInit()
 {
@@ -234,9 +311,10 @@ Trigger::Trigger( int id, bool enable ) : GimmickBase(),
 {}
 Trigger::~Trigger() = default;
 
-void Trigger::Init( int gimmickKind, const Donya::Vector3 &wsPos )
+void Trigger::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
+	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 
@@ -306,27 +384,93 @@ void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 
 void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
-	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
-	Donya::Vector4x4 WVP = W * V * P;
-
-	constexpr Donya::Vector4 colors[]
+	auto DrawSwitch = [&]()
 	{
-		{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
-		{ 1.0f, 0.0f, 0.8f, 0.8f },		// Switch
-		{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
+		enum DrawParts
+		{
+			Base = 0,
+			Left,
+			Right,
+			Area,
+
+			DrawCount
+		};
+
+		// This hit-boxes should be contain like this: [0]:left, [1]:right, [2]:area.
+		const auto anotherHitBoxes = GetAnotherHitBoxes();
+		_ASSERT_EXPR( anotherHitBoxes.size() == scast<size_t>( DrawCount - 1 ), L"LogicalError : The switch's configuration parts count is not matching!" );
+
+		const AABBEx wsHitBoxes[DrawCount]
+		{
+			GetHitBox(),
+			anotherHitBoxes[0],
+			anotherHitBoxes[1],
+			anotherHitBoxes[2],
+		};
+		const Donya::Vector4 colors[DrawCount]
+		{
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 1.0f, 1.0f, 1.0f, 0.0f },
+		};
+		const Donya::Vector4 lightenFactors[DrawCount]
+		{
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 1.0f, 0.2f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.8f },
+		};
+
+		const int kindIndex = GetTriggerKindIndex();
+		Donya::Vector4		color{};
+		Donya::Vector4x4	W{}, WVP{};
+		Donya::Vector4x4	VP = V * P;
+
+		for ( int i = 0; i < DrawCount; ++i )
+		{
+			W = GetWorldMatrix( wsHitBoxes[i], /* useDrawing = */ true, /* enableRotation = */ false );
+			WVP = W * VP;
+
+			color = colors[i];
+			if ( IsEnable() ) { color += lightenFactors[i]; }
+
+			BaseDraw( WVP, W, lightDir, color );
+		}
 	};
-	constexpr Donya::Vector4 lightenFactors[]
+	auto DrawOther  = [&]()
 	{
-		{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
-		{ 0.0f, 1.0f, 0.2f, 0.0f },		// Switch
-		{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+		Donya::Vector4x4 W = GetWorldMatrix( GetHitBox(), /* useDrawing = */ true );
+		Donya::Vector4x4 WVP = W * V * P;
+
+		constexpr Donya::Vector4 colors[]
+		{
+			{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
+			{},								// Switch
+			{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
+		};
+		constexpr Donya::Vector4 lightenFactors[]
+		{
+			{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
+			{},								// Switch
+			{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+		};
+		const int kindIndex  = GetTriggerKindIndex();
+
+		Donya::Vector4 color = colors[kindIndex];
+		if ( IsEnable() ) { color += lightenFactors[kindIndex]; }
+
+		BaseDraw( WVP, W, lightDir, color );
 	};
-	const int kindIndex = GetTriggerKindIndex();
 
-	Donya::Vector4 color = colors[kindIndex];
-	if ( enable ) { color += lightenFactors[kindIndex]; }
-
-	BaseDraw( WVP, W, lightDir, color );
+	if ( GimmickUtility::ToKind( kind ) == GimmickKind::TriggerSwitch )
+	{
+		DrawSwitch();
+	}
+	else
+	{
+		DrawOther();
+	}
 }
 
 void Trigger::WakeUp()
@@ -345,17 +489,18 @@ Donya::Vector3 Trigger::GetPosition() const
 }
 AABBEx Trigger::GetHitBox() const
 {
+	const auto &param = ParamTrigger::Get().Data();
 	const AABBEx hitBoxes[]
 	{
-		ParamTrigger::Get().Data().hitBoxKey,
-		ParamTrigger::Get().Data().hitBoxSwitch,
-		ParamTrigger::Get().Data().hitBoxPull
+		param.hitBoxKey,
+		RollHitBox( param.hitBoxSwitch ),
+		param.hitBoxPull
 	};
 	const bool hitBoxExists[]
 	{
-		false,					// Key
-		true,					// Switch
-		false					// Pull
+		false,	// Key
+		true,	// Switch
+		false	// Pull
 	};
 	const int kindIndex =  GetTriggerKindIndex();
 
@@ -363,8 +508,48 @@ AABBEx Trigger::GetHitBox() const
 	wsHitBox.pos		+= pos;
 	wsHitBox.velocity	=  velocity;
 	wsHitBox.exist		=  hitBoxExists[kindIndex];
-	wsHitBox.attr		= kind;
+	wsHitBox.attr		=  kind;
 	return wsHitBox;
+}
+bool Trigger::HasMultipleHitBox() const
+{
+	return true;
+}
+std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
+{
+	const auto &param = ParamTrigger::Get().Data();
+	const AABBEx hitBoxes[]
+	{
+		RollHitBox( param.mSwitch.hitBoxLeft ),
+		RollHitBox( param.mSwitch.hitBoxRight ),
+		param.mSwitch.gatheringArea
+	};
+
+	auto ToWorldSpace = [&]( AABBEx lsHitBox )
+	{
+		lsHitBox.pos		+= pos;
+		lsHitBox.velocity	=  velocity;
+		lsHitBox.exist		=  true;
+		lsHitBox.attr		=  kind;
+		return lsHitBox;
+	};
+
+	std::vector<AABBEx> multiHitBoxes{};
+	multiHitBoxes.reserve( ArraySize( hitBoxes ) );
+
+	bool isGathering = false;
+	for ( const auto &it : hitBoxes )
+	{
+		isGathering = IsGatherBox( it ); // Must be judge before ToWorldSpace().
+		multiHitBoxes.emplace_back( ToWorldSpace( it ) );
+
+		if ( isGathering )
+		{
+			multiHitBoxes.back() = ToGatherBox( multiHitBoxes.back() );
+		}
+	}
+
+	return multiHitBoxes;
 }
 
 int Trigger::GetTriggerKindIndex() const
@@ -374,23 +559,47 @@ int Trigger::GetTriggerKindIndex() const
 	return kindIndex;
 }
 
-Donya::Vector4x4 Trigger::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 Trigger::GetWorldMatrix( const AABBEx &inputBox, bool useDrawing, bool enableRotation ) const
 {
-	auto wsBox = GetHitBox();
+	auto wsBox = inputBox;
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
 		wsBox.size *= 2.0f;
 	}
 
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
 	mat._33 = wsBox.size.z;
+
+	if ( enableRotation ) { mat *= R; }
+
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
 	return mat;
+}
+
+AABBEx Trigger::RollHitBox( AABBEx box ) const
+{
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+
+	auto Rotate = [&rotation]( Donya::Vector3 *pVec )
+	{
+		*pVec = rotation.RotateVector( *pVec );
+	};
+
+	Rotate( &box.pos		);
+	Rotate( &box.size		);
+	Rotate( &box.velocity	);
+
+	box.size.x = fabsf( box.size.x );
+	box.size.y = fabsf( box.size.y );
+
+	return box;
 }
 
 void Trigger::InitKey()
@@ -436,14 +645,49 @@ void Trigger::PhysicUpdateKey( const BoxEx &player, const BoxEx &accompanyBox, c
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ false, /* ignoreHitBoxExist = */ true );
 
-	if ( !enable && Donya::Box::IsHitBox( player, GetHitBox().Get2D(), /* ignoreHitBoxExist = */ true ) )
+	if ( !IsEnable() && Donya::Box::IsHitBox( player, GetHitBox().Get2D(), /* ignoreHitBoxExist = */ true ) )
 	{
-		enable = true;
+		TurnOn();
 	}
 }
 void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	if ( IsEnable() ) { return; }
+	// else
+
+	BoxEx triggerArea = BoxEx::Nil();
+	{
+		const auto anotherBoxes = GetAnotherHitBoxes();
+		for ( const auto &it : anotherBoxes )
+		{
+			if ( !IsGatherBox( it ) ) { continue; }
+			// else
+			triggerArea = it.Get2D();
+		}
+	
+		if ( triggerArea == BoxEx::Nil() ) { return; }
+		// else
+	}
+
+	std::vector<BoxEx> correspondingBoxes{};
+	{
+		for ( const auto &it : terrains )
+		{
+			if ( !Gimmick::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
+			// else
+
+			correspondingBoxes.emplace_back( it );
+		}
+	}
+
+	for ( const auto &it : correspondingBoxes )
+	{
+		if ( !Donya::Box::IsHitBox( triggerArea, it, /* ignoreExistFlag = */ true ) ) { continue; }
+		// else
+
+		TurnOn();
+		break;
+	}
 }
 void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
@@ -457,8 +701,15 @@ void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, 
 	if ( stretchMax < stretched.Length() )
 	{
 		pos = mPull.initPos + ( stretched.Normalized() * stretchMax );
-		enable = true;
+
+		if ( !IsEnable() ) { TurnOn(); }
 	}
+}
+
+void Trigger::TurnOn()
+{
+	enable = true;
+	GimmickStatus::Register( kind, true );
 }
 
 #if USE_IMGUI
@@ -468,8 +719,9 @@ void Trigger::ShowImGuiNode()
 	using namespace GimmickUtility;
 
 	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
-	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
-	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );
+	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
+	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
+	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
 }
 
 #endif // USE_IMGUI

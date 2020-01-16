@@ -159,7 +159,8 @@ public:
 CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
 
 Player::Player() :
-	remainJumpCount( 1 ),
+	status( State::Normal ),
+	remainJumpCount( 1 ), drawAlpha( 1.0f ),
 	pos(), velocity(),
 	drawModel( Donya::Geometric::CreateSphere() ), cbuffer(), VSDemo(), PSDemo(),
 	aboveSlipGround( false )
@@ -188,24 +189,23 @@ void Player::Update( float elapsedTime, Input controller )
 
 #endif // USE_IMGUI
 
-#if DEBUG_MODE
-	if ( Donya::Keyboard::Press( VK_MENU ) )
+	switch ( status )
 	{
-		if ( Donya::Keyboard::Trigger( 'J' ) )
-		{
-			remainJumpCount = 65535;
-		}
+	case Player::State::Normal:
+		NormalUpdate( elapsedTime, controller );
+		return;
+	case Player::State::Dead:
+		DeadUpdate( elapsedTime, controller );
+		return;
+	default: return;
 	}
-#endif // DEBUG_MODE
-
-	Move( elapsedTime, controller );
-
-	Fall( elapsedTime, controller );
-	JumpIfUsed( elapsedTime, controller );
 }
 
 void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
+	if ( IsDead() ) { return; }
+	// else
+
 	/// <summary>
 	/// Support an attribute.
 	/// </summary>
@@ -264,6 +264,13 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			}
 
 			if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
+			// else
+
+			if ( Gimmick::HasDangerAttribute( other ) )
+			{
+				KillMe();
+				return;
+			}
 			// else
 
 			Donya::Vector2 penetration{}; // Store absolute value.
@@ -688,7 +695,7 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 	cbuffer.data.worldViewProjection	= ( W * matViewProjection ).XMFloat();
 	cbuffer.data.lightDirection			= lightDirection;
 	cbuffer.data.lightColor				= lightColor;
-	cbuffer.data.materialColor			= Donya::Vector4{ 1.0f, 0.6f, 0.8f, 1.0f };
+	cbuffer.data.materialColor			= Donya::Vector4{ 1.0f, 0.6f, 0.8f, drawAlpha };
 
 	cbuffer.Activate( 0, /* setVS = */ true, /* setPS = */ true );
 	VSDemo.Activate();
@@ -713,6 +720,11 @@ AABBEx Player::GetHitBox() const
 	return wsAABB;
 }
 
+bool Player::IsDead() const
+{
+	return ( status == State::Dead && drawAlpha <= 0.0f ) ? true : false;
+}
+
 void Player::CreateRenderingObjects()
 {
 	cbuffer.Create();
@@ -726,6 +738,19 @@ void Player::CreateRenderingObjects()
 	const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementsVector{ inputElements.begin(), inputElements.end() };
 	VSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ true  ), inputElementsVector );
 	PSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ false ) );
+}
+
+void Player::NormalUpdate( float elapsedTime, Input controller )
+{
+	Move( elapsedTime, controller );
+
+	Fall( elapsedTime, controller );
+	JumpIfUsed( elapsedTime, controller );
+}
+void Player::DeadUpdate( float elapsedTime, Input controller )
+{
+	constexpr float TO_OPAQUE_SPEED	= 5.0f;
+	drawAlpha -= TO_OPAQUE_SPEED * elapsedTime;
 }
 
 void Player::Move( float elapsedTime, Input controller )
@@ -814,6 +839,14 @@ void Player::Landing()
 {
 	remainJumpCount = PlayerParam::Get().Data().maxJumpCount;
 	velocity.y = 0.0f;
+}
+
+void Player::KillMe()
+{
+	status			= State::Dead;
+	velocity		= 0.0f;
+	remainJumpCount	= 0;
+	drawAlpha		= 1.0f;
 }
 
 #if USE_IMGUI
