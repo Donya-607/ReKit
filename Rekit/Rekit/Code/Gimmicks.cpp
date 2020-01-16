@@ -221,6 +221,18 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 void GimmickBase::BaseDraw( const Donya::Vector4x4 &matWVP, const Donya::Vector4x4 &matW, const Donya::Vector4 &lightDir, const Donya::Vector4 &materialColor ) const
 {
+	Donya::StaticMesh *pModel = Gimmick::GetModelAddress( ToKind( kind ) );
+	if ( !pModel ) { return; }
+	// else
+
+	pModel->Render
+	(
+		nullptr,
+		/* useDefaultShading	= */ true,
+		/* isEnableFill			= */ true,
+		matWVP, matW, lightDir, materialColor
+	);
+
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{

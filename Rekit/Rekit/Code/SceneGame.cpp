@@ -249,6 +249,8 @@ void SceneGame::Init()
 
 	CameraInit();
 
+	Gimmick::LoadModels();
+
 	gimmicks.Init( NULL );
 	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
