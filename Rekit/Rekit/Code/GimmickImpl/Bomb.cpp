@@ -428,7 +428,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat ( u8"生成間隔",			&m.generateFrame,		0.1f, 0.0f	);
+				ImGui::DragFloat ( u8"生成間隔（秒）",	&m.generateFrame,		0.1f, 0.0f	);
 				ImGui::DragFloat3( u8"生成位置（相対）",	&m.generateOffset.x,	0.1f		);
 				
 				AdjustAABB( u8"当たり判定", &m.hitBox );
@@ -486,6 +486,8 @@ void BombGenerator::Init( int gimmickKind, float roll, const Donya::Vector3 &wsP
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
+
+	generateTimer = ParamBombGenerator::Get().Data().generateFrame;
 }
 void BombGenerator::Uninit()
 {
@@ -512,6 +514,11 @@ void BombGenerator::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, 
 	constexpr Donya::Vector4 color{ 0.7f, 0.7f, 0.7f, 0.8f };
 
 	BaseDraw( WVP, W, lightDir, color );
+
+	for ( const auto &it : bombs )
+	{
+		it.Draw( V, P, lightDir );
+	}
 }
 
 void BombGenerator::WakeUp()
