@@ -34,9 +34,12 @@ public:
 	struct Member
 	{
 	public:
-		std::vector<BoxEx>	editBlocks{};
+		//std::vector<BoxEx>	editBlocks{};
 		std::vector<BoxEx>	debugAllTerrains{};		// Use for collision and drawing.
-		std::vector<std::shared_ptr<GimmickBase>> pEditGimmicks;
+		//std::vector<std::shared_ptr<GimmickBase>> pEditGimmicks;
+
+		StageConfiguration editObjects;
+
 
 		Donya::Vector3		transformMousePos{};
 		int					stageNum = 1;
@@ -54,29 +57,37 @@ public:
 		template<class Archive>
 		void serialize(Archive& archive, std::uint32_t version)
 		{
+			//archive
+			//(
+			//	CEREAL_NVP(editBlocks)
+			//);
+			//if (1 <= version)
+			//{
+			//	archive(CEREAL_NVP(debugClearTrigger));
+			//}
+			//if (2 <= version)
+			//{
+			//	archive
+			//	(
+			//		CEREAL_NVP(initPlayerPos),
+			//		CEREAL_NVP(initCameraPos)
+			//	);
+			//}
+			//if (3 <= version)
+			//{
+			//	 archive( CEREAL_NVP( pEditGimmicks ) );
+			//}
+			//if (4 <= version)
+			//{
+			//	//archive(CEREAL_NVP( x ));
+			//}
 			archive
 			(
-				CEREAL_NVP(editBlocks)
+				CEREAL_NVP(editObjects)
 			);
 			if (1 <= version)
 			{
-				archive(CEREAL_NVP(debugClearTrigger));
-			}
-			if (2 <= version)
-			{
-				archive
-				(
-					CEREAL_NVP(initPlayerPos),
-					CEREAL_NVP(initCameraPos)
-				);
-			}
-			if (3 <= version)
-			{
-				 archive( CEREAL_NVP( pEditGimmicks ) );
-			}
-			if (4 <= version)
-			{
-				//archive(CEREAL_NVP( x ));
+				//	CEREAL_NVP( x )
 			}
 		}
 	};
@@ -108,7 +119,7 @@ public:
 	public:
 	void LoadParameter(bool fromBinary = true)
 	{
-		std::string id = "EdittedStage:" + std::to_string(m.stageNum);
+		std::string id = StageConfiguration::FILE_NAME + std::to_string(m.stageNum);
 
 		std::string filePath = GenerateSerializePath(id, fromBinary);
 		Donya::Serializer::Load(m, filePath.c_str(), id.c_str(), fromBinary);
@@ -121,7 +132,7 @@ public:
 		bool useBinary = true;
 		std::string filePath{};
 
-		std::string id = "EdittedStage:" + std::to_string(m.stageNum);
+		std::string id = StageConfiguration::FILE_NAME + std::to_string(m.stageNum);
 
 		filePath = GenerateSerializePath(id, useBinary);
 		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
@@ -152,31 +163,31 @@ public:
 		switch (EditParam::Data().nowSelect)
 		{
 		case SelectGimmick::Normal:
-			EditParam::Get().DataRef().editBlocks.emplace_back(changeable);
+			EditParam::Get().DataRef().editObjects.editBlocks.emplace_back(changeable);
 			break;
 		case SelectGimmick::Fragile:
-			m.pEditGimmicks.push_back(std::make_shared<FragileBlock>());
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<FragileBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Hard:
-			m.pEditGimmicks.push_back(std::make_shared<HardBlock>());
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<HardBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerKey:
-			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerSwitch:
-			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerPull:
-			m.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Ice:
-			m.pEditGimmicks.push_back(std::make_shared<IceBlock>());
-			m.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<IceBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		default:
 			break;
@@ -186,7 +197,7 @@ public:
 	void EraseBlock()
 	{
 		auto mousePos = EditParam::Get().Data().transformMousePos;
-		for (auto itr = m.editBlocks.begin(); itr != m.editBlocks.end(); )
+		for (auto itr = m.editObjects.editBlocks.begin(); itr != m.editObjects.editBlocks.end(); )
 		{
 			auto box = *itr;
 			//auto mousePos = m.transformMousePos;
@@ -195,11 +206,11 @@ public:
 			if (box.pos.y - box.size.y/2 > mousePos.y) { itr++; continue; }
 			if (box.pos.y + box.size.y/2 < mousePos.y) { itr++; continue; }
 
-			itr = m.editBlocks.erase(itr);
+			itr = m.editObjects.editBlocks.erase(itr);
 			break;
 		}
 
-		for (auto itr = m.pEditGimmicks.begin(); itr != m.pEditGimmicks.end();)
+		for (auto itr = m.editObjects.pEditGimmicks.begin(); itr != m.editObjects.pEditGimmicks.end();)
 		{
 			auto obj = *itr;
 			auto pos = obj->GetPosition();
@@ -210,15 +221,19 @@ public:
 			if (pos.y - size.y / 2 > mousePos.y) { itr++; continue; }
 			if (pos.y + size.y / 2 < mousePos.y) { itr++; continue; }
 
-			itr = m.pEditGimmicks.erase(itr);
+			itr = m.editObjects.pEditGimmicks.erase(itr);
 			break;
 		}
 	}
 	void EraseBlockAll()
 	{
-		for (auto itr = m.editBlocks.begin(); itr != m.editBlocks.end(); )
+		for (auto itr = m.editObjects.editBlocks.begin(); itr != m.editObjects.editBlocks.end(); )
 		{
-			itr = m.editBlocks.erase(itr);
+			itr = m.editObjects.editBlocks.erase(itr);
+		}
+		for (auto itr = m.editObjects.pEditGimmicks.begin(); itr != m.editObjects.pEditGimmicks.end();)
+		{
+
 		}
 	}
 
@@ -468,7 +483,7 @@ void SceneEditor::Draw(float elapsedTime)
 		Donya::Vector4x4 cubeT{};
 		Donya::Vector4x4 cubeS{};
 		Donya::Vector4x4 cubeW{};
-		for (const auto& it : EditParam::Get().Data().editBlocks)
+		for (const auto& it : EditParam::Get().Data().editObjects.editBlocks)
 		{
 			// The drawing size is whole size.
 			// But a collision class's size is half size.
@@ -492,7 +507,7 @@ void SceneEditor::Draw(float elapsedTime)
 
 	// Drawing Objects.
 	{
-		for (auto& it : EditParam::Get().Data().pEditGimmicks)
+		for (auto& it : EditParam::Get().Data().editObjects.pEditGimmicks)
 		{
 			if (!it) { continue; }
 			// else

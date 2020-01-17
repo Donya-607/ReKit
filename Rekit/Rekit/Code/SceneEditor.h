@@ -10,6 +10,28 @@
 #include "Player.h"
 #include "Scene.h"
 
+struct StageConfiguration
+{
+	static constexpr const char* FILE_NAME = "EdittedStage_";
+	std::vector<BoxEx>	editBlocks{};
+	std::vector<std::shared_ptr<GimmickBase>> pEditGimmicks{};
+private:
+	friend class cereal::access;
+	template<class Archive>
+	void serialize(Archive& archive, std::uint32_t version)
+	{
+		archive
+		(
+			CEREAL_NVP(editBlocks),
+			CEREAL_NVP(pEditGimmicks)
+		);
+		if (1 <= version)
+		{
+			//archive(CEREAL_NVP( x ));
+		}
+	}
+};
+
 enum class SelectGimmick
 {
 	Normal = 0,
