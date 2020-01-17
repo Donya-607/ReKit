@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "Donya/Camera.h"
 #include "Donya/GamepadXInput.h"
@@ -21,13 +22,15 @@ public:
 		Donya::Vector4 dir	{ 0.0f,-1.0f, 1.0f, 0.0f };
 	};
 private:
+	int						stageCount;		// 1-based.
+	int						currentStage;	// 0-based.
+
 	DirectionalLight		dirLight;
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 
 	Player					player;
-	Gimmick					gimmicks;
-
+	std::vector<Gimmick>	gimmicks;
 
 	std::unique_ptr<Hook>	pHook;
 
@@ -43,6 +46,8 @@ public:
 
 	void	Draw( float elapsedTime ) override;
 private:
+	void	LoadAllStages();
+
 	void	CameraInit();
 	void	CameraUpdate();
 

@@ -22,6 +22,7 @@
 #include "Fader.h"
 #include "FilePath.h"
 #include "Music.h"
+#include "SceneEditor.h"	// Use StageConfiguration.
 
 using namespace DirectX;
 
@@ -233,6 +234,7 @@ CEREAL_CLASS_VERSION( AlphaParam::Member, 2 )
 #pragma endregion
 
 SceneGame::SceneGame() :
+	stageCount( -1 ), currentStage( 0 ),
 	dirLight(), iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	player(), gimmicks(),
@@ -245,13 +247,16 @@ void SceneGame::Init()
 {
 	Donya::Sound::Play( Music::BGM_Game );
 
+	Gimmick::LoadModels();
+	Gimmick::InitParameters();
+
 	AlphaParam::Get().Init();
+
+	LoadAllStages();
+	currentStage = 0;
 
 	CameraInit();
 
-	Gimmick::LoadModels();
-
-	gimmicks.Init( NULL );
 	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
 }
@@ -259,8 +264,12 @@ void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
 
-	gimmicks.Uninit();
 	AlphaParam::Get().Uninit();
+
+	for ( auto &it : gimmicks )
+	{
+		it.Uninit();
+	}
 
 	player.Uninit();
 	Hook::Uninit();
@@ -313,7 +322,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	}
 
 	// 2. Update velocity of all objects.
-	gimmicks.Update( elapsedTime );
+	gimmicks[currentStage].Update( elapsedTime );
 	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 
@@ -321,7 +330,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	if ( pHook )
 	{
 		std::vector<BoxEx>   terrainsForHook = refStage.debugAllTerrains;
-		AppendGimmicksBox(  &terrainsForHook, gimmicks );
+		AppendGimmicksBox(  &terrainsForHook, gimmicks[currentStage] );
 
 		pHook->PhysicUpdate( terrainsForHook, player.GetPosition() );
 	}
@@ -340,11 +349,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			accompanyBox.exist = false;
 		}
 
-		gimmicks.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refStage.debugAllTerrains );
+		gimmicks[currentStage].PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refStage.debugAllTerrains );
 	}
 
 	// 5. Add the gimmicks block.
-	AppendGimmicksBox( &refStage.debugAllTerrains, gimmicks );
+	AppendGimmicksBox( &refStage.debugAllTerrains, gimmicks[currentStage] );
 	
 	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
@@ -389,7 +398,7 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
 
-	gimmicks.Draw( V, P, dirLight.dir );
+	gimmicks[currentStage].Draw( V, P, dirLight.dir );
 
 	player.Draw( V * P, dirLight.dir, dirLight.color );
 	if ( pHook )
@@ -507,6 +516,56 @@ void SceneGame::Draw( float elapsedTime )
 	#endif // DEBUG_MODE
 	}
 // #endif // DEBUG_MODE
+}
+
+void SceneGame::LoadAllStages()
+{
+	auto MakeFilePath = []( int stageNo )->std::string
+	{
+		return GenerateSerializePath
+		(
+			StageConfiguration::FILE_NAME + std::to_string( stageNo ),
+			/* useBinaryExtension = */ true
+		);
+	};
+	auto LoadGimmicksFile = []( const std::string &filePath )->StageConfiguration
+	{
+		StageConfiguration stage{};
+		Donya::Serializer  seria{};
+
+		bool succeeded = Donya::Serializer::Load
+		(
+			stage, filePath.c_str(),
+			StageConfiguration::INSTANCE_ID,
+			/* fromBinary = */ true
+		);
+		if ( !succeeded )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Load a gimmicks file." );
+		}
+
+		return stage;
+	};
+
+	int stageNo = 0; // 0-based.
+	std::string filePath = MakeFilePath( stageNo );
+	gimmicks.clear();
+
+	while ( Donya::IsExistFile( filePath ) )
+	{
+		gimmicks.push_back( {} );
+
+		gimmicks[stageNo].Init // == gimmicks.back()
+		(
+			stageNo,
+			LoadGimmicksFile( filePath )
+		);
+
+		stageNo++;
+		filePath = MakeFilePath( stageNo );
+	}
+
+	stageCount = stageNo;
 }
 
 void SceneGame::CameraInit()

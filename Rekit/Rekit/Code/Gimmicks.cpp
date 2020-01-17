@@ -14,6 +14,7 @@
 #include "Common.h"
 #include "FilePath.h"
 #include "Music.h"
+#include "SceneEditor.h" // Use StageConfiguration.
 
 #undef max
 #undef min
@@ -305,6 +306,20 @@ namespace GimmickModels
 		return pModels[index];
 	}
 }
+
+void Gimmick::InitParameters()
+{
+	FragileBlock::ParameterInit();
+	HardBlock::ParameterInit();
+	IceBlock::ParameterInit();
+	SpikeBlock::ParameterInit();
+	SwitchBlock::ParameterInit();
+	Trigger::ParameterInit();
+	Bomb::ParameterInit();
+	BombGenerator::ParameterInit();
+	Shutter::ParameterInit();
+}
+
 bool Gimmick::LoadModels()
 {
 	if ( GimmickModels::wasLoaded ) { return true; }
@@ -426,21 +441,12 @@ Gimmick::Gimmick() :
 {}
 Gimmick::~Gimmick() = default;
 
-void Gimmick::Init( int stageNumber )
+void Gimmick::Init( int stageNumber, const StageConfiguration &stageConfig )
 {
-	FragileBlock::ParameterInit();
-	HardBlock::ParameterInit();
-	IceBlock::ParameterInit();
-	SpikeBlock::ParameterInit();
-	SwitchBlock::ParameterInit();
-	Trigger::ParameterInit();
-	Bomb::ParameterInit();
-	BombGenerator::ParameterInit();
-	Shutter::ParameterInit();
-
 	LoadParameter();
 
 	stageNo = stageNumber;
+	ApplyConfig( stageConfig );
 }
 void Gimmick::Uninit()
 {
@@ -560,6 +566,19 @@ void Gimmick::LoadParameter( bool fromBinary )
 {
 	std::string filePath = GenerateSerializePath( SERIAL_ID, fromBinary );
 	Donya::Serializer::Load( *this, filePath.c_str(), SERIAL_ID, fromBinary );
+}
+
+void Gimmick::ApplyConfig( const StageConfiguration &stageConfig )
+{
+	pGimmicks.clear();
+	
+	const size_t gimmickCount = stageConfig.pEditGimmicks.size();
+	pGimmicks.resize( gimmickCount );
+
+	for ( size_t i = 0; i < gimmickCount; ++i )
+	{
+		pGimmicks[i] = stageConfig.pEditGimmicks[i];
+	}
 }
 
 #if USE_IMGUI

@@ -12,7 +12,9 @@
 
 struct StageConfiguration
 {
-	static constexpr const char* FILE_NAME = "EdittedStage_";
+	static constexpr const char *FILE_NAME		= "EdittedStage_";
+	static constexpr const char *INSTANCE_ID	= "Stage";
+
 	std::vector<BoxEx>	editBlocks{};
 	std::vector<std::shared_ptr<GimmickBase>> pEditGimmicks{};
 private:
@@ -58,9 +60,6 @@ private:
 	Donya::XInput			controller;
 	Donya::ICamera			iCamera;
 	DirectionalLight		dirLight;
-
-	Player					player;
-	Gimmick					gimmicks;
 
 	Donya::Geometric::Line	line;
 	Donya::Vector2			mousePos;

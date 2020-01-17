@@ -353,8 +353,6 @@ SceneEditor::SceneEditor() :
 	controller(Donya::Gamepad::PAD_1),
 	iCamera(),
 	dirLight{},
-	player{},
-	gimmicks{},
 	line(256),
 	mousePos(Donya::Vector2(0.0f,0.0f)),
 	nextSceneType(Scene::Type::Null),
@@ -368,9 +366,6 @@ SceneEditor::~SceneEditor() = default;
 void SceneEditor::Init()
 {
 	CameraInit();
-
-	gimmicks.Init(NULL);
-	player.Init(EditParam::Get().Data().initPlayerPos);
 
 	iCamera.Init(Donya::ICamera::Mode::Free);
 	iCamera.SetPosition(Donya::Vector3(0.0f, 0.0f, -80.0f));

@@ -842,12 +842,17 @@ CEREAL_CLASS_VERSION( Shutter, 0 )
 CEREAL_REGISTER_TYPE( Shutter )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, Shutter )
 
+struct StageConfiguration;
 /// <summary>
 /// The gimmicks admin.
 /// </summary>
 class Gimmick
 {
 public:
+	/// <summary>
+	/// Please call when a scene initialize.
+	/// </summary>
+	static void InitParameters();
 	/// <summary>
 	/// Retuns the result of loadings.
 	/// </summary>
@@ -873,10 +878,10 @@ private:
 	template<class Archive>
 	void serialize( Archive &archive, std::uint32_t version )
 	{
-		archive
+		/*archive
 		(
 			CEREAL_NVP( pGimmicks )
-		);
+		);*/
 		if ( 1 <= version )
 		{
 			// archive( CEREAL_NVP( x ) );
@@ -891,7 +896,7 @@ public:
 	Gimmick();
 	~Gimmick();
 public:
-	void Init( int stageNumber );
+	void Init( int stageNumber, const StageConfiguration &stageConfig );
 	void Uninit();
 
 	void Update( float elapsedTime );
@@ -901,6 +906,11 @@ public:
 public:
 	std::vector<AABBEx> RequireHitBoxes() const;
 private:
+	/// <summary>
+	/// Replace the gimmicks.
+	/// </summary>
+	void ApplyConfig( const StageConfiguration &stageConfig );
+	
 	void LoadParameter( bool fromBinary = true );
 #if USE_IMGUI
 	void SaveParameter();
