@@ -28,6 +28,7 @@ private:
 	Player					player;
 	Gimmick					gimmicks;
 
+
 	std::unique_ptr<Hook>	pHook;
 
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.

@@ -9,6 +9,8 @@ class SceneTitle : public Scene
 {
 private:
 	Donya::XInput	controller;
+
+	Scene::Type		nextSceneType;
 public:
 	SceneTitle();
 	~SceneTitle();

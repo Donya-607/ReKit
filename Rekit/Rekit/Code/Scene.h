@@ -22,6 +22,7 @@ public:
 		Clear,
 		Over,
 		Pause,
+		Editor,
 	};
 	struct Result
 	{
