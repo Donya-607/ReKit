@@ -520,15 +520,19 @@ void SceneGame::Draw( float elapsedTime )
 
 void SceneGame::LoadAllStages()
 {
-	auto MakeFilePath = []( int stageNo )->std::string
+	auto MakeIdentifier = []( int stageNo )->std::string
+	{
+		return std::string{ StageConfiguration::FILE_NAME + std::to_string( stageNo ) };
+	};
+	auto MakeFilePath = [&MakeIdentifier]( int stageNo )->std::string
 	{
 		return GenerateSerializePath
 		(
-			StageConfiguration::FILE_NAME + std::to_string( stageNo ),
+			MakeIdentifier( stageNo ),
 			/* useBinaryExtension = */ true
 		);
 	};
-	auto LoadGimmicksFile = []( const std::string &filePath )->StageConfiguration
+	auto LoadGimmicksFile = []( const std::string &filePath, const std::string &identifier )->StageConfiguration
 	{
 		StageConfiguration stage{};
 		Donya::Serializer  seria{};
@@ -536,7 +540,7 @@ void SceneGame::LoadAllStages()
 		bool succeeded = Donya::Serializer::Load
 		(
 			stage, filePath.c_str(),
-			StageConfiguration::INSTANCE_ID,
+			identifier.c_str(),
 			/* fromBinary = */ true
 		);
 		if ( !succeeded )
@@ -547,18 +551,26 @@ void SceneGame::LoadAllStages()
 		return stage;
 	};
 
+	gimmicks.clear();
+
 	int stageNo = 0; // 0-based.
 	std::string filePath = MakeFilePath( stageNo );
-	gimmicks.clear();
+	StageConfiguration config{};
 
 	while ( Donya::IsExistFile( filePath ) )
 	{
-		gimmicks.push_back( {} );
+		config = LoadGimmicksFile( filePath, MakeIdentifier( stageNo ) );
 
+		if ( stageNo == 0 )
+		{
+			AlphaParam::Get().DataRef().debugTerrains = config.editBlocks;
+		}
+
+		gimmicks.push_back( {} );
 		gimmicks[stageNo].Init // == gimmicks.back()
 		(
 			stageNo,
-			LoadGimmicksFile( filePath )
+			config
 		);
 
 		stageNo++;

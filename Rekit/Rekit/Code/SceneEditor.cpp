@@ -92,7 +92,7 @@ public:
 		}
 	};
 private:
-	static constexpr const char* SERIAL_ID = "EditStageBlocks";
+	// static constexpr const char* SERIAL_ID = "EditStageBlocks";
 	Member m;
 private:
 	EditParam() : m() {}
@@ -136,11 +136,13 @@ public:
 
 		filePath = GenerateSerializePath(id, useBinary);
 		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
+		Donya::Serializer::Save(m.editObjects, filePath.c_str(), id.c_str(), useBinary);
 
 		useBinary = false;
 
 		filePath = GenerateSerializePath(id, useBinary);
 		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
+		Donya::Serializer::Save(m.editObjects, filePath.c_str(), id.c_str(), useBinary);
 	}
 	void GenerateBlock()
 	{
