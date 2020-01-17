@@ -21,6 +21,7 @@ public:
 	struct Member
 	{
 		float	moveSpeed{};
+		float	waitTime{};
 		AABBEx	hitBox{};
 	private:
 		friend class cereal::access;
@@ -30,6 +31,7 @@ public:
 			archive
 			(
 				CEREAL_NVP ( moveSpeed ),
+				CEREAL_NVP ( waitTime ),
 				CEREAL_NVP ( hitBox )
 			);
 			if (1 <= version)
@@ -95,6 +97,7 @@ public:
 				};
 
 				ImGui::DragFloat ( u8"エレベーターが動く速度", &m.moveSpeed, 0.1f );
+				ImGui::DragFloat ( u8"エレベーターの待機フレーム", &m.waitTime, 0.1f );
 
 				AdjustAABB ( u8"当たり判定", &m.hitBox );
 
@@ -143,10 +146,10 @@ void Elevator::UseParameterImGui ()
 #endif // USE_IMGUI
 
 Elevator::Elevator () : GimmickBase (),
-	id ( -1 ), destinationPos ( 0, 0, 0 ), topPos ( 0, 0, 0 ), lowestPos ( 0, 0, 0 )
+id ( -1 ), direction ( 0, 0, 0 ), moveAmount ( 0 ), maxMoveAmount ( 0 ), waitCount ( 0 ), state ( Elevator::ElevatorState::Stay )
 {}
-Elevator::Elevator ( int id, const Donya::Vector3& topPos, const Donya::Vector3& lowestPos ) : GimmickBase (),
-	id ( id ), destinationPos ( topPos ), topPos ( topPos ), lowestPos ( lowestPos )
+Elevator::Elevator ( int id, const Donya::Vector3& direction, float moveAmount ) : GimmickBase (),
+id ( id ), direction ( direction ), moveAmount ( 0 ), maxMoveAmount ( moveAmount ), waitCount ( 0 ), state ( Elevator::ElevatorState::Stay )
 {}
 Elevator::~Elevator () = default;
 
@@ -156,6 +159,7 @@ void Elevator::Init ( int gimmickKind, float roll, const Donya::Vector3& wsPos )
 	rollDegree = roll;
 	pos = wsPos;
 	velocity = 0.0f;
+	direction.Normalize ();
 }
 void Elevator::Uninit ()
 {
@@ -164,8 +168,61 @@ void Elevator::Uninit ()
 
 void Elevator::Update ( float elapsedTime )
 {
-	Donya::Vector3 direction = destinationPos - pos;
-	direction.Normalize ();
+	switch (state)
+	{
+	case ElevatorState::Stay:
+		// debug用なので消してね-----------------------------------
+		if (Donya::Keyboard::Trigger ( 'Q' ))
+		{
+			GimmickStatus::Register ( id, true );
+		}
+		//---------------------------------------------------------
+
+		velocity = 0;
+		if (GimmickStatus::Refer ( id ))
+		{
+			GimmickStatus::Remove ( id );
+			state = ElevatorState::Go;
+		}
+		break;
+
+	case ElevatorState::Go:
+		velocity = direction * ParamElevator::Get ().Data ().moveSpeed;
+		moveAmount += ParamElevator::Get ().Data ().moveSpeed;
+
+		if (moveAmount >= maxMoveAmount)
+		{
+			float cma = ParamElevator::Get ().Data ().moveSpeed - (moveAmount - maxMoveAmount);		// Current move amount.
+			velocity = direction * cma;
+			moveAmount = maxMoveAmount;
+			state = ElevatorState::Wait;
+		}
+		break;
+
+	case ElevatorState::Wait:
+		velocity = 0;
+		if (waitCount++ >= ParamElevator::Get ().Data ().waitTime)
+		{
+			waitCount = 0;
+			state = ElevatorState::GoBack;
+		}
+		break;
+
+	case ElevatorState::GoBack:
+		velocity = direction * ParamElevator::Get ().Data ().moveSpeed * -1;
+		moveAmount -= ParamElevator::Get ().Data ().moveSpeed;
+
+		if (moveAmount <= 0)
+		{
+			float cma = ParamElevator::Get ().Data ().moveSpeed - moveAmount;		// Current move amount.
+			velocity = direction * cma * -1;
+			state = ElevatorState::Stay;
+		}
+		break;
+		
+	default:
+		break;
+	}
 }
 void Elevator::PhysicUpdate ( const BoxEx & player, const BoxEx & accompanyBox, const std::vector<BoxEx> & terrains, bool collideToPlayer, bool ignoreHitBoxExist )
 {
@@ -177,7 +234,7 @@ void Elevator::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, co
 	Donya::Vector4x4 W = GetWorldMatrix ( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 colors = { 1.0f, 0.6f, 0.3f, 0.8f };
+	constexpr Donya::Vector4 colors = { 1.0f, 1.0f, 0.0f, 0.8f };
 
 	BaseDraw ( WVP, W, lightDir, colors );
 }

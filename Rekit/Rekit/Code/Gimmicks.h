@@ -28,6 +28,7 @@ enum class GimmickKind
 	TriggerPull,
 	Shutter,
 	Door,
+	Elevator,
 
 	GimmicksCount
 };
@@ -776,14 +777,23 @@ public:
 	/// </summary>
 	static void UseParameterImGui ();
 #endif // USE_IMGUI
+	enum class ElevatorState
+	{
+		Stay = 0,
+		Go,
+		Wait,
+		GoBack,
+	};
 private:
 	int				id;
-	Donya::Vector3	destinationPos;	// World space.
-	Donya::Vector3	topPos;			// World space.
-	Donya::Vector3	lowestPos;		// World space.
+	Donya::Vector3	direction;		// World space.
+	float			moveAmount;		// Amount moved.
+	float			maxMoveAmount;	// Maximum amount to move.
+	int				waitCount;
+	ElevatorState	state;
 public:
 	Elevator ();
-	Elevator ( int id, const Donya::Vector3& topPos, const Donya::Vector3& lowestPos );
+	Elevator ( int id, const Donya::Vector3& direction, float moveAmount );
 	~Elevator ();
 private:
 	friend class cereal::access;

@@ -47,6 +47,7 @@ namespace GimmickUtility
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
 		case GimmickKind::Door:				return "Door";			// break;
+		case GimmickKind::Elevator:			return "Elevator";		// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -301,7 +302,8 @@ void Gimmick::Init( int stageNumber )
 	SwitchBlock::ParameterInit();
 	Trigger::ParameterInit();
 	Shutter::ParameterInit ();
-	Door::ParameterInit();
+	Door::ParameterInit ();
+	Elevator::ParameterInit();
 
 	LoadParameter();
 
@@ -452,18 +454,22 @@ void Gimmick::UseImGui()
 	SwitchBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
 	Shutter::UseParameterImGui ();
-	Door::UseParameterImGui();
+	Door::UseParameterImGui ();
+	Elevator::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			static float rollDegree{};
+			static float rollDegree{}, moveAmount{};
 			static Donya::Vector3 shutterDirection{};
+			static int id{};
 			if ( ImGui::TreeNode( u8"設置オプション" ) )
 			{
 				ImGui::DragFloat( u8"Ｚ軸回転量", &rollDegree );
 				ImGui::SliderFloat3( u8"シャッターの開く方向", &shutterDirection.x, -1.0f, 1.0f );
+				ImGui::DragInt ( u8"ID", &id );
+				ImGui::DragFloat ( u8"移動量", &moveAmount );
 
 				ImGui::TreePop();
 			}
@@ -515,13 +521,18 @@ void Gimmick::UseImGui()
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
+					pGimmicks.push_back( std::make_shared<Shutter>( id, shutterDirection.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
 				}
 				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Door )).c_str () ))
 				{
-					pGimmicks.push_back ( std::make_shared<Door> ( NULL, shutterDirection.Normalized () ) );
+					pGimmicks.push_back ( std::make_shared<Door> ( id, shutterDirection.Normalized () ) );
 					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Door ), rollDegree, GENERATE_POS );
+				}
+				if (ImGui::Button ( (prefix + ToString ( GimmickKind::Elevator )).c_str () ))
+				{
+					pGimmicks.push_back ( std::make_shared<Elevator> ( id, shutterDirection.Normalized (), moveAmount ) );
+					pGimmicks.back ()->Init ( ToInt ( GimmickKind::Elevator ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )

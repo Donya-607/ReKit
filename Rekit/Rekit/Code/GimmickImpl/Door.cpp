@@ -200,7 +200,7 @@ void Door::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const 
 	Donya::Vector4x4 W = GetWorldMatrix ( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 colors = { 0.0f, 0.6f, 0.5f, 0.8f };
+	constexpr Donya::Vector4 colors = { 0.0f, 0.7f, 0.9f, 0.8f };
 
 	BaseDraw ( WVP, W, lightDir, colors );
 }

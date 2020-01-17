@@ -165,24 +165,19 @@ void Shutter::Uninit ()
 void Shutter::Update ( float elapsedTime )
 {
 	// debug用なので消してね-----------------------------------
-	bool move = true;
-	if (!Donya::Keyboard::Trigger ( 'Q' ) && movedWidth == 0)
+	if (Donya::Keyboard::Trigger ( 'Q' ))
 	{
-		return;
+		GimmickStatus::Register ( id, true );
 	}
 	//---------------------------------------------------------
 
-	// TODO : debug用の処理消したらこれ↓復活させてね
-//	if (!GimmickStatus::Refer ( id ))	{ return; }
+	if (!GimmickStatus::Refer ( id ))	{ return; }
 
 	// 正方形なのでxでもyでもどっちでも良いのではないか説
 	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
 	{
 		velocity = 0;
 		GimmickStatus::Remove ( id );
-
-		movedWidth = 0;	// debug用なので消してね
-
 		return;
 	}
 
@@ -199,7 +194,7 @@ void Shutter::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, con
 	Donya::Vector4x4 W = GetWorldMatrix ( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 colors = { 0.3f, 0.0f, 0.6f, 0.8f };
+	constexpr Donya::Vector4 colors = { 0.0f, 0.2f, 0.3f, 0.8f };
 
 	BaseDraw ( WVP, W, lightDir, colors );
 }

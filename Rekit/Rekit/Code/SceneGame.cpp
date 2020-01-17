@@ -670,19 +670,28 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 		stick = controller.RightStick();
 
-#if 0
-		if ( controller.Trigger( Pad::LT ) ) { useAction	= true; }
-		if ( controller.Press  ( Pad::RT ) ) { create		= true;
-											   extend		= true; }
-		if ( controller.Press  ( Pad::RB ) ) { shrink		= true; }
-		if ( controller.Trigger( Pad::LB ) ) { erase		= true; }
-#else
-		if ( controller.Trigger( Pad::RT ) ) { useAction	= true; }
-		if ( stick.Length() != 0 )			 { create		= true;
-											   extend		= true; }
-		else								 { shrink		= true; }
-		if ( controller.Trigger( Pad::LT ) ) { erase		= true; }
-#endif
+		static bool controlType = true;
+		if (controller.Trigger ( Pad::Button::PRESS_R )) { controlType = !controlType; };
+		if (controlType)
+		{
+			if (controller.Trigger ( Pad::LT )) { useAction = true; }
+			if (controller.Press ( Pad::RT )) {
+				create = true;
+				extend = true;
+			}
+			if (controller.Press ( Pad::RB )) { shrink = true; }
+			if (controller.Trigger ( Pad::LB )) { erase = true; }
+		}
+		else
+		{
+			if (controller.Trigger ( Pad::RT )) { useAction = true; }
+			if (stick.Length () != 0) {
+				create = true;
+				extend = true;
+			}
+			else { shrink = true; }
+			if (controller.Trigger ( Pad::LT )) { erase = true; }
+		}
 	}
 	else
 	{
