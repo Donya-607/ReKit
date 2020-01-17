@@ -744,6 +744,8 @@ public:
 	/// Returns world space hit-box.
 	/// </summary>
 	AABBEx GetHitBox() const override;
+	bool HasMultipleHitBox() const override;
+	std::vector<AABBEx> GetAnotherHitBoxes() const override;
 private:
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
 private:

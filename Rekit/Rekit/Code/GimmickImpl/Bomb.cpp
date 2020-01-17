@@ -329,6 +329,7 @@ void Bomb::ShowImGuiNode()
 	using namespace GimmickUtility;
 
 	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"状態：%s", ( status == State::Explosion ) ? u8"爆発" : u8"ボム" );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
@@ -541,6 +542,23 @@ AABBEx BombGenerator::GetHitBox() const
 	return base;
 }
 
+bool BombGenerator::HasMultipleHitBox() const
+{
+	return true;
+}
+std::vector<AABBEx> BombGenerator::GetAnotherHitBoxes() const
+{
+	const size_t boxCount = bombs.size();
+	std::vector<AABBEx> multipleHitBoxes{ boxCount };
+
+	for ( size_t i = 0; i < boxCount; ++i )
+	{
+		multipleHitBoxes[i] = bombs[i].GetHitBox();
+	}
+
+	return multipleHitBoxes;
+}
+
 void BombGenerator::CountDown( float elapsedTime )
 {
 	generateTimer -= elapsedTime;
@@ -619,6 +637,30 @@ void BombGenerator::ShowImGuiNode()
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);
+
+	const size_t bombCount = bombs.size();
+
+	const std::string nodeCaption = u8"生成物：[" + std::to_string( bombCount ) + u8"個]";
+	if ( ImGui::TreeNode(  nodeCaption.c_str() ) )
+	{
+		ImGui::BeginChild( nodeCaption.c_str(), ImVec2{ 0.0f, 270.0f } );
+		{
+			std::string instanceCaption{};
+			for ( size_t i = 0; i < bombCount; ++i )
+			{
+				instanceCaption = "[" + std::to_string( i ) + "]";
+				if ( ImGui::TreeNode( instanceCaption.c_str() ) )
+				{
+					bombs[i].ShowImGuiNode();
+
+					ImGui::TreePop();
+				}
+			}
+		}
+		ImGui::EndChild();
+
+		ImGui::TreePop();
+	}
 }
 
 #endif // USE_IMGUI
