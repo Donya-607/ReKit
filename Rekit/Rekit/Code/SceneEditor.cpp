@@ -42,7 +42,7 @@ public:
 
 
 		Donya::Vector3		transformMousePos{};
-		int					stageNum = 1;
+		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
 		SelectGimmick		nowSelect;
 
@@ -227,7 +227,7 @@ public:
 		}
 		for (auto itr = m.editObjects.pEditGimmicks.begin(); itr != m.editObjects.pEditGimmicks.end();)
 		{
-
+			itr = m.editObjects.pEditGimmicks.erase(itr);
 		}
 	}
 
@@ -242,8 +242,8 @@ public:
 				static int lastStageNum;
 				lastStageNum = m.stageNum;
 				ImGui::InputInt(u8"ステージ", &m.stageNum);
-				if (m.stageNum <= 1)m.stageNum = 1;
-				if (m.stageNum >= 20)m.stageNum = 20;
+				if (m.stageNum <= 0)m.stageNum = 0;
+				if (m.stageNum >= 19)m.stageNum = 19;
 				// ステージ切り替えた時にブロックを全消去する
 				if (lastStageNum != m.stageNum)
 				{
@@ -589,7 +589,6 @@ Scene::Result SceneEditor::ReturnResult()
 		change.sceneType = nextSceneType;
 		return change;
 	}
-
 	// else
 
 	Scene::Result noop{ Scene::Request::NONE, Scene::Type::Null };
@@ -625,8 +624,7 @@ void SceneEditor::CorrectionGridCursor()
 {
 	auto mousePos = EditParam::Get().DataRef().transformMousePos;
 
-	// int div{};
-	float div{};
+	int div{};
 
 //	if (mousePos.x >= 0.0f)
 //	{
@@ -637,7 +635,7 @@ void SceneEditor::CorrectionGridCursor()
 //		div = mousePos.x / 2.0f;
 //	}
 
-	div = mousePos.x / 4.0f;
+	div = scast<int>( mousePos.x / 4.0f );
 	mousePos.x = div * 4.0f;
 
 //	if (mousePos.y >= 0.0f)
@@ -649,7 +647,7 @@ void SceneEditor::CorrectionGridCursor()
 //		div = mousePos.y / 2.0f;
 //	}
 
-	div = mousePos.y / 4.0f;
+	div = scast<int>( mousePos.y / 4.0f );
 	mousePos.y = div * 4.0f;
 
 	EditParam::Get().DataRef().transformMousePos = mousePos;
