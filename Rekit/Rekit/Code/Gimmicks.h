@@ -23,6 +23,7 @@ enum class GimmickKind
 	Ice,
 	Spike,
 	SwitchBlock,
+	Lift,
 	TriggerKey,
 	TriggerSwitch, // Linking to Shutter. Gather the switch block.
 	TriggerPull,
@@ -487,6 +488,90 @@ CEREAL_CLASS_VERSION( SwitchBlock, 0 )
 CEREAL_REGISTER_TYPE( SwitchBlock )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, SwitchBlock )
 
+class Lift : public GimmickBase
+{
+public:
+	/// <summary>
+	/// Please call when a scene initialize.
+	/// </summary>
+	static void ParameterInit ();
+#if USE_IMGUI
+	/// <summary>
+	/// Please call every frame.
+	/// </summary>
+	static void UseParameterImGui ();
+#endif // USE_IMGUI
+	enum class ElevatorState
+	{
+		Stay = 0,
+		Go,
+		Wait,
+		GoBack,
+	};
+private:
+	int				id;
+	Donya::Vector3	direction;		// World space.
+	float			moveAmount;		// Amount moved.
+	float			maxMoveAmount;	// Maximum amount to move.
+	int				waitCount;
+	ElevatorState	state;
+public:
+	Lift ();
+	Lift ( int id, const Donya::Vector3& direction, float moveAmount );
+	~Lift ();
+private:
+	friend class cereal::access;
+	template<class Archive>
+	void serialize ( Archive& archive, std::uint32_t version )
+	{
+		archive
+		(
+			cereal::base_class<GimmickBase> ( this ),
+			CEREAL_NVP ( id )
+		);
+		if (1 <= version)
+		{
+			// archive( CEREAL_NVP( x ) );
+		}
+	}
+public:
+	void Init ( int kind, float rollDegree, const Donya::Vector3& wsPos ) override;
+	void Uninit () override;
+
+	void Update ( float elapsedTime ) override;
+	void PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+
+	void Draw ( const Donya::Vector4x4& matView, const Donya::Vector4x4& matProjection, const Donya::Vector4& lightDirection ) const override;
+public:
+	void WakeUp () override;
+
+	/// <summary>
+	/// Returns a signal of want to remove.
+	/// </summary>
+	bool ShouldRemove () const override;
+	/// <summary>
+	/// Returns world space position.
+	/// </summary>
+	Donya::Vector3 GetPosition () const override;
+	/// <summary>
+	/// Returns world space hit-box.
+	/// </summary>
+	AABBEx GetHitBox () const override;
+private:
+	/// <summary>
+	/// Returns index is kind of triggers(following the GimmickKind, start by TriggerKey), 0-based.
+	/// </summary>
+	int GetTriggerKindIndex () const;
+	Donya::Vector4x4 GetWorldMatrix ( bool useDrawing = false ) const;
+public:
+#if USE_IMGUI
+	void ShowImGuiNode () override;
+#endif // USE_IMGUI
+};
+CEREAL_CLASS_VERSION ( Elevator, 0 )
+CEREAL_REGISTER_TYPE ( Elevator )
+CEREAL_REGISTER_POLYMORPHIC_RELATION ( GimmickBase, Elevator )
+
 /// <summary>
 /// Provides some trigger to some gimmick.
 /// </summary>
@@ -839,22 +924,6 @@ private:
 	/// </summary>
 	int GetTriggerKindIndex () const;
 	Donya::Vector4x4 GetWorldMatrix ( bool useDrawing = false ) const;
-private:
-	void InitKey ();
-	void InitSwitch ();
-	void InitPull ();
-
-	void UninitKey ();
-	void UninitSwitch ();
-	void UninitPull ();
-
-	void UpdateKey ( float elapsedTime );
-	void UpdateSwitch ( float elapsedTime );
-	void UpdatePull ( float elapsedTime );
-
-	void PhysicUpdateKey ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains );
-	void PhysicUpdateSwitch ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains );
-	void PhysicUpdatePull ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode () override;
