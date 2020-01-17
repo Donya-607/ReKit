@@ -269,7 +269,7 @@ public:
 				if (ImGui::TreeNode(u8"オブジェクト"))
 				{
 					ImGui::InputInt(u8"ドアのID", &m.doorID);
-					if (m.doorID >= 5)m.doorID = 5;
+					if (m.doorID >= 10)m.doorID = 10;
 					if (m.doorID <= 0)m.doorID = 0;
 
 					ImGui::Text("");
@@ -311,7 +311,7 @@ public:
 					}
 					if (SceneEditor::isChanges)
 					{
-						ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.5f, 1.0f), u8"変更されていない箇所があります");
+						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), u8"変更されていない箇所があります");
 					}
 					ImGui::TreePop();
 				}
@@ -321,6 +321,7 @@ public:
 					ImGui::Text(u8"左クリック : 選択中のブロックを配置");
 					ImGui::Text(u8"右クリック : カーソル上のブロックを削除");
 					ImGui::Text(u8"Ctrl + S  : 現在の状態を、選択中のステージデータに上書き保存");
+					ImGui::Text(u8"Ctrl + R  : 選択中のステージのファイルをロード");
 					ImGui::TreePop();
 				}
 
