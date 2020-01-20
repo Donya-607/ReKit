@@ -12,6 +12,7 @@
 #include "Hook.h"
 #include "Player.h"
 #include "Scene.h"
+#include "Terrain.h"
 
 class SceneGame : public Scene
 {
@@ -31,7 +32,9 @@ private:
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 
 	Player					player;
-	std::vector<Gimmick>	gimmicks;
+
+	std::vector<Terrain>	terrains;		// The terrains per stage.
+	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
 
 	std::unique_ptr<Hook>	pHook;
 

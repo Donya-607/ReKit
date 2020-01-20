@@ -264,7 +264,7 @@ SceneGame::SceneGame() :
 	dirLight(), iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
-	player(), gimmicks(),
+	player(), terrains(), gimmicks(),
 	pHook( nullptr ),
 	useCushion( true )
 {}
@@ -273,6 +273,8 @@ SceneGame::~SceneGame() = default;
 void SceneGame::Init()
 {
 	Donya::Sound::Play( Music::BGM_Game );
+
+	Terrain::LoadModel();
 
 	Gimmick::LoadModels();
 	Gimmick::InitParameters();
@@ -609,6 +611,7 @@ void SceneGame::LoadAllStages()
 		return stage;
 	};
 
+	terrains.clear();
 	gimmicks.clear();
 
 	int stageNo = 0; // 0-based.
@@ -619,10 +622,8 @@ void SceneGame::LoadAllStages()
 	{
 		config = LoadGimmicksFile( filePath, MakeIdentifier( stageNo ) );
 
-		if ( stageNo == 0 )
-		{
-			AlphaParam::Get().DataRef().debugTerrains = config.editBlocks;
-		}
+		terrains.push_back( {} );
+		terrains[stageNo].Init( config.editBlocks );
 
 		gimmicks.push_back( {} );
 		gimmicks[stageNo].Init // == gimmicks.back()
@@ -861,11 +862,6 @@ void SceneGame::UpdateCurrentStage()
 	const auto &param = AlphaParam::Get().DataRef();
 	const Donya::Vector2 roomHalfSize = param.roomSize * 0.5f;
 
-	if ( Donya::Keyboard::Trigger( 'V' ) )
-	{
-		char a = 0;
-	}
-	
 	Donya::Vector2 playerPos = player.GetHitBox().Get2D().pos;
 	playerPos.y *= -1.0f; // Think as screen space.
 	playerPos   -= roomOriginPos;
