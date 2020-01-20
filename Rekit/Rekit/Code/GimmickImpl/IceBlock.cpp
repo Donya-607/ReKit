@@ -193,7 +193,7 @@ AABBEx IceBlock::GetHitBox() const
 	AABBEx base = ParamIceBlock::Get().Data().hitBox;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
-	base.attr		= kind;
+	base.attr		=  kind;
 	return base;
 }
 
@@ -203,7 +203,7 @@ Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		wsBox.size *= 2.0f;
+		// wsBox.size *= 2.0f;
 	}
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );

@@ -23,11 +23,12 @@ public:
 	};
 private:
 	int						stageCount;		// 1-based.
-	int						currentStage;	// 0-based.
+	int						currentStageNo;	// 0-based.
 
 	DirectionalLight		dirLight;
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
+	Donya::Vector2			roomOriginPos;	// Center-Top.
 
 	Player					player;
 	std::vector<Gimmick>	gimmicks;
@@ -48,10 +49,13 @@ public:
 private:
 	void	LoadAllStages();
 
+	Donya::Int2 CalcRoomIndex( int stageNo ) const;
+
 	void	CameraInit();
 	void	CameraUpdate();
 
-	void	PlayerUpdate(float elapsedTime);
+	void	PlayerUpdate( float elapsedTime );
+	bool	IsPlayerOutFromRoom() const;
 	void	HookUpdate( float elapsedTime );
 
 	bool	DetectClearMoment() const;

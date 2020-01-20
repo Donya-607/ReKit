@@ -122,7 +122,7 @@ public:
 		std::string id = StageConfiguration::FILE_NAME + std::to_string(m.stageNum);
 
 		std::string filePath = GenerateSerializePath(id, fromBinary);
-		Donya::Serializer::Load(m, filePath.c_str(), id.c_str(), fromBinary);
+		Donya::Serializer::Load(m.editObjects, filePath.c_str(), id.c_str(), fromBinary);
 	}
 
 #if USE_IMGUI
@@ -135,13 +135,13 @@ public:
 		std::string id = StageConfiguration::FILE_NAME + std::to_string(m.stageNum);
 
 		filePath = GenerateSerializePath(id, useBinary);
-		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
+		// Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
 		Donya::Serializer::Save(m.editObjects, filePath.c_str(), id.c_str(), useBinary);
 
 		useBinary = false;
 
 		filePath = GenerateSerializePath(id, useBinary);
-		Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
+		// Donya::Serializer::Save(m, filePath.c_str(), id.c_str(), useBinary);
 		Donya::Serializer::Save(m.editObjects, filePath.c_str(), id.c_str(), useBinary);
 	}
 	void GenerateBlock()
@@ -346,7 +346,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION(EditParam::Member, 3)
+CEREAL_CLASS_VERSION(EditParam::Member, 0)
 #pragma endregion
 
 
