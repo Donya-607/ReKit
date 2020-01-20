@@ -29,26 +29,24 @@
 
 using namespace DirectX;
 
-#pragma region AlphaParam
-class AlphaParam final : public Donya::Singleton<AlphaParam>
+class GameParam final : public Donya::Singleton<GameParam>
 {
-	friend Donya::Singleton<AlphaParam>;
+	friend Donya::Singleton<GameParam>;
 public:
 	struct Member
 	{
 	public:
+		Donya::Vector4		lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Donya::Vector4		lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
+
 		float				cameraDolly{ -10.0f };		// Use for z-position of camera.
+		float				cameraSlerp{ 0.2f };		// Use for the interpolation of camera move.
 		Donya::Vector2		roomSize{ 10.0f, 10.0f };	// Whole-size. Use for check to "is the player on outside place?"
 		Donya::Int2			roomCounts{ 4, 5 };			// 1-based. Represent the row and column count of neighboring rooms.
+		
+		Donya::Vector3		initPlayerPos{};
 
-		std::vector<BoxEx>	debugTerrains{};
-		std::vector<BoxEx>	debugAllTerrains{};			// Use for collision and drawing.
-
-		BoxEx debugCompressor  { { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
-		BoxEx debugClearTrigger{ { 0.0f, 0.0f, 0.0f, 0.0f, false }, 0 };
-
-		Donya::Vector3 initCameraPos{};
-		Donya::Vector3 initPlayerPos{};
+		BoxEx debugClearTrigger{ { -10.0f, -10.0f, 6.0f, 6.0f, true }, 0 }; // Does not serialize.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -56,42 +54,31 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP( debugTerrains )
+				CEREAL_NVP( lightColor ),
+				CEREAL_NVP( lightDirection ),
+				CEREAL_NVP( cameraDolly ),
+				CEREAL_NVP( roomSize ),
+				CEREAL_NVP( roomCounts ),
+				CEREAL_NVP( initPlayerPos )
 			);
+
 			if ( 1 <= version )
 			{
-				archive( CEREAL_NVP( debugClearTrigger ) );
+				archive( CEREAL_NVP( cameraSlerp ) );
 			}
 			if ( 2 <= version )
-			{
-				archive
-				(
-					CEREAL_NVP( initPlayerPos ),
-					CEREAL_NVP( initCameraPos )
-				);
-			}
-			if ( 3 <= version )
-			{
-				archive
-				(
-					CEREAL_NVP( cameraDolly ),
-					CEREAL_NVP( roomSize ),
-					CEREAL_NVP( roomCounts )
-				);
-			}
-			if ( 4 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
 		}
 	};
 private:
-	static constexpr const char* SERIAL_ID = "AlphaStageBlocks";
+	static constexpr const char *SERIAL_ID = "GameConfig";
 	Member m;
 private:
-	AlphaParam() : m() {}
+	GameParam() : m() {}
 public:
-	~AlphaParam() = default;
+	~GameParam() = default;
 public:
 	void Init()
 	{
@@ -106,20 +93,13 @@ public:
 	{
 		return m;
 	}
-	// Use for change the debugTerrains.
-	Member& DataRef()
-	{
-		return m;
-	}
 private:
-	void LoadParameter(bool fromBinary = true)
+	void LoadParameter( bool fromBinary = true )
 	{
 		std::string filePath = GenerateSerializePath( SERIAL_ID, fromBinary );
 		Donya::Serializer::Load( m, filePath.c_str(), SERIAL_ID, fromBinary );
 	}
-
 #if USE_IMGUI
-
 	void SaveParameter()
 	{
 		bool useBinary = true;
@@ -133,93 +113,37 @@ private:
 		filePath = GenerateSerializePath( SERIAL_ID, useBinary );
 		Donya::Serializer::Save( m, filePath.c_str(), SERIAL_ID, useBinary );
 	}
-
 public:
 	void UseImGui()
 	{
-		m.debugCompressor.pos += m.debugCompressor.velocity;
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"地形エディタ" ) )
+			if ( ImGui::TreeNode( u8"ゲーム・設定" ) )
 			{
-				if ( ImGui::TreeNode( u8"パラメーター設定" ) )
+				if ( ImGui::TreeNode( u8"ライト" ) )
 				{
-					bool pressCtrl = Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
-					bool triggerDebugButton = Donya::Keyboard::Trigger( 'G' );
-					if ( ( pressCtrl && triggerDebugButton ) || ImGui::Button( u8"ブロック生成" ) )
-					{
-						BoxEx changeable{ { 0.0f, 0.0f, 2.0f, 2.0f, true }, 1 };
-						AlphaParam::Get().DataRef().debugTerrains.emplace_back( changeable );
-					}
+					ImGui::SliderFloat3( u8"方向性ライト・向き", &m.lightDirection.x, -1.0f, 1.0f );
+					ImGui::ColorEdit4( u8"方向性ライト・カラー", &m.lightColor.x );
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( u8"部屋設定" ) )
+				{
+					ImGui::DragFloat( u8"カメラのＺ位置",			&m.cameraDolly,		1.0f );
+					ImGui::SliderFloat( u8"カメラの補間速度",		&m.cameraSlerp,		0.01f, 1.0f );
+					ImGui::DragFloat2( u8"ルームサイズ（全体）",	&m.roomSize.x,		0.1f, 0.1f );
+					ImGui::SliderInt2( u8"ルームの数（縦横）",	&m.roomCounts.x,	1, 16 );
 					ImGui::Text( "" );
+					ImGui::DragFloat3( u8"自機の初期位置",		&m.initPlayerPos.x );
 
-					if ( ImGui::TreeNode( u8"ゲーム設定" ) )
+					if ( ImGui::TreeNode( u8"デバッグ用・クリア判定エリア" ) )
 					{
-						ImGui::DragFloat ( u8"カメラのＺ位置", &m.cameraDolly, 1.0f );
-						ImGui::DragFloat2( u8"ルームサイズ（全体）", &m.roomSize.x, 0.1f, 0.1f );
-						ImGui::SliderInt2( u8"ルームの数（縦横）", &m.roomCounts.x, 1, 16 );
-
-						if ( ImGui::TreeNode( u8"クリア判定エリア" ) )
-						{
-							ImGui::DragFloat2( u8"座標", &m.debugClearTrigger.pos.x );
-							ImGui::DragFloat2( u8"サイズ（半分）", &m.debugClearTrigger.size.x );
-
-							m.debugClearTrigger.velocity = 0.0f;
-							m.debugClearTrigger.mass = 0;
-
-							ImGui::TreePop();
-						}
-
-						if ( ImGui::TreeNode( u8"初期位置" ) )
-						{
-							ImGui::DragFloat3( u8"自機の初期位置", &m.initPlayerPos.x );
-							ImGui::DragFloat3( u8"カメラの初期位置", &m.initCameraPos.x );
-
-							ImGui::TreePop();
-						}
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( u8"設定" ) )
-					{
-						int index = 0;
-						for ( auto itr = m.debugTerrains.begin(); itr != m.debugTerrains.end(); )
-						{
-							index++;
-
-							std::string strPos	= u8"座標"   + std::to_string( index );
-							std::string strSize	= u8"サイズ" + std::to_string( index );
-							std::string strMass	= u8"質量"   + std::to_string( index );
-
-							ImGui::DragFloat2( strPos.c_str(),  &itr->pos.x  );
-							ImGui::DragFloat2( strSize.c_str(), &itr->size.x );
-							ImGui::DragInt   ( strMass.c_str(), &itr->mass   );
-
-							std::string strErase = u8"削除"  + std::to_string( index );
-
-							if ( ImGui::Button( strErase.c_str() ) )
-							{
-								itr = m.debugTerrains.erase( itr );
-							}
-							else
-							{
-								itr++;
-							}
-							ImGui::Text( "" );
-						}
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( u8"デバッグ用：コンプレッサ" ) )
-					{
-						ImGui::DragFloat2( u8"座標",				&m.debugCompressor.pos.x				);
-						ImGui::DragFloat2( u8"サイズ（半分）",	&m.debugCompressor.size.x				);
-						ImGui::DragFloat2( u8"速度",				&m.debugCompressor.velocity.x,	0.001f	);
-						ImGui::DragInt   ( u8"質量",				&m.debugCompressor.mass,		1.0f, 0	);
-						ImGui::Checkbox  ( u8"当たり判定は有効か", &m.debugCompressor.exist );
-
+						ImGui::DragFloat2( u8"座標", &m.debugClearTrigger.pos.x );
+						ImGui::DragFloat2( u8"サイズ（半分）", &m.debugClearTrigger.size.x );
+						ImGui::Checkbox( u8"当たり判定をつける", &m.debugClearTrigger.exist );
+						m.debugClearTrigger.velocity = 0.0f;
+						m.debugClearTrigger.mass = 0;
 						ImGui::TreePop();
 					}
 
@@ -256,12 +180,11 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( AlphaParam::Member, 3 )
-#pragma endregion
+CEREAL_CLASS_VERSION( GameParam::Member, 1 )
 
 SceneGame::SceneGame() :
 	stageCount( -1 ), currentStageNo( 0 ),
-	dirLight(), iCamera(),
+	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
 	player(), terrains(), gimmicks(),
@@ -279,21 +202,21 @@ void SceneGame::Init()
 	Gimmick::LoadModels();
 	Gimmick::InitParameters();
 
-	AlphaParam::Get().Init();
+	GameParam::Get().Init();
 
 	LoadAllStages();
 	currentStageNo = 0;
 
 	CameraInit();
 
-	player.Init( AlphaParam::Get().Data().initPlayerPos );
+	player.Init( GameParam::Get().Data().initPlayerPos );
 	Hook::Init();
 }
 void SceneGame::Uninit()
 {
 	Donya::Sound::Stop( Music::BGM_Game );
 
-	AlphaParam::Get().Uninit();
+	GameParam::Get().Uninit();
 
 	for ( auto &it : gimmicks )
 	{
@@ -317,11 +240,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 #if USE_IMGUI
 
 	UseImGui();
-	AlphaParam::Get().UseImGui();
+	GameParam::Get().UseImGui();
 
 #endif // USE_IMGUI
 
-	auto AppendGimmicksBox = []( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
+	auto AppendGimmicksBox	= []( std::vector<BoxEx> *pTerrains, const Gimmick &gimmicks )
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : boxes )
@@ -329,7 +252,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			pTerrains->emplace_back( it.Get2D() );
 		}
 	};
-	auto ExtractHitBoxes = []( const Gimmick &gimmicks )
+	auto ExtractHitBoxes	= []( const Gimmick &gimmicks )
 	{
 		const auto boxes = gimmicks.RequireHitBoxes();
 		const size_t boxCount = boxes.size();
@@ -360,13 +283,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
 	refTerrain.Reset();
-
-	/*
-	{
-		refStage.debugAllTerrains.clear();
-		refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
-		refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
-	}*/
 
 	// 2. Update velocity of all objects.
 	refGimmick.Update( elapsedTime );
@@ -448,16 +364,18 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::ClearViews( BG_COLOR );
 	}
 
-	const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
-	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
-	const Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
+	const Donya::Vector4x4	P = iCamera.GetProjectionMatrix();
+	const Donya::Vector4	cameraPos{ iCamera.GetPosition(), 1.0f };
+	const Donya::Vector4	lightDir	= GameParam::Get().Data().lightDirection;
+	const Donya::Vector4	lightColor	= GameParam::Get().Data().lightColor;
 
-	gimmicks[currentStageNo].Draw( V, P, dirLight.dir );
+	gimmicks[currentStageNo].Draw( V, P, lightDir );
 
-	player.Draw( V * P, dirLight.dir, dirLight.color );
+	player.Draw( V * P, lightDir, lightColor );
 	if ( pHook )
 	{
-		pHook->Draw(V * P, dirLight.dir, dirLight.color);
+		pHook->Draw(V * P, lightDir, lightColor );
 	}
 
 #if DEBUG_MODE
@@ -470,7 +388,7 @@ void SceneGame::Draw( float elapsedTime )
 			initialized = true;
 		}
 
-		const auto &param = AlphaParam::Get().DataRef();
+		const auto param = GameParam::Get().Data();
 		const Donya::Vector2 roomHalfSize = param.roomSize * 0.5f;
 		const Donya::Vector3 center{ roomOriginPos.x, -roomOriginPos.y, player.GetPosition().z }; // The Y is should convert to world space from screen space.
 		const Donya::Vector3 side{ roomHalfSize.x, 0.0f, 0.0f };
@@ -484,46 +402,17 @@ void SceneGame::Draw( float elapsedTime )
 	}
 #endif // DEBUG_MODE
 
-	terrains[currentStageNo].Draw( V * P, dirLight.dir );
+	terrains[currentStageNo].Draw( V * P, lightDir );
 
 // #if DEBUG_MODE
 	// if ( Common::IsShowCollision() )
 	{
 		static auto cube = Donya::Geometric::CreateCube();
 
-		// Drawing Test Terrains that use to player's collision.
-		if ( 0 )
-		{
-			constexpr Donya::Vector4 cubeColor{ 0.6f, 0.6f, 0.6f, 0.6f };
-			Donya::Vector4x4 cubeT{};
-			Donya::Vector4x4 cubeS{};
-			Donya::Vector4x4 cubeW{};
-			for ( const auto &it : AlphaParam::Get().Data().debugTerrains )
-			{
-				// The drawing size is whole size.
-				// But a collision class's size is half size.
-				// So we should to double it size.
-
-				cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } );
-				cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ it.size * 2.0f, 1.0f } );
-				cubeW = cubeS * cubeT;
-
-				cube.Render
-				(
-					nullptr,
-					/* useDefaultShading	= */ true,
-					/* isEnableFill			= */ true,
-					( cubeW * V * P ), cubeW,
-					dirLight.dir,
-					cubeColor
-				);
-			}
-		}
-
 		// Drawing area of clear-trigger.
 		{
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-			const auto box = AlphaParam::Get().Data().debugClearTrigger;
+			const auto box = GameParam::Get().Data().debugClearTrigger;
 			Donya::Vector4x4 cubeT = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ box.pos, 1.0f } );
 			Donya::Vector4x4 cubeS = Donya::Vector4x4::MakeScaling( Donya::Vector3{ box.size * 2.0f, 1.0f } );
 			Donya::Vector4x4 cubeW = cubeS * cubeT;
@@ -534,7 +423,7 @@ void SceneGame::Draw( float elapsedTime )
 				/* useDefaultShading	= */ true,
 				/* isEnableFill			= */ true,
 				( cubeW * V * P ), cubeW,
-				dirLight.dir,
+				lightDir,
 				cubeColor
 			);
 		}
@@ -639,7 +528,7 @@ void SceneGame::LoadAllStages()
 	std::string filePath = MakeFilePath( stageNo );
 	StageConfiguration config{};
 
-	const Donya::Vector2 roomSize = AlphaParam::Get().DataRef().roomSize;
+	const Donya::Vector2 roomSize = GameParam::Get().Data().roomSize;
 	Donya::Int2    roomIndex{};
 	Donya::Vector3 roomOrigin{};
 
@@ -671,7 +560,7 @@ void SceneGame::LoadAllStages()
 
 Donya::Int2 SceneGame::CalcRoomIndex( int stageNo ) const
 {
-	const auto &param = AlphaParam::Get().Data();
+	const auto param = GameParam::Get().Data();
 	const int roomCount = param.roomCounts.x * param.roomCounts.y;
 	_ASSERT_EXPR( 0 <= stageNo && stageNo < roomCount, L"Error : Passed stage-number without stage-count! " );
 
@@ -690,7 +579,7 @@ void SceneGame::CameraInit()
 	iCamera.SetZRange( 0.1f, 1000.0f );
 	iCamera.SetFOV( ToRadian( 30.0f ) );
 	iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-	iCamera.SetPosition( Donya::Vector3{ 0.0f, 0.0f, AlphaParam::Get().Data().cameraDolly } );
+	iCamera.SetPosition( Donya::Vector3{ 0.0f, 0.0f, GameParam::Get().Data().cameraDolly } );
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
 
@@ -707,7 +596,7 @@ void SceneGame::CameraUpdate()
 {
 	// Adjust position to origin of current room.
 	{
-		const auto &param = AlphaParam::Get().DataRef();
+		const auto param = GameParam::Get().Data();
 		const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
 
 		Donya::Vector3 currentPos{};
@@ -720,92 +609,27 @@ void SceneGame::CameraUpdate()
 		roomOriginPos.y = -currentPos.y; // Convert Y from world space -> screen space.
 	}
 
-	auto MakeControlStructWithMouse = []()
-	{
-		constexpr float SLERP_FACTOR = 0.2f;
-
-		auto NoOperation = [&SLERP_FACTOR]()
-		{
-			Donya::ICamera::Controller noop{};
-			noop.SetNoOperation();
-			noop.slerpPercent = SLERP_FACTOR;
-			return noop;
-		};
-
-		if ( !Donya::Keyboard::Press( VK_MENU ) ) { return NoOperation(); }
-		// else
-
-	#if !DEBUG_MODE
-		// Disallow camera operation.
-		return NoOperation();
-	#endif // !DEBUG_MODE
-
-		static Donya::Int2 prevMouse{};
-		static Donya::Int2 currMouse{};
-
-		prevMouse = currMouse;
-
-		auto nowMouse = Donya::Mouse::Coordinate();
-		currMouse.x = scast<int>( nowMouse.x );
-		currMouse.y = scast<int>( nowMouse.y );
-
-		bool isInputMouseButton = Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) || Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) || Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT );
-		bool isDriveMouse = ( prevMouse != currMouse ) || Donya::Mouse::WheelRot() || isInputMouseButton;
-		if ( !isDriveMouse ) { return NoOperation(); }
-		// else
-
-		Donya::Vector3 diff{};
-		{
-			Donya::Vector2 vec2 = ( currMouse - prevMouse ).Float();
-
-			diff.x = vec2.x;
-			diff.y = vec2.y;
-		}
-
-		Donya::Vector3 movement{};
-		Donya::Vector3 rotation{};
-
-		if ( Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) )
-		{
-			constexpr float ROT_AMOUNT = ToRadian( 1.0f );
-			rotation.x = diff.x * ROT_AMOUNT;
-			rotation.y = diff.y * ROT_AMOUNT;
-		}
-		else
-		if ( Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) )
-		{
-			constexpr float MOVE_SPEED = 0.1f;
-			movement.x = diff.x * MOVE_SPEED;
-			movement.y = -diff.y * MOVE_SPEED;
-		}
-
-		constexpr float FRONT_SPEED = 3.5f;
-		movement.z = FRONT_SPEED * scast<float>( Donya::Mouse::WheelRot() );
-
-		Donya::ICamera::Controller ctrl{};
-		ctrl.moveVelocity		= movement;
-		ctrl.yaw				= rotation.x;
-		ctrl.pitch				= rotation.y;
-		ctrl.roll				= 0.0f;
-		ctrl.slerpPercent		= SLERP_FACTOR;
-		ctrl.moveInLocalSpace	= true;
-
-		return ctrl;
-	};
-	auto input = MakeControlStructWithMouse();
-	input.moveVelocity.x *= -1.0f;
-	input.moveVelocity.y *= -1.0f;
-	iCamera.Update( input );
+	Donya::ICamera::Controller input{};
+	input.slerpPercent = GameParam::Get().Data().cameraSlerp;
 
 #if DEBUG_MODE
 	if ( Donya::Keyboard::Press( VK_MENU ) )
 	{
+		const int wheel = Donya::Mouse::WheelRot();
+		if ( wheel != 0 )
+		{
+			constexpr float Z_SPEED = 3.5f;
+			input.moveVelocity.z = scast<float>( wheel ) * Z_SPEED;
+		}
+
 		if ( Donya::Keyboard::Trigger( 'R' ) )
 		{
 			iCamera.SetPosition( { 0.0f, 0.0f, -5.0f } );
 		}
 	}
 #endif // DEBUG_MODE
+
+	iCamera.Update( input );
 }
 
 void SceneGame::PlayerUpdate( float elapsedTime )
@@ -847,7 +671,7 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 }
 bool SceneGame::IsPlayerOutFromRoom() const
 {
-	const auto &param	= AlphaParam::Get().DataRef();
+	const auto param	= GameParam::Get().Data();
 	const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
 
 	Donya::Box roomBox{};
@@ -889,7 +713,7 @@ void SceneGame::UpdateCurrentStage()
 	: whole size if the index of rooms is 1 -> N.
 	*/
 
-	const auto &param = AlphaParam::Get().DataRef();
+	const auto param = GameParam::Get().Data();
 	const Donya::Vector2 roomHalfSize = param.roomSize * 0.5f;
 
 	Donya::Vector2 playerPos = player.GetHitBox().Get2D().pos;
@@ -1012,7 +836,7 @@ bool SceneGame::DetectClearMoment() const
 	if ( Fader::Get().IsExist() ) { return false; }
 	// else
 
-	const auto clearBox		= AlphaParam::Get().Data().debugClearTrigger;
+	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
 	const auto playerBox	= player.GetHitBox();
 	BoxEx xyPlayer{};
 	{
@@ -1068,14 +892,10 @@ void SceneGame::UseImGui()
 {
 	if ( ImGui::BeginIfAllowed() )
 	{
-		if ( ImGui::TreeNode( u8"ゲーム・設定" ) )
+		if ( ImGui::TreeNode( u8"ゲーム・デバッグ" ) )
 		{
 			ImGui::Text( u8"ポーズ画面へ : <Press P>" );
-			ImGui::Text( u8"クリア画面へ : <Press Ctrl + Enter>" );
 
-			ImGui::SliderFloat3( u8"方向性ライト・向き", &dirLight.dir.x, -1.0f, 1.0f );
-			ImGui::ColorEdit4( u8"方向性ライト・カラー", &dirLight.color.x );
-			
 			ImGui::TreePop();
 		}
 		

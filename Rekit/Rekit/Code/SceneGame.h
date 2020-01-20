@@ -16,17 +16,10 @@
 
 class SceneGame : public Scene
 {
-public:
-	struct DirectionalLight
-	{
-		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		Donya::Vector4 dir	{ 0.0f,-1.0f, 1.0f, 0.0f };
-	};
 private:
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
-	DirectionalLight		dirLight;
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
