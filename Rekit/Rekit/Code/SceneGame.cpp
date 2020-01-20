@@ -647,6 +647,9 @@ Donya::Int2 SceneGame::CalcRoomIndex( int stageNo ) const
 	Donya::Int2 index{};
 	index.x = stageNo % param.roomCounts.x;
 	index.y = ( !param.roomCounts.x ) ? 0 : stageNo / param.roomCounts.x;
+	index.x = std::min( param.roomCounts.x - 1, index.x );
+	index.y = std::min( param.roomCounts.y - 1, index.y );
+
 	return index;
 }
 
