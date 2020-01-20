@@ -329,6 +329,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			pTerrains->emplace_back( it.Get2D() );
 		}
 	};
+	auto ExtractHitBoxes = []( const Gimmick &gimmicks )
+	{
+		const auto boxes = gimmicks.RequireHitBoxes();
+		const size_t boxCount = boxes.size();
+
+		std::vector<BoxEx> hitBoxes{ boxCount };
+		for ( size_t i = 0; i < boxCount; ++i )
+		{
+			hitBoxes[i] = boxes[i].Get2D();
+		}
+
+		return hitBoxes;
+	};
 
 	controller.Update();
 
@@ -342,26 +355,31 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	6.	Update a position(PhysicUpdate) of the player with updated "debugAllTerrains".
 	*/
 
-	auto &refStage = AlphaParam::Get().DataRef();
+	auto &refTerrain = terrains[currentStageNo];
+	auto &refGimmick = gimmicks[currentStageNo];
+	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
+	refTerrain.Reset();
+
+	/*
 	{
 		refStage.debugAllTerrains.clear();
 		refStage.debugAllTerrains.emplace_back( refStage.debugCompressor );
 		refStage.debugAllTerrains.insert( refStage.debugAllTerrains.end(), refStage.debugTerrains.begin(), refStage.debugTerrains.end() );
-	}
+	}*/
 
 	// 2. Update velocity of all objects.
-	gimmicks[currentStageNo].Update( elapsedTime );
+	refGimmick.Update( elapsedTime );
 	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
 	{
-		std::vector<BoxEx>   terrainsForHook = refStage.debugAllTerrains;
-		AppendGimmicksBox(  &terrainsForHook, gimmicks[currentStageNo] );
+		std::vector<BoxEx>   terrainsForHook = refTerrain.Acquire();
+		AppendGimmicksBox(  &terrainsForHook,  refGimmick );
 
-		pHook->PhysicUpdate( terrainsForHook, player.GetPosition() );
+		pHook->PhysicUpdate( terrainsForHook,  player.GetPosition() );
 	}
 
 	// 4. The gimmicks PhysicUpdate().
@@ -378,14 +396,14 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			accompanyBox.exist = false;
 		}
 
-		gimmicks[currentStageNo].PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refStage.debugAllTerrains );
+		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refTerrain.Acquire() );
 	}
 
 	// 5. Add the gimmicks block.
-	AppendGimmicksBox( &refStage.debugAllTerrains, gimmicks[currentStageNo] );
+	refTerrain.Append( ExtractHitBoxes( refGimmick ) );
 	
 	// 6. The player's PhysicUpdate().
-	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
+	player.PhysicUpdate( refTerrain.Acquire() );
 	if ( player.IsDead() )
 	{
 		if ( !Fader::Get().IsExist() )
@@ -466,12 +484,15 @@ void SceneGame::Draw( float elapsedTime )
 	}
 #endif // DEBUG_MODE
 
+	terrains[currentStageNo].Draw( V * P, dirLight.dir );
+
 // #if DEBUG_MODE
 	// if ( Common::IsShowCollision() )
 	{
 		static auto cube = Donya::Geometric::CreateCube();
 
 		// Drawing Test Terrains that use to player's collision.
+		if ( 0 )
 		{
 			constexpr Donya::Vector4 cubeColor{ 0.6f, 0.6f, 0.6f, 0.6f };
 			Donya::Vector4x4 cubeT{};
@@ -618,12 +639,21 @@ void SceneGame::LoadAllStages()
 	std::string filePath = MakeFilePath( stageNo );
 	StageConfiguration config{};
 
+	const Donya::Vector2 roomSize = AlphaParam::Get().DataRef().roomSize;
+	Donya::Int2    roomIndex{};
+	Donya::Vector3 roomOrigin{};
+
 	while ( Donya::IsExistFile( filePath ) )
 	{
 		config = LoadGimmicksFile( filePath, MakeIdentifier( stageNo ) );
 
+		roomIndex    = CalcRoomIndex( stageNo );
+		roomOrigin.x = roomSize.x *  roomIndex.x;
+		roomOrigin.y = roomSize.y * -roomIndex.y; // Convert Y from screen space -> world space.
+		roomOrigin.z = 0.0f;
+		
 		terrains.push_back( {} );
-		terrains[stageNo].Init( config.editBlocks );
+		terrains[stageNo].Init( roomOrigin, config.editBlocks );
 
 		gimmicks.push_back( {} );
 		gimmicks[stageNo].Init // == gimmicks.back()

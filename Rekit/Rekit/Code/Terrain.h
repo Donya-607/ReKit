@@ -14,10 +14,11 @@ class Terrain
 public:
 	static bool LoadModel();
 private:
-	std::vector<BoxEx> source{};	// Constant.
-	std::vector<BoxEx> boxes{};		// Editable.
+	Donya::Vector3		worldOffset{};
+	std::vector<BoxEx>	source{};		// Constant.
+	std::vector<BoxEx>	boxes{};		// Editable.
 public:
-	void Init( const std::vector<BoxEx> &sourceTerrain );
+	void Init( const Donya::Vector3 &wsRoomOriginPos, const std::vector<BoxEx> &sourceTerrain );
 	void Uninit();
 
 	/// <summary>

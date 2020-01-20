@@ -47,8 +47,9 @@ bool Terrain::LoadModel()
 	return TerrainModel::Load();
 }
 
-void Terrain::Init( const std::vector<BoxEx> &terrain )
+void Terrain::Init( const Donya::Vector3 &wsRoomOrigin, const std::vector<BoxEx> &terrain )
 {
+	worldOffset = wsRoomOrigin;
 	source = boxes = terrain;
 }
 void Terrain::Uninit()
@@ -67,12 +68,8 @@ void Terrain::Draw( const Donya::Vector4x4 &matVP, const Donya::Vector4 &lightDi
 	Donya::Vector4x4 S{}, T{}, W{};
 	for ( const auto &it : boxes )
 	{
-		// The drawing size is whole size.
-		// But a collision class's size is half size.
-		// So we should to double it size.
-
-		S = Donya::Vector4x4::MakeScaling( Donya::Vector3{ it.size * 2.0f, 1.0f } );
-		T = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } );
+		S = Donya::Vector4x4::MakeScaling( Donya::Vector3{ it.size, 1.0f } );
+		T = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } + worldOffset );
 		W = S * T;
 
 		model.Render
@@ -92,7 +89,16 @@ void Terrain::Reset()
 	boxes = source;
 }
 
-std::vector<BoxEx> Terrain::Acquire() const { return boxes; }
+std::vector<BoxEx> Terrain::Acquire() const
+{
+	std::vector<BoxEx> wsHitBoxes = boxes;
+	for ( auto &it : wsHitBoxes )
+	{
+		it.pos.x += worldOffset.x;
+		it.pos.y += worldOffset.y;
+	}
+	return wsHitBoxes;
+}
 
 void Terrain::Append( const std::vector<BoxEx> &terrain )
 {
