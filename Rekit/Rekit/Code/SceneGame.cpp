@@ -24,6 +24,9 @@
 #include "Music.h"
 #include "SceneEditor.h"	// Use StageConfiguration.
 
+#undef max
+#undef min
+
 using namespace DirectX;
 
 #pragma region AlphaParam
@@ -381,9 +384,16 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	
 	// 6. The player's PhysicUpdate().
 	player.PhysicUpdate( AlphaParam::Get().DataRef().debugAllTerrains );
-	if ( player.IsDead() && !Fader::Get().IsExist() )
+	if ( player.IsDead() )
 	{
-		StartFade();
+		if ( !Fader::Get().IsExist() )
+		{
+			StartFade();
+		}
+	}
+	else if ( IsPlayerOutFromRoom() )
+	{
+		UpdateCurrentStage();
 	}
 
 	CameraUpdate();
@@ -439,15 +449,10 @@ void SceneGame::Draw( float elapsedTime )
 			line.Init();
 			initialized = true;
 		}
-		/*
-		１：デバッグ用に，部屋サイズを中央から十字に線で表したい
-		２：自機が部屋内にいなかったら，部屋を移動する処理を書く
-		３：部屋移動できて描画なども不都合がなければそのまま。ワールド座標じゃないと怒られるかも。
-		*/
 
 		const auto &param = AlphaParam::Get().DataRef();
-		const Donya::Vector3 roomHalfSize = Donya::Vector3{ param.roomSize * 0.5f, 0.0f };
-		const Donya::Vector3 center{ roomOriginPos.x, roomOriginPos.y, 0.0f };
+		const Donya::Vector2 roomHalfSize = param.roomSize * 0.5f;
+		const Donya::Vector3 center{ roomOriginPos.x, -roomOriginPos.y, player.GetPosition().z }; // The Y is should convert to world space from screen space.
 		const Donya::Vector3 side{ roomHalfSize.x, 0.0f, 0.0f };
 		const Donya::Vector3 vert{ 0.0f, roomHalfSize.y, 0.0f };
 
@@ -458,7 +463,6 @@ void SceneGame::Draw( float elapsedTime )
 		line.Flush( V * P );
 	}
 #endif // DEBUG_MODE
-
 
 // #if DEBUG_MODE
 	// if ( Common::IsShowCollision() )
@@ -642,7 +646,7 @@ Donya::Int2 SceneGame::CalcRoomIndex( int stageNo ) const
 
 	Donya::Int2 index{};
 	index.x = stageNo % param.roomCounts.x;
-	index.y = stageNo / param.roomCounts.y;
+	index.y = ( !param.roomCounts.x ) ? 0 : stageNo / param.roomCounts.x;
 	return index;
 }
 
@@ -669,16 +673,17 @@ void SceneGame::CameraUpdate()
 {
 	// Adjust position to origin of current room.
 	{
-		const auto &param = AlphaParam::Get().Data();
+		const auto &param = AlphaParam::Get().DataRef();
 		const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
 
-		Donya::Vector3 currentPos = iCamera.GetPosition();
-		currentPos.x = param.roomSize.x * roomIndex.x;
-		currentPos.y = param.roomSize.y * roomIndex.y;
+		Donya::Vector3 currentPos{};
+		currentPos.x = param.roomSize.x *  roomIndex.x;
+		currentPos.y = param.roomSize.y * -roomIndex.y; // Convert Y from screen space -> world space.
+		currentPos.z = param.cameraDolly;
 		iCamera.SetPosition( currentPos );
 
-		roomOriginPos.x = currentPos.x;
-		roomOriginPos.y = currentPos.y;
+		roomOriginPos.x =  currentPos.x;
+		roomOriginPos.y = -currentPos.y; // Convert Y from world space -> screen space.
 	}
 
 	auto MakeControlStructWithMouse = []()
@@ -808,16 +813,79 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 }
 bool SceneGame::IsPlayerOutFromRoom() const
 {
-	const auto &param = AlphaParam::Get().Data();
+	const auto &param	= AlphaParam::Get().DataRef();
 	const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
 
 	Donya::Box roomBox{};
-	roomBox.pos		= roomOriginPos + ( param.roomSize * 0.5f );
-	roomBox.size	= param.roomSize * 0.5f;
+	roomBox.pos			= roomOriginPos;
+	roomBox.size		= param.roomSize * 0.5f;
 
 	Donya::Box playerBox = player.GetHitBox().Get2D();
 
-	return ( Donya::Box::IsHitBox( playerBox, roomBox ) ) ? false : true;
+	return ( Donya::Box::IsHitPoint( roomBox, playerBox.pos.x, playerBox.pos.y ) ) ? false : true;
+}
+void SceneGame::UpdateCurrentStage()
+{
+	/*
+	The room is forming to matrix.
+	Like this:
+	----- ----- ----- -----
+	| 0 | | 1 | | 2 | | 3 |
+	----- ----- ----- -----
+	| 4 | | 5 | | 6 | | 7 |
+	----- ----- ----- -----
+	| 8 | | 9 | | 11| | 12|
+	----- ----- ----- -----
+
+	And the "roomOriginPos" is the center of the rooms.
+	Like this:
+	--------- ---------
+	|       | |       | // W : The whole width  of the rooms.
+	|   X   | |   X   | // H : The whole height of the rooms.
+	| (0,0) | | (W,0) |
+	--------- ---------
+	--------- ---------
+	|       | |       |
+	|   X   | |   X   |
+	| (0,H) | | (W,H) |
+	--------- ---------
+
+	So the border of the rooms is:
+	: half  size if the index of rooms is 0 -> 1.
+	: whole size if the index of rooms is 1 -> N.
+	*/
+
+	const auto &param = AlphaParam::Get().DataRef();
+	const Donya::Vector2 roomHalfSize = param.roomSize * 0.5f;
+
+	if ( Donya::Keyboard::Trigger( 'V' ) )
+	{
+		char a = 0;
+	}
+	
+	Donya::Vector2 playerPos = player.GetHitBox().Get2D().pos;
+	playerPos.y *= -1.0f; // Think as screen space.
+	playerPos   -= roomOriginPos;
+
+	Donya::Int2 index = CalcRoomIndex( currentStageNo );
+	if ( roomHalfSize.x	<  playerPos.x		) { index.x++; }
+	if ( playerPos.x	< -roomHalfSize.x	) { index.x--; }
+	if ( roomHalfSize.y	<  playerPos.y		) { index.y++; }
+	if ( playerPos.y	< -roomHalfSize.y	) { index.y--; }
+
+	index.x = std::max( 0, std::min( param.roomCounts.x - 1, index.x ) );
+	index.y = std::max( 0, std::min( param.roomCounts.y - 1, index.y ) );
+
+	const int prevStageNo	= currentStageNo;
+	const int roomCount		= param.roomCounts.x * param.roomCounts.y;
+
+	currentStageNo = index.x + ( param.roomCounts.x * index.y );
+
+	if ( roomCount <= currentStageNo )
+	{
+		// Fail-safe.
+		currentStageNo = prevStageNo;
+	}
 }
 
 void SceneGame::HookUpdate( float elapsedTime )

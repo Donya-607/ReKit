@@ -54,6 +54,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			char debugstopper = 0;
 		}
+		if ( Donya::Keyboard::Trigger( 'D' ) )
+		{
+			assert( _CrtCheckMemory() );
+			char breakPoint = 0;
+		}
 		if ( Donya::Keyboard::Trigger( 'T' ) )
 		{
 			Donya::ToggleShowStateOfImGui();

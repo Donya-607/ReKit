@@ -31,7 +31,7 @@ SceneMng::~SceneMng()
 
 void SceneMng::Init( Scene::Type initScene )
 {
-	PushScene( initScene, /* isFront = */ true );
+	PushScene( initScene, /* isFront = */ false );
 
 	Fader::Get().Init();
 }

@@ -28,7 +28,7 @@ private:
 	DirectionalLight		dirLight;
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
-	Donya::Vector2			roomOriginPos;	// Center-Top.
+	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 
 	Player					player;
 	std::vector<Gimmick>	gimmicks;
@@ -49,6 +49,7 @@ public:
 private:
 	void	LoadAllStages();
 
+	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;
 
 	void	CameraInit();
@@ -56,6 +57,7 @@ private:
 
 	void	PlayerUpdate( float elapsedTime );
 	bool	IsPlayerOutFromRoom() const;
+	void	UpdateCurrentStage();
 	void	HookUpdate( float elapsedTime );
 
 	bool	DetectClearMoment() const;
