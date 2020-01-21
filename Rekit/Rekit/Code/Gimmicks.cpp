@@ -156,14 +156,18 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 		velocity.x = accompanyBox.velocity.x;
 		velocity.y = accompanyBox.velocity.y;
-		pushedDirections.emplace_back
-		(
-			Donya::Vector2{ scast<float>( Donya::SignBit( velocity.x ) ), 0.0f }
-		);
-		pushedDirections.emplace_back
-		(
-			Donya::Vector2{ 0.0f, scast<float>( Donya::SignBit( velocity.y ) ) }
-		);
+
+		if ( arrowCompress )
+		{
+			pushedDirections.emplace_back
+			(
+				Donya::Vector2{ scast<float>( Donya::SignBit( velocity.x ) ), 0.0f }
+			);
+			pushedDirections.emplace_back
+			(
+				Donya::Vector2{ 0.0f, scast<float>( Donya::SignBit( velocity.y ) ) }
+			);
+		}
 	}
 
 	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
@@ -250,7 +254,7 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
 		}
 
-		if ( JudgeWillCompressed( pushDirection ) )
+		if ( arrowCompress && JudgeWillCompressed( pushDirection ) )
 		{
 			Donya::Sound::Play( Music::Insert );
 			wasCompressed = true;
