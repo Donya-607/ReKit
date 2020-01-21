@@ -158,16 +158,22 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 		velocity.x = accompanyBox.velocity.x;
 		velocity.y = accompanyBox.velocity.y;
 
-		if ( arrowCompress )
+		// The "accompanyBox" is external factor.
+		// But I regard as that is not contained to "terrains",
+		// so I should register to a list of compress-factors("pushedDirections") here.
+
+		const Donya::Int2 moveSign
 		{
-			pushedDirections.emplace_back
-			(
-				Donya::Vector2{ scast<float>( Donya::SignBit( velocity.x ) ), 0.0f }
-			);
-			pushedDirections.emplace_back
-			(
-				Donya::Vector2{ 0.0f, scast<float>( Donya::SignBit( velocity.y ) ) }
-			);
+			Donya::SignBit( accompanyBox.velocity.x ),
+			Donya::SignBit( accompanyBox.velocity.y )
+		};
+		if ( moveSign.x != 0 )
+		{
+			pushedDirections.emplace_back( Donya::Vector2{ scast<float>( moveSign.x ), 0.0f } );
+		}
+		if ( moveSign.y != 0 )
+		{
+			pushedDirections.emplace_back( Donya::Vector2{ 0.0f, scast<float>( moveSign.y ) } );
 		}
 	}
 
