@@ -220,6 +220,17 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 				if ( it == previousMyself ) { continue; }
 				// else
 
+				if ( !it.exist )
+				{
+					if ( Bomb::IsExplosionBox( it ) && Donya::Box::IsHitBox( it, myself ) )
+					{
+						return it;
+					}
+					// else
+					continue;
+				}
+				// else
+
 				if ( Donya::Box::IsHitBox( it, myself ) )
 				{
 					return it;
@@ -252,6 +263,13 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
 			// else
 
+			if ( Bomb::IsExplosionBox( other ) || Gimmick::HasDangerAttribute( other ) )
+			{
+				KillMe();
+				return;
+			}
+			// else
+
 			if ( ZeroEqual( moveSign.x ) && !ZeroEqual( other.velocity.x ) )
 			{
 				// The myself's moving direction is considered the inverse of other's moving direction.
@@ -264,13 +282,6 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			}
 
 			if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
-			// else
-
-			if ( Gimmick::HasDangerAttribute( other ) )
-			{
-				KillMe();
-				return;
-			}
 			// else
 
 			Donya::Vector2 penetration{}; // Store absolute value.

@@ -96,6 +96,7 @@ std::vector<BoxEx> Terrain::Acquire() const
 	{
 		it.pos.x += worldOffset.x;
 		it.pos.y += worldOffset.y;
+		it.mass  =  99; // To immovable.
 	}
 	return wsHitBoxes;
 }

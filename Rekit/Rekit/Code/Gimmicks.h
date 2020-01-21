@@ -614,6 +614,8 @@ private:
 	// It model can't receive from Gimmick's staiic method.
 	static Donya::StaticMesh modelExplosion;
 public:
+	static bool IsExplosionBox( const BoxEx  &source );
+	static bool IsExplosionBox( const AABBEx &source );
 	/// <summary>
 	/// Please call when a scene initialize.
 	/// </summary>
@@ -632,6 +634,8 @@ private:
 	};
 private:
 	State status;
+	float scale;
+	float alpha;
 public:
 	Bomb();
 	~Bomb();
@@ -680,6 +684,9 @@ private:
 
 	void BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false );
 	void ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false );
+
+	bool NowExplosioning() const;
+	void Explosion();
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;
