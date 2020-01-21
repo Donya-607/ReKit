@@ -42,6 +42,7 @@ public:
 
 
 		Donya::Vector3		transformMousePos{};
+		Donya::Vector2		changeableBoxSize{4.0f, 4.0f};
 		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
 		SelectGimmick		nowSelect;
@@ -153,10 +154,11 @@ public:
 
 		auto debug = EditParam::Data().nowSelect;
 		auto mousePos = EditParam::Get().Data().transformMousePos;
+		auto size = EditParam::Get().Data().changeableBoxSize;
 
 		const float rollDegree = 0.0f;
 
-		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 1 };
+		BoxEx changeable{ { mousePos.x, mousePos.y, size.x, size.y, true }, 1 };
 		switch (EditParam::Data().nowSelect)
 		{
 		case SelectGimmick::Normal:
@@ -320,6 +322,14 @@ public:
 						EditParam::DataRef().nowSelect = data;
 						ImGui::EndChild();
 					}
+					if (EditParam::Data().nowSelect == SelectGimmick::Normal)
+					{
+						ImGui::SliderFloat2(u8"ブロックのサイズ", &m.changeableBoxSize.x, 0.1f, 50.0f);
+						if (ImGui::Button(u8"サイズをデフォルトに戻す"))
+						{
+							m.changeableBoxSize = Donya::Vector2(4.0f, 4.0f);
+						}
+					}
 					if (SceneEditor::isChanges)
 					{
 						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), u8"変更されていない箇所があります");
@@ -450,8 +460,9 @@ void SceneEditor::Draw(float elapsedTime)
 		CalcScreenToXY(&EditParam::Get().DataRef().transformMousePos, scast<int>(mousePos.x), scast<int>(mousePos.y), Common::ScreenWidth(), Common::ScreenHeight(), V, P);
 		if( !isPressG ) CorrectionGridCursor();
 		auto pos = EditParam::Get().DataRef().transformMousePos;
+		auto size = EditParam::Get().Data().changeableBoxSize;
 		cubeT = Donya::Vector4x4::MakeTranslation(EditParam::Get().DataRef().transformMousePos);
-		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f * 4.0f, 1.0f * 4.0f, 1.0f });
+		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f * size.x, 1.0f * size.y, 1.0f });
 		cubeW = cubeS * cubeT;
 
 		cirsolBox.Render
