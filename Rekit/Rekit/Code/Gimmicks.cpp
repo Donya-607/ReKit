@@ -44,6 +44,7 @@ namespace GimmickUtility
 		case GimmickKind::Ice:				return "Ice";			// break;
 		case GimmickKind::Spike:			return "Spike";			// break;
 		case GimmickKind::SwitchBlock:		return "SwitchBlock";	// break;
+		case GimmickKind::FlammableBlock:	return "FlammableBlock";// break;
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
@@ -318,6 +319,7 @@ namespace GimmickModels
 	static Donya::StaticMesh ice{};
 	static Donya::StaticMesh spike{};
 	static Donya::StaticMesh switchBlock{};
+	static Donya::StaticMesh flammableBlock{};
 	static Donya::StaticMesh trgKey{};
 	static Donya::StaticMesh trgSwitch{};
 	static Donya::StaticMesh trgPull{};
@@ -334,6 +336,7 @@ namespace GimmickModels
 		&ice,
 		&spike,
 		&switchBlock,
+		&flammableBlock,
 		&trgKey,
 		&trgSwitch,
 		&trgPull,
@@ -357,6 +360,7 @@ void Gimmick::InitParameters()
 	IceBlock::ParameterInit();
 	SpikeBlock::ParameterInit();
 	SwitchBlock::ParameterInit();
+	FlammableBlock::ParameterInit();
 	Trigger::ParameterInit();
 	Bomb::ParameterInit();
 	BombGenerator::ParameterInit();
@@ -375,6 +379,7 @@ bool Gimmick::LoadModels()
 		GimmickKind::Ice,
 		GimmickKind::Spike,
 		GimmickKind::SwitchBlock,
+		GimmickKind::FlammableBlock,
 		GimmickKind::TriggerKey,
 		GimmickKind::TriggerSwitch,
 		GimmickKind::TriggerPull,
@@ -647,6 +652,7 @@ void Gimmick::UseImGui()
 	IceBlock::UseParameterImGui();
 	SpikeBlock::UseParameterImGui();
 	SwitchBlock::UseParameterImGui();
+	FlammableBlock::UseParameterImGui();
 	Trigger::UseParameterImGui();
 	Bomb::UseParameterImGui();
 	BombGenerator::UseParameterImGui();
@@ -671,57 +677,62 @@ void Gimmick::UseImGui()
 				constexpr Donya::Vector3 GENERATE_POS = Donya::Vector3::Zero();
 				const std::string prefix{ u8"ññîˆÇ…í«â¡ÅE" };
 
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile		) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Fragile			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<FragileBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Fragile ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard			) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Hard				) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<HardBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Hard ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice			) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Ice				) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<IceBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Ice ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike			) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Spike				) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<SpikeBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Spike ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock	) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::SwitchBlock		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<SwitchBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::SwitchBlock ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey	) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::FlammableBlock	) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<FlammableBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::FlammableBlock ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch	) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull	) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Bomb			) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Bomb				) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Bomb>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Bomb ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BombGenerator	) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BombGenerator		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<BombGenerator>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::BombGenerator ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter		) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
