@@ -18,7 +18,7 @@ namespace Donya
 	/// <summary>
 	/// If you want load the obj-file, you specify obj-file-path then you call LoadObjFile().
 	/// </summary>
-	class StaticMesh
+	class StaticMesh final
 	{
 	public:
 		/// <summary>
@@ -100,7 +100,7 @@ namespace Donya
 		struct Face
 		{
 			int materialIndex{ -1 };				// -1 is invalid.
-			std::array<Donya::Vector3, 3> points;	// Store local-space vertices of a triangle. CW.
+			std::array<Donya::Vector3, 3> points{};	// Store local-space vertices of a triangle. CW.
 		};
 	private:
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -119,7 +119,6 @@ namespace Donya
 		bool wasLoaded;
 	public:
 		StaticMesh();
-		virtual ~StaticMesh();
 	private:
 		void CreateDefaultSettings( ID3D11Device *pDevice );
 		void CreateRasterizerState( ID3D11Device *pDevice );

@@ -156,7 +156,7 @@ public:
 
 		const float rollDegree = 0.0f;
 
-		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 1 };
+		BoxEx changeable{ { mousePos.x, mousePos.y, 4.0f, 4.0f, true }, 99 };
 		switch (EditParam::Data().nowSelect)
 		{
 		case SelectGimmick::Normal:

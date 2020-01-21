@@ -222,7 +222,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 
 				if ( !it.exist )
 				{
-					if ( Bomb::IsExplosionBox( it ) && Donya::Box::IsHitBox( it, myself ) )
+					if ( Bomb::IsExplosionBox( it ) && Donya::Box::IsHitBox( it, myself, /* ignoreExistFlag = */ true ) )
 					{
 						return it;
 					}
