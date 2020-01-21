@@ -351,6 +351,9 @@ public:
 					ImGui::Text(u8"右クリック : カーソル上のブロックを削除");
 					ImGui::Text(u8"Ctrl + S  : 現在の状態を、選択中のステージデータに上書き保存");
 					ImGui::Text(u8"Ctrl + R  : 選択中のステージのファイルをロード");
+					ImGui::Text(u8"Q : 左にオブジェクトを回転");
+					ImGui::Text(u8"E : 右にオブジェクトを回転");
+					ImGui::Text(u8"W : 回転をリセット");
 					ImGui::TreePop();
 				}
 
