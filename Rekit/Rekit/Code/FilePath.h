@@ -13,6 +13,7 @@ enum class SpriteAttribute
 {
 	FMODLogoBlack,
 	FMODLogoWhite,
+	Gear,
 };
 
 std::wstring GetSpritePath( SpriteAttribute spriteAttribute );

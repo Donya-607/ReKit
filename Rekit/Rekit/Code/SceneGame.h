@@ -11,6 +11,7 @@
 #include "Hook.h"
 #include "Player.h"
 #include "Scene.h"
+#include "BG.h"
 
 class SceneGame : public Scene
 {
@@ -27,6 +28,7 @@ private:
 
 	Player					player;
 	Gimmick					gimmicks;
+	BG						bg;
 
 	std::unique_ptr<Hook>	pHook;
 

@@ -235,7 +235,7 @@ CEREAL_CLASS_VERSION( AlphaParam::Member, 2 )
 SceneGame::SceneGame() :
 	dirLight(), iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
-	player(), gimmicks(),
+	player(), gimmicks(), bg(),
 	pHook( nullptr ),
 	useCushion( true )
 {}
@@ -246,12 +246,14 @@ void SceneGame::Init()
 	Donya::Sound::Play( Music::BGM_Game );
 
 	AlphaParam::Get().Init();
+	BG::ParameterInit ();
 
 	CameraInit();
 
 	gimmicks.Init( NULL );
 	player.Init( AlphaParam::Get().Data().initPlayerPos );
 	Hook::Init();
+	bg.Init ();
 }
 void SceneGame::Uninit()
 {
@@ -262,6 +264,7 @@ void SceneGame::Uninit()
 
 	player.Uninit();
 	Hook::Uninit();
+	bg.Uninit ();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -278,6 +281,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	UseImGui();
 	AlphaParam::Get().UseImGui();
+	BG::UseParameterImGui ();
 
 #endif // USE_IMGUI
 
@@ -291,6 +295,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	};
 
 	controller.Update();
+
+	bg.Update (elapsedTime);
 
 	/*
 	Update-order memo:
@@ -382,6 +388,9 @@ void SceneGame::Draw( float elapsedTime )
 		constexpr FLOAT BG_COLOR[4]{ 0.4f, 0.4f, 0.4f, 1.0f };
 		Donya::ClearViews( BG_COLOR );
 	}
+
+	Donya::Sprite::SetDrawDepth ( 1.0f );
+	bg.Draw ();
 
 	const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
@@ -629,7 +638,7 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 		if ( left  ) { moveLeft  = true; }
 		if ( right ) { moveRight = true; }
 
-		if ( controller.Trigger( Pad::A  ) ) { useJump = true; }
+		if ( controller.Trigger( Pad::LT ) ) { useJump = true; }
 	}
 	else
 	{
@@ -670,28 +679,13 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 		stick = controller.RightStick();
 
-		static bool controlType = true;
-		if (controller.Trigger ( Pad::Button::PRESS_R )) { controlType = !controlType; };
-		if (controlType)
-		{
-			if (controller.Trigger ( Pad::LT )) { useAction = true; }
-			if (controller.Press ( Pad::RT )) {
-				create = true;
-				extend = true;
-			}
-			if (controller.Press ( Pad::RB )) { shrink = true; }
-			if (controller.Trigger ( Pad::LB )) { erase = true; }
+		if (controller.Trigger ( Pad::RT )) { useAction = true; }
+		if (stick.Length () != 0) {
+			create = true;
+			extend = true;
 		}
-		else
-		{
-			if (controller.Trigger ( Pad::RT )) { useAction = true; }
-			if (stick.Length () != 0) {
-				create = true;
-				extend = true;
-			}
-			else { shrink = true; }
-			if (controller.Trigger ( Pad::LT )) { erase = true; }
-		}
+		else { shrink = true; }
+		if (controller.Trigger ( Pad::RB )) { erase = true; }
 	}
 	else
 	{
