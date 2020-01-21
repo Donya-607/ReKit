@@ -501,23 +501,14 @@ public:
 	/// </summary>
 	static void UseParameterImGui ();
 #endif // USE_IMGUI
-	enum class ElevatorState
-	{
-		Stay = 0,
-		Go,
-		Wait,
-		GoBack,
-	};
 private:
-	int				id;
 	Donya::Vector3	direction;		// World space.
 	float			moveAmount;		// Amount moved.
 	float			maxMoveAmount;	// Maximum amount to move.
-	int				waitCount;
-	ElevatorState	state;
+	int				state;
 public:
 	Lift ();
-	Lift ( int id, const Donya::Vector3& direction, float moveAmount );
+	Lift ( const Donya::Vector3& direction, float moveAmount );
 	~Lift ();
 private:
 	friend class cereal::access;
@@ -526,8 +517,7 @@ private:
 	{
 		archive
 		(
-			cereal::base_class<GimmickBase> ( this ),
-			CEREAL_NVP ( id )
+			cereal::base_class<GimmickBase> ( this )
 		);
 		if (1 <= version)
 		{
@@ -568,9 +558,9 @@ public:
 	void ShowImGuiNode () override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( Elevator, 0 )
-CEREAL_REGISTER_TYPE ( Elevator )
-CEREAL_REGISTER_POLYMORPHIC_RELATION ( GimmickBase, Elevator )
+CEREAL_CLASS_VERSION ( Lift, 0 )
+CEREAL_REGISTER_TYPE ( Lift )
+CEREAL_REGISTER_POLYMORPHIC_RELATION ( GimmickBase, Lift )
 
 /// <summary>
 /// Provides some trigger to some gimmick.
