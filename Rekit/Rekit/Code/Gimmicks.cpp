@@ -51,6 +51,7 @@ namespace GimmickUtility
 		case GimmickKind::Bomb:				return "Bomb";			// break;
 		case GimmickKind::BombGenerator:	return "BombGenerator";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
+		case GimmickKind::BeltConveyor:		return "BeltConveyor";	// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -101,7 +102,7 @@ GimmickBase::GimmickBase() :
 {}
 GimmickBase::~GimmickBase() = default;
 
-void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
+void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	std::vector<BoxEx> wholeCollisions = terrains;
 	if ( collideToPlayer )
@@ -246,11 +247,31 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 		// Repulse to the more little(but greater than zero) axis side of penetration.
 		if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 		{
+			Donya::Vector2 influence{};
+			enum Dir { Up = 1, Down = -1 };
+			int  verticalSign = Donya::SignBit( velocity.y );
+			if ( verticalSign == Down )
+			{
+				influence = Gimmick::HasInfluence( other );
+			}
+
 			movedXYBody.pos.y += resolver.y;
 			velocity.y = 0.0f;
 			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
 
 			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
+
+			if ( !influence.IsZero() )
+			{
+				movedXYBody.pos += influence;
+				const Donya::Int2 signs
+				{
+					Donya::SignBit( influence.x ),
+					Donya::SignBit( influence.y )
+				};
+				if ( signs.x != 0 ) { moveSign.x = scast<float>( signs.x ); }
+				if ( signs.y != 0 ) { moveSign.y = scast<float>( signs.y ); }
+			}
 		}
 		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 		{
@@ -261,7 +282,7 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
 		}
 
-		if ( arrowCompress && JudgeWillCompressed( pushDirection ) )
+		if ( allowCompress && JudgeWillCompressed( pushDirection ) )
 		{
 			Donya::Sound::Play( Music::Insert );
 			wasCompressed = true;
@@ -332,6 +353,7 @@ namespace GimmickModels
 	static Donya::StaticMesh bomb{};
 	static Donya::StaticMesh bombGenerator{};
 	static Donya::StaticMesh shutter{};
+	static Donya::StaticMesh beltConveyor{};
 	static bool wasLoaded{ false };
 
 	// This is in the order of GimmickKind.
@@ -349,6 +371,7 @@ namespace GimmickModels
 		&bomb,
 		&bombGenerator,
 		&shutter,
+		&beltConveyor,
 	};
 	Donya::StaticMesh *GetModelAddress( GimmickKind kind )
 	{
@@ -371,6 +394,7 @@ void Gimmick::InitParameters()
 	Bomb::ParameterInit();
 	BombGenerator::ParameterInit();
 	Shutter::ParameterInit();
+	BeltConveyor::ParameterInit();
 }
 
 bool Gimmick::LoadModels()
@@ -392,6 +416,7 @@ bool Gimmick::LoadModels()
 		GimmickKind::Bomb,
 		GimmickKind::BombGenerator,
 		GimmickKind::Shutter,
+		GimmickKind::BeltConveyor,
 	};
 
 	auto MakeModelPath			= []( const std::string &kindName )
@@ -479,6 +504,15 @@ bool Gimmick::HasGatherAttribute( const BoxEx  &gimmick )
 bool Gimmick::HasGatherAttribute( const AABBEx &gimmick )
 {
 	return Trigger::IsGatherBox( gimmick );
+}
+
+Donya::Vector2 Gimmick::HasInfluence( const BoxEx  &gimmick )
+{
+	return BeltConveyor::HasInfluence( gimmick );
+}
+Donya::Vector3 Gimmick::HasInfluence( const AABBEx &gimmick )
+{
+	return BeltConveyor::HasInfluence( gimmick );
 }
 
 bool Gimmick::HasAttribute( GimmickKind attribute, const BoxEx &gimmick )
@@ -663,6 +697,7 @@ void Gimmick::UseImGui()
 	Bomb::UseParameterImGui();
 	BombGenerator::UseParameterImGui();
 	Shutter::UseParameterImGui();
+	BeltConveyor::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -742,6 +777,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BeltConveyor		) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<BeltConveyor>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::BeltConveyor ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )

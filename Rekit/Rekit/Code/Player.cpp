@@ -315,6 +315,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			// Repulse to the more little(but greater than zero) axis side of penetration.
 			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 			{
+				Donya::Vector2 influence{};
 				enum Dir { Up = 1, Down = -1 };
 				int  verticalSign =  Donya::SignBit( velocity.y );
 				if ( verticalSign == Down )
@@ -322,11 +323,25 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 					Landing();
 
 					aboveSlipGround = Gimmick::HasSlipAttribute( other );
+					
+					influence = Gimmick::HasInfluence( other );
 				}
 
 				movedXYBody.pos.y += resolver.y;
 				velocity.y = 0.0f;
 				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+
+				if ( !influence.IsZero() )
+				{
+					movedXYBody.pos += influence;
+					const Donya::Int2 signs
+					{
+						Donya::SignBit( influence.x ),
+						Donya::SignBit( influence.y )
+					};
+					if ( signs.x != 0 ) { moveSign.x = scast<float>( signs.x ); }
+					if ( signs.y != 0 ) { moveSign.y = scast<float>( signs.y ); }
+				}
 			}
 			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 			{
