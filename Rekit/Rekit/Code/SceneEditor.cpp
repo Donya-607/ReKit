@@ -25,6 +25,7 @@
 #include "FilePath.h"
 #include "DerivedCollision.h"
 #include "Gimmicks.h"
+#include "Terrain.h"
 
 #pragma region EditParam
 class EditParam final : public Donya::Singleton<EditParam>
@@ -43,6 +44,7 @@ public:
 
 		Donya::Vector3		transformMousePos{};
 		Donya::Vector2		changeableBoxSize{4.0f, 4.0f};
+		float				changeableGimmickDegree = 0.0f;
 		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
 		SelectGimmick		nowSelect;
@@ -156,7 +158,8 @@ public:
 		auto mousePos = EditParam::Get().Data().transformMousePos;
 		auto size = EditParam::Get().Data().changeableBoxSize;
 
-		const float rollDegree = 0.0f;
+		//const float rollDegree = 0.0f;
+		auto rollDegree = EditParam::Get().Data().changeableGimmickDegree;
 
 		BoxEx changeable{ { mousePos.x, mousePos.y, size.x, size.y, true }, 1 };
 		switch (EditParam::Data().nowSelect)
@@ -330,6 +333,11 @@ public:
 							m.changeableBoxSize = Donya::Vector2(4.0f, 4.0f);
 						}
 					}
+					ImGui::SliderFloat(u8"オブジェクトのDegree", &m.changeableGimmickDegree, -180.0f, 179.9f);
+					if (ImGui::Button(u8"Degreeを0度に戻す"))
+					{
+						m.changeableGimmickDegree = 0.0f;
+					}
 					if (SceneEditor::isChanges)
 					{
 						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), u8"変更されていない箇所があります");
@@ -377,6 +385,12 @@ SceneEditor::~SceneEditor() = default;
 
 void SceneEditor::Init()
 {
+
+	Terrain::LoadModel();
+
+	Gimmick::LoadModels();
+	Gimmick::InitParameters();
+
 	CameraInit();
 
 	iCamera.Init(Donya::ICamera::Mode::Free);
@@ -429,6 +443,7 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 	EraseBlockIfRightCleck();
 	SaveEditParameter();
 	LoadEditParameter();
+	ControlDegree();
 	isPressG = Donya::Keyboard::Press('G');
 
 
@@ -454,6 +469,7 @@ void SceneEditor::Draw(float elapsedTime)
 		constexpr Donya::Vector4 cubeColor{ 0.9f, 0.6f, 0.6f, 0.2f };
 		Donya::Vector4x4 cubeT{};
 		Donya::Vector4x4 cubeS{};
+		Donya::Vector4x4 cubeR{};
 		Donya::Vector4x4 cubeW{};
 
 		// スクリーン座標 -> ワールド座標
@@ -463,7 +479,9 @@ void SceneEditor::Draw(float elapsedTime)
 		auto size = EditParam::Get().Data().changeableBoxSize;
 		cubeT = Donya::Vector4x4::MakeTranslation(EditParam::Get().DataRef().transformMousePos);
 		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f * size.x, 1.0f * size.y, 1.0f });
-		cubeW = cubeS * cubeT;
+		cubeR = Donya::Vector4x4::MakeRotationAxis(Donya::Vector3(0.0f, 0.0f, 1.0f), ToRadian(EditParam::Get().Data().changeableGimmickDegree));
+
+		cubeW = cubeS * cubeR * cubeT;
 
 		cirsolBox.Render
 		(
@@ -484,6 +502,7 @@ void SceneEditor::Draw(float elapsedTime)
 		constexpr Donya::Vector4 cubeColor{ 0.9f, 0.9f, 0.3f, 0.6f };
 		Donya::Vector4x4 cubeT{};
 		Donya::Vector4x4 cubeS{};
+		Donya::Vector4x4 cubeR{};
 		Donya::Vector4x4 cubeW{};
 		for (const auto& it : EditParam::Get().Data().editObjects.editBlocks)
 		{
@@ -493,7 +512,7 @@ void SceneEditor::Draw(float elapsedTime)
 
 			cubeT = Donya::Vector4x4::MakeTranslation(Donya::Vector3{ it.pos, 0.0f });
 			cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ it.size, 1.0f });
-			cubeW = cubeS * cubeT;
+			cubeW = cubeS * cubeR * cubeT;
 
 			cube.Render
 			(
@@ -686,6 +705,34 @@ void SceneEditor::LoadEditParameter()
 
 	isChanges = false;
 	EditParam::Get().LoadParameter();
+}
+
+void SceneEditor::ControlDegree()
+{
+	const float rollSpeed = 2.0f;
+
+	bool PressQ = Donya::Keyboard::Press('Q');
+	bool PressE = Donya::Keyboard::Press('E');
+	bool PressW = Donya::Keyboard::Press('W');
+	auto rollDegree = EditParam::Get().DataRef().changeableGimmickDegree;
+
+	if (PressW)
+	{
+		rollDegree = 0.0f;
+	}
+	else if (PressQ)
+	{
+		rollDegree += rollSpeed;
+		if (rollDegree >= 179.9f)
+			rollDegree = 179.9f;
+	}
+	else if (PressE)
+	{
+		rollDegree -= rollSpeed;
+		if (rollDegree <= -180.0f)
+			rollDegree = -180.0f;
+	}
+	EditParam::Get().DataRef().changeableGimmickDegree = rollDegree;
 }
 
 

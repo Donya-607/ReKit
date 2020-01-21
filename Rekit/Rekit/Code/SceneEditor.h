@@ -98,6 +98,7 @@ private:
 	void CorrectionGridCursor();
 	void SaveEditParameter();
 	void LoadEditParameter();
+	void ControlDegree();
 
 private:
 	Result	ReturnResult();
