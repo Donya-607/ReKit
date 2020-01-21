@@ -52,6 +52,7 @@ namespace GimmickUtility
 		case GimmickKind::BombGenerator:	return "BombGenerator";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
 		case GimmickKind::BeltConveyor:		return "BeltConveyor";	// break;
+		case GimmickKind::OneWayBlock:		return "OneWayBlock";	// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -354,6 +355,7 @@ namespace GimmickModels
 	static Donya::StaticMesh bombGenerator{};
 	static Donya::StaticMesh shutter{};
 	static Donya::StaticMesh beltConveyor{};
+	static Donya::StaticMesh oneWayBlock{};
 	static bool wasLoaded{ false };
 
 	// This is in the order of GimmickKind.
@@ -372,6 +374,7 @@ namespace GimmickModels
 		&bombGenerator,
 		&shutter,
 		&beltConveyor,
+		&oneWayBlock,
 	};
 	Donya::StaticMesh *GetModelAddress( GimmickKind kind )
 	{
@@ -395,6 +398,7 @@ void Gimmick::InitParameters()
 	BombGenerator::ParameterInit();
 	Shutter::ParameterInit();
 	BeltConveyor::ParameterInit();
+	OneWayBlock::ParameterInit();
 }
 
 bool Gimmick::LoadModels()
@@ -417,6 +421,7 @@ bool Gimmick::LoadModels()
 		GimmickKind::BombGenerator,
 		GimmickKind::Shutter,
 		GimmickKind::BeltConveyor,
+		GimmickKind::OneWayBlock,
 	};
 
 	auto MakeModelPath			= []( const std::string &kindName )
@@ -698,6 +703,7 @@ void Gimmick::UseImGui()
 	BombGenerator::UseParameterImGui();
 	Shutter::UseParameterImGui();
 	BeltConveyor::UseParameterImGui();
+	OneWayBlock::UseParameterImGui();
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -782,6 +788,11 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_shared<BeltConveyor>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::BeltConveyor ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::OneWayBlock		) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<OneWayBlock>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::OneWayBlock ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )
