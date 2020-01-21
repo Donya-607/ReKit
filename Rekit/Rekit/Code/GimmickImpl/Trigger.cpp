@@ -365,7 +365,7 @@ void Trigger::Update( float elapsedTime )
 	default: return;
 	}
 }
-void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	switch ( kind )
 	{

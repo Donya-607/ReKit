@@ -163,8 +163,7 @@ void FragileBlock::UseParameterImGui()
 }
 #endif // USE_IMGUI
 
-FragileBlock::FragileBlock() : GimmickBase(),
-	wasBroken( false )
+FragileBlock::FragileBlock() : GimmickBase()
 {}
 FragileBlock::~FragileBlock() = default;
 
@@ -186,12 +185,14 @@ void FragileBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void FragileBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void FragileBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, true, false, true );
+	
 	// Store also the player(player is not contain to terrains).
-	std::vector<BoxEx> wholeCollisions = terrains;
-	wholeCollisions.emplace_back( player );
-	AssignVelocity( accompanyBox, wholeCollisions );
+	// std::vector<BoxEx> wholeCollisions = terrains;
+	// wholeCollisions.emplace_back( player );
+	// AssignVelocity( accompanyBox, wholeCollisions );
 }
 
 void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -211,7 +212,7 @@ void FragileBlock::WakeUp()
 
 bool FragileBlock::ShouldRemove() const
 {
-	return wasBroken;
+	return wasCompressed;
 }
 
 Donya::Vector3 FragileBlock::GetPosition() const
@@ -436,7 +437,7 @@ void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<
 		if ( JudgeWillCompressed( pushDirection ) )
 		{
 			Donya::Sound::Play( Music::Insert );
-			wasBroken = true;
+			wasCompressed = true;
 			break; // Break from hit-boxes loop.
 		}
 		// else

@@ -176,7 +176,7 @@ void SwitchBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GatherToTheTarget( terrains );
 

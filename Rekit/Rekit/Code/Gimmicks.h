@@ -67,6 +67,7 @@ protected:
 	float			rollDegree;	// The rotation amount with Z-axis.
 	Donya::Vector3	pos;		// World space.
 	Donya::Vector3	velocity;
+	bool			wasCompressed;
 public:
 	GimmickBase();
 	~GimmickBase();
@@ -98,7 +99,7 @@ public:
 	/// <summary>
 	/// The base class PhysicUpdate() provides only moves(by velocity) and resolving collision.
 	/// </summary>
-	virtual void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer = true, bool ignoreHitBoxExist = false );
+	virtual void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer = true, bool ignoreHitBoxExist = false, bool allowCompress = false );
 
 	virtual void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const = 0;
 protected:
@@ -157,8 +158,6 @@ public:
 	/// </summary>
 	static void UseParameterImGui();
 #endif // USE_IMGUI
-private:
-	bool	wasBroken;	// Use for a signal of want to remove.
 public:
 	FragileBlock();
 	~FragileBlock();
@@ -181,7 +180,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -254,7 +253,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -325,7 +324,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -394,7 +393,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -457,7 +456,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -550,7 +549,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -655,7 +654,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -679,8 +678,8 @@ private:
 	void BombUpdate( float elapsedTime );
 	void ExplosionUpdate( float elapsedTime );
 
-	void BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false );
-	void ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false );
+	void BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false );
+	void ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;
@@ -730,7 +729,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const override;
 public:
@@ -809,7 +808,7 @@ public:
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
-	void PhysicUpdate( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist = false ) override;
+	void PhysicUpdate( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist = false, bool allowCompress = false ) override;
 
 	void Draw( const Donya::Vector4x4& matView, const Donya::Vector4x4& matProjection, const Donya::Vector4& lightDirection ) const override;
 public:

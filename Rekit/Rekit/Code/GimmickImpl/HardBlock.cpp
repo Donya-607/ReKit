@@ -173,7 +173,7 @@ void HardBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }

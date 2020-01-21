@@ -96,11 +96,11 @@ using namespace GimmickUtility;
 #pragma region Base
 
 GimmickBase::GimmickBase() :
-	kind(), rollDegree(), pos(), velocity()
+	kind(), rollDegree(), pos(), velocity(), wasCompressed( false )
 {}
 GimmickBase::~GimmickBase() = default;
 
-void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
 	std::vector<BoxEx> wholeCollisions = terrains;
 	if ( collideToPlayer )
@@ -125,6 +125,27 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 		return BoxEx::Nil();
 	};
 
+	std::vector<Donya::Vector2> pushedDirections{}; // Store a normalized-vector of [wall->myself].
+	// Returns true if it is determined to compressed. The "pushDir" expect {0, 1} or {1, 0}.
+	auto JudgeWillCompressed = [&pushedDirections]( const Donya::Vector2 pushDir )->bool
+	{
+		pushedDirections.emplace_back( pushDir );
+		if ( pushedDirections.size() < 2U ) { return false; } // The myself does not compress if a vectors count less than two.
+		// else
+
+		float angle{};
+		for ( const auto &it : pushedDirections )
+		{
+			angle = Donya::Vector2::Dot( pushDir, it );
+			if ( angle < 0.0f ) // If these direction is against.
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	const AABBEx actualBody		= GetHitBox();
 	const BoxEx  previousXYBody	= actualBody.Get2D();
 
@@ -135,6 +156,14 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 		velocity.x = accompanyBox.velocity.x;
 		velocity.y = accompanyBox.velocity.y;
+		pushedDirections.emplace_back
+		(
+			Donya::Vector2{ scast<float>( Donya::SignBit( velocity.x ) ), 0.0f }
+		);
+		pushedDirections.emplace_back
+		(
+			Donya::Vector2{ 0.0f, scast<float>( Donya::SignBit( velocity.y ) ) }
+		);
 	}
 
 	Donya::Vector2 xyVelocity{ velocity.x, velocity.y };
@@ -196,6 +225,7 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 		constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
 
+		Donya::Vector2 pushDirection{};
 		Donya::Vector2 resolver
 		{
 			( penetration.x + ERROR_MARGIN ) * -moveSign.x,
@@ -208,14 +238,23 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 			movedXYBody.pos.y += resolver.y;
 			velocity.y = 0.0f;
 			moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+
+			pushDirection = Donya::Vector2{ 0.0f, moveSign.y };
 		}
 		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 		{
 			movedXYBody.pos.x += resolver.x;
 			velocity.x = 0.0f;
 			moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+
+			pushDirection = Donya::Vector2{ moveSign.x, 0.0f };
 		}
 
+		if ( JudgeWillCompressed( pushDirection ) )
+		{
+			Donya::Sound::Play( Music::Insert );
+			wasCompressed = true;
+		}
 	}
 
 	pos.x = movedXYBody.pos.x;

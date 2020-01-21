@@ -211,15 +211,15 @@ void Bomb::Update( float elapsedTime )
 	default: return;
 	}
 }
-void Bomb::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	switch ( status )
 	{
 	case Bomb::State::Bomb:
-		BombPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
+		BombPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist, allowCompress );
 		return;
 	case Bomb::State::Explosion:
-		ExplosionPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
+		ExplosionPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist, allowCompress );
 		return;
 	default: return;
 	}
@@ -313,11 +313,11 @@ void Bomb::ExplosionUpdate( float elapsedTime )
 
 }
 
-void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ true, /* ignoreHitBoxExist = */ false, /* allowCompress = */ true );
 }
-void Bomb::ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
 	// No op.
 }
@@ -502,7 +502,7 @@ void BombGenerator::Update( float elapsedTime )
 
 	UpdateBombs( elapsedTime );
 }
-void BombGenerator::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void BombGenerator::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
 	PhysicUpdateBombs( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
 }

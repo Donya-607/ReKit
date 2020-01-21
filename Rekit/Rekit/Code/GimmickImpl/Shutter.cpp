@@ -184,7 +184,7 @@ void Shutter::Update ( float elapsedTime )
 	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
 	movedWidth += ParamShutter::Get ().Data ().openSpeed;
 }
-void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	pos += velocity;
 }

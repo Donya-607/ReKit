@@ -163,7 +163,7 @@ void SpikeBlock::Update( float elapsedTime )
 {
 	radian += ParamSpikeBlock::Get().Data().rotationSpeed;
 }
-void SpikeBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void SpikeBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	// No op.
 }
