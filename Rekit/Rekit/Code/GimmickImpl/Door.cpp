@@ -14,9 +14,9 @@
 #undef max
 #undef min
 
-struct ParamShutter final : public Donya::Singleton<ParamShutter>
+struct ParamDoor final : public Donya::Singleton<ParamDoor>
 {
-	friend Donya::Singleton<ParamShutter>;
+	friend Donya::Singleton<ParamDoor>;
 public:
 	struct Member
 	{
@@ -39,12 +39,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char* SERIAL_ID = "Shutter";
+	static constexpr const char* SERIAL_ID = "Door";
 	Member m;
 private:
-	ParamShutter () : m () {}
+	ParamDoor () : m () {}
 public:
-	~ParamShutter () = default;
+	~ParamDoor () = default;
 public:
 	void Init ()
 	{
@@ -84,7 +84,7 @@ public:
 	{
 		if (ImGui::BeginIfAllowed ())
 		{
-			if (ImGui::TreeNode ( u8"ギミック[Shutter]・調整データ" ))
+			if (ImGui::TreeNode ( u8"ギミック[Door]・調整データ" ))
 			{
 				auto AdjustAABB = []( const std::string& prefix, AABBEx* pHitBox )
 				{
@@ -94,7 +94,7 @@ public:
 					ImGui::Checkbox ( (prefix + u8"当たり判定は有効か").c_str (), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat ( u8"シャッターが開く速度", &m.openSpeed, 0.1f );
+				ImGui::DragFloat ( u8"ドアが開く速度", &m.openSpeed, 0.1f );
 
 				AdjustAABB ( u8"当たり判定", &m.hitBox );
 
@@ -127,95 +127,101 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( ParamShutter::Member, 0 )
+CEREAL_CLASS_VERSION ( ParamDoor::Member, 0 )
 
 
 
-void Shutter::ParameterInit ()
+void Door::ParameterInit ()
 {
-	ParamShutter::Get ().Init ();
+	ParamDoor::Get ().Init ();
 }
 #if USE_IMGUI
-void Shutter::UseParameterImGui ()
+void Door::UseParameterImGui ()
 {
-	ParamShutter::Get ().UseImGui ();
+	ParamDoor::Get ().UseImGui ();
 }
 #endif // USE_IMGUI
 
-Shutter::Shutter () : GimmickBase (),
-	id ( -1 ), direction ( 0, 0, 0 ), movedWidth ( 0 )
+Door::Door () : GimmickBase (),
+id ( -1 ), direction ( 0, 0, 0 ), movedWidth ( 0 ), state ( Door::DoorState::Wait )
 {}
-Shutter::Shutter ( int id, const Donya::Vector3 & direction ) : GimmickBase (),
-	id ( id ), direction ( direction ), movedWidth ( 0 )
+Door::Door ( int id, const Donya::Vector3& direction ) : GimmickBase (),
+id ( id ), direction ( direction ), movedWidth ( 0 ), state ( Door::DoorState::Wait )
 {}
-Shutter::~Shutter () = default;
+Door::~Door () = default;
 
-void Shutter::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
+void Door::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
 {
-	kind		= gimmickKind;
-	rollDegree	= roll;
-	pos			= wsPos;
-	velocity	= 0.0f;
+	kind = gimmickKind;
+	rollDegree = roll;
+	pos = wsPos;
+	velocity = 0.0f;
 }
-void Shutter::Uninit ()
+void Door::Uninit ()
 {
 	// No op.
 }
 
-void Shutter::Update ( float elapsedTime )
+void Door::Update ( float elapsedTime )
 {
-	// debug用なので消してね-----------------------------------
-	if (Donya::Keyboard::Trigger ( 'Q' ))
+	switch (state)
 	{
-		GimmickStatus::Register ( id, true );
-	}
-	//---------------------------------------------------------
+	case DoorState::Wait:
+		// debug用
+		if (Donya::Keyboard::Trigger ( 'Q' )) { state = DoorState::Open; }
+		break;
 
-	if (!GimmickStatus::Refer ( id ))	{ return; }
+	case DoorState::Open:
+		// 正方形なのでxでもyでもどっちでも良いのではないか説
+		if (movedWidth >= ParamDoor::Get ().Data ().hitBox.size.x * 2)
+		{
+			velocity = 0;
+			GimmickStatus::Remove ( id );
+			state = DoorState::Opened;
+			break;
+		}
 
-	// 正方形なのでxでもyでもどっちでも良いのではないか説
-	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
-	{
+		velocity = direction * ParamDoor::Get ().Data ().openSpeed;
+		movedWidth += ParamDoor::Get ().Data ().openSpeed;
+		break;
+
+	case DoorState::Opened:
 		velocity = 0;
-		GimmickStatus::Remove ( id );
-		return;
+		break;
 	}
-
-	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
-	movedWidth += ParamShutter::Get ().Data ().openSpeed;
 }
-void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
+void Door::PhysicUpdate ( const BoxEx & player, const BoxEx & accompanyBox, const std::vector<BoxEx> & terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	pos += velocity;
 }
 
-void Shutter::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const Donya::Vector4 & lightDir ) const
+void Door::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const Donya::Vector4 & lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix ( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 colors = { 0.0f, 0.2f, 0.3f, 0.8f };
+	constexpr Donya::Vector4 colors = { 0.0f, 0.7f, 0.9f, 0.8f };
 
 	BaseDraw ( WVP, W, lightDir, colors );
 }
 
-void Shutter::WakeUp ()
+void Door::WakeUp ()
 {
 	// No op.
 }
 
-bool Shutter::ShouldRemove () const
+bool Door::ShouldRemove () const
 {
 	return false;
 }
 
-Donya::Vector3 Shutter::GetPosition () const
+Donya::Vector3 Door::GetPosition () const
 {
 	return pos;
 }
-AABBEx Shutter::GetHitBox () const
+AABBEx Door::GetHitBox () const
 {
-	const AABBEx hitBoxes = ParamShutter::Get ().Data ().hitBox;
+	const AABBEx hitBoxes = ParamDoor::Get ().Data ().hitBox;
 
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
@@ -223,7 +229,7 @@ AABBEx Shutter::GetHitBox () const
 	return wsHitBox;
 }
 
-Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
+Donya::Vector4x4 Door::GetWorldMatrix ( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox ();
 	if (useDrawing)
@@ -232,8 +238,8 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 		// wsBox.size *= 2.0f;
 	}
 
-	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
-	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
+	const Donya::Quaternion rotation = Donya::Quaternion::Make ( Donya::Vector3::Front (), ToRadian ( rollDegree ) );
+	const Donya::Vector4x4 R = rotation.RequireRotationMatrix ();
 	Donya::Vector4x4 mat{};
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
@@ -247,14 +253,14 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 
 #if USE_IMGUI
 
-void Shutter::ShowImGuiNode ()
+void Door::ShowImGuiNode ()
 {
 	using namespace GimmickUtility;
 
 	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
 	ImGui::DragFloat ( u8"Ｚ軸回転量", &rollDegree, 1.0f );
-	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
-	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );
+	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
+	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
 }
 
 #endif // USE_IMGUI

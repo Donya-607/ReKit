@@ -187,8 +187,8 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
-	player(), terrains(), gimmicks(),
-	pHook( nullptr ),
+	bg(), player(), pHook( nullptr ),
+	terrains(), gimmicks(),
 	useCushion( true )
 {}
 SceneGame::~SceneGame() = default;
@@ -196,6 +196,8 @@ SceneGame::~SceneGame() = default;
 void SceneGame::Init()
 {
 	Donya::Sound::Play( Music::BGM_Game );
+
+	BG::ParameterInit();
 
 	Terrain::LoadModel();
 
@@ -211,6 +213,7 @@ void SceneGame::Init()
 
 	player.Init( GameParam::Get().Data().initPlayerPos );
 	Hook::Init();
+	bg.Init ();
 }
 void SceneGame::Uninit()
 {
@@ -218,13 +221,14 @@ void SceneGame::Uninit()
 
 	GameParam::Get().Uninit();
 
+	bg.Uninit();
+	player.Uninit();
+	Hook::Uninit();
+
 	for ( auto &it : gimmicks )
 	{
 		it.Uninit();
 	}
-
-	player.Uninit();
-	Hook::Uninit();
 }
 
 Scene::Result SceneGame::Update( float elapsedTime )
@@ -241,6 +245,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	UseImGui();
 	GameParam::Get().UseImGui();
+	BG::UseParameterImGui();
 
 #endif // USE_IMGUI
 
@@ -267,6 +272,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	};
 
 	controller.Update();
+
+	bg.Update (elapsedTime);
 
 	/*
 	Update-order memo:
@@ -364,6 +371,13 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::ClearViews( BG_COLOR );
 	}
 
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+		bg.Draw();
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4	P = iCamera.GetProjectionMatrix();
 	const Donya::Vector4	cameraPos{ iCamera.GetPosition(), 1.0f };
@@ -379,6 +393,7 @@ void SceneGame::Draw( float elapsedTime )
 	}
 
 #if DEBUG_MODE
+	// Drawing the line that represent the room size.
 	{
 		static Donya::Geometric::Line line{ 32U };
 		static bool initialized = false;
@@ -715,7 +730,7 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 		if ( left  ) { moveLeft  = true; }
 		if ( right ) { moveRight = true; }
 
-		if ( controller.Trigger( Pad::A  ) ) { useJump = true; }
+		if ( controller.Trigger( Pad::LT ) ) { useJump = true; }
 	}
 	else
 	{
@@ -827,19 +842,13 @@ void SceneGame::HookUpdate( float elapsedTime )
 
 		stick = controller.RightStick();
 
-#if 0
-		if ( controller.Trigger( Pad::LT ) ) { useAction	= true; }
-		if ( controller.Press  ( Pad::RT ) ) { create		= true;
-											   extend		= true; }
-		if ( controller.Press  ( Pad::RB ) ) { shrink		= true; }
-		if ( controller.Trigger( Pad::LB ) ) { erase		= true; }
-#else
-		if ( controller.Trigger( Pad::RT ) ) { useAction	= true; }
-		if ( stick.Length() != 0 )			 { create		= true;
-											   extend		= true; }
-		else								 { shrink		= true; }
-		if ( controller.Trigger( Pad::LT ) ) { erase		= true; }
-#endif
+		if (controller.Trigger ( Pad::RT )) { useAction = true; }
+		if (stick.Length () != 0) {
+			create = true;
+			extend = true;
+		}
+		else { shrink = true; }
+		if (controller.Trigger ( Pad::RB )) { erase = true; }
 	}
 	else
 	{

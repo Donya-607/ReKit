@@ -13,16 +13,13 @@
 #undef max
 #undef min
 
-struct ParamHardBlock final : public Donya::Singleton<ParamHardBlock>
+struct ParamBeltConveyor final : public Donya::Singleton<ParamBeltConveyor>
 {
-	friend Donya::Singleton<ParamHardBlock>;
+	friend Donya::Singleton<ParamBeltConveyor>;
 public:
 	struct Member
 	{
-		float	gravity{};
-		float	maxFallSpeed{};
-		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
-		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
+		float	influence{};
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -31,10 +28,7 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP( gravity ),
-				CEREAL_NVP( maxFallSpeed ),
-				CEREAL_NVP( brakeSpeed ),
-				CEREAL_NVP( stopThreshold ),
+				CEREAL_NVP( influence ),
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
@@ -44,12 +38,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "HardBlock";
+	static constexpr const char *SERIAL_ID = "BeltConveyor";
 	Member m;
 private:
-	ParamHardBlock() : m() {}
+	ParamBeltConveyor() : m() {}
 public:
-	~ParamHardBlock() = default;
+	~ParamBeltConveyor() = default;
 public:
 	void Init()
 	{
@@ -92,7 +86,7 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ギミック[Hard]・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[BeltConveyor]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
@@ -102,10 +96,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
-				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
-				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
-				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
+				ImGui::DragFloat( u8"影響させる速度", &m.influence, 0.1f );
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -138,81 +129,130 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamHardBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBeltConveyor::Member, 0 )
 
-void HardBlock::ParameterInit()
+namespace
 {
-	ParamHardBlock::Get().Init();
+	const int BELT_C_SIGN_ID = GimmickUtility::ToInt( GimmickKind::BeltConveyor );
+	Donya::Vector2 MakeVelocity( float degree )
+	{
+		const Donya::Vector2 unit
+		{
+			cosf( ToRadian( degree ) ),
+			sinf( ToRadian( degree ) )
+		};
+		return unit * ParamBeltConveyor::Get().Data().influence;
+	}
+	BoxEx	ToBeltConveyorBox( BoxEx  source, float degree )
+	{
+		source.velocity = MakeVelocity( degree );
+		source.attr  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_SIGN_ID;
+		source.exist = true;
+		return source;
+	}
+	AABBEx	ToBeltConveyorBox( AABBEx source, float degree )
+	{	
+		source.velocity = Donya::Vector3{ MakeVelocity( degree ), 0.0f };
+		source.attr  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_SIGN_ID;
+		source.exist = true;
+		return source;
+	}
+	bool	IsBeltConveyorBox( const BoxEx  &source )
+	{
+		// I regard as : if ( |velocity| - |SPEED| == 0 ) true.
+		const float beltSpeed = ParamBeltConveyor::Get().Data().influence;
+		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
+
+		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.exist != true ) { return false; }
+		return true;
+	}
+	bool	IsBeltConveyorBox( const AABBEx &source )
+	{
+		// I regard as : if ( |velocity| - |SPEED| == 0 ) true.
+		const float beltSpeed = ParamBeltConveyor::Get().Data().influence;
+		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
+
+		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.exist != true ) { return false; }
+		return true;
+	}
+}
+
+Donya::Vector2 BeltConveyor::HasInfluence( const BoxEx  &gimmick )
+{
+	return ( ::IsBeltConveyorBox( gimmick ) ) ? gimmick.velocity : Donya::Vector2::Zero();
+}
+Donya::Vector3 BeltConveyor::HasInfluence( const AABBEx &gimmick )
+{
+	return ( ::IsBeltConveyorBox( gimmick ) ) ? gimmick.velocity : Donya::Vector3::Zero();
+}
+
+void BeltConveyor::ParameterInit()
+{
+	ParamBeltConveyor::Get().Init();
 }
 #if USE_IMGUI
-void HardBlock::UseParameterImGui()
+void BeltConveyor::UseParameterImGui()
 {
-	ParamHardBlock::Get().UseImGui();
+	ParamBeltConveyor::Get().UseImGui();
 }
 #endif // USE_IMGUI
 
-HardBlock::HardBlock() : GimmickBase()
+BeltConveyor::BeltConveyor() : GimmickBase()
 {}
-HardBlock::~HardBlock() = default;
+BeltConveyor::~BeltConveyor() = default;
 
-void HardBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
+void BeltConveyor::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }
-void HardBlock::Uninit()
+void BeltConveyor::Uninit()
 {
 	// No op.
 }
 
-void HardBlock::Update( float elapsedTime )
+void BeltConveyor::Update( float elapsedTime )
 {
-	Fall( elapsedTime );
 
-	Brake( elapsedTime );
 }
-void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
+void BeltConveyor::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
 
-void HardBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void BeltConveyor::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.5f, 0.5f, 0.5f, 0.8f };
+	constexpr Donya::Vector4 color{ 0.8f, 0.9f, 1.0f, 0.9f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }
 
-void HardBlock::WakeUp()
-{
-	// No op.
-}
-
-bool HardBlock::ShouldRemove() const
+bool BeltConveyor::ShouldRemove() const
 {
 	// Don't destroy.
 	return false;
 }
 
-Donya::Vector3 HardBlock::GetPosition() const
+AABBEx BeltConveyor::GetHitBox() const
 {
-	return pos;
-}
-AABBEx HardBlock::GetHitBox() const
-{
-	AABBEx base = ParamHardBlock::Get().Data().hitBox;
-	base.pos		+= pos;
-	base.velocity	=  velocity;
-	base.attr		= kind;
+	AABBEx base	=  ParamBeltConveyor::Get().Data().hitBox;
+	base		=  ToBeltConveyorBox( base, rollDegree );
+	base.pos	+= pos;
 	return base;
 }
 
-Donya::Vector4x4 HardBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 BeltConveyor::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -234,34 +274,9 @@ Donya::Vector4x4 HardBlock::GetWorldMatrix( bool useDrawing ) const
 	return mat;
 }
 
-void HardBlock::Fall( float elapsedTime )
-{
-	const auto DATA = ParamHardBlock::Get().Data();
-	velocity.y -= DATA.gravity * elapsedTime;
-	velocity.y =  std::max( DATA.maxFallSpeed, velocity.y );
-}
-
-void HardBlock::Brake( float elapsedTime )
-{
-	const float moveSign = scast<float>( Donya::SignBit( velocity.x ) );
-	if ( ZeroEqual( moveSign ) ) { return; }
-	// else
-
-	const float nowSpeed = fabsf( velocity.x );
-	if ( nowSpeed <= ParamHardBlock::Get().Data().stopThreshold )
-	{
-		velocity.x = 0.0f;
-		return;
-	}
-	// else
-
-	const float brakeSpeed = std::min( nowSpeed, ParamHardBlock::Get().Data().brakeSpeed );
-	velocity.x -= brakeSpeed * moveSign;
-}
-
 #if USE_IMGUI
 
-void HardBlock::ShowImGuiNode()
+void BeltConveyor::ShowImGuiNode()
 {
 	using namespace GimmickUtility;
 

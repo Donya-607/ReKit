@@ -14,6 +14,39 @@
 #undef max
 #undef min
 
+namespace
+{
+	const int EXPLOSION_SIGN_ID = GimmickUtility::ToInt( GimmickKind::Bomb );
+	BoxEx	ToExplosionBox( BoxEx  source )
+	{
+		source.attr  = EXPLOSION_SIGN_ID;
+		source.mass  = EXPLOSION_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	AABBEx	ToExplosionBox( AABBEx source )
+	{
+		source.attr  = EXPLOSION_SIGN_ID;
+		source.mass  = EXPLOSION_SIGN_ID;
+		source.exist = false;
+		return source;
+	}
+	bool	IsExplosionBox( const BoxEx  &source )
+	{
+		if ( source.attr  != EXPLOSION_SIGN_ID ) { return false; }
+		if ( source.mass  != EXPLOSION_SIGN_ID ) { return false; }
+		if ( source.exist != false ) { return false; }
+		return true;
+	}
+	bool	IsExplosionBox( const AABBEx &source )
+	{
+		if ( source.attr  != EXPLOSION_SIGN_ID ) { return false; }
+		if ( source.mass  != EXPLOSION_SIGN_ID ) { return false; }
+		if ( source.exist != false ) { return false; }
+		return true;
+	}
+}
+
 #pragma region Bomb
 
 struct ParamBomb final : public Donya::Singleton<ParamBomb>
@@ -26,6 +59,9 @@ public:
 		float	maxFallSpeed{};
 		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
 		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
+
+		float	explMagni{};		// Use for scaling when explosioning at every frame.
+		float	explSubAlpha{};		// Use for opaque when explosioning at every frame.
 
 		AABBEx	hitBoxBomb{};		// Hit-Box of using to the collision to the stage.
 		AABBEx	hitBoxExpl{};		// Hit-Box of using to the explosion.
@@ -44,6 +80,14 @@ public:
 				CEREAL_NVP( hitBoxExpl )
 			);
 			if ( 1 <= version )
+			{
+				archive
+				(
+					CEREAL_NVP( explMagni ),
+					CEREAL_NVP( explSubAlpha )
+				);
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -112,6 +156,9 @@ public:
 				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
 				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
 				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
+				ImGui::Text( "" );
+				ImGui::DragFloat( u8"爆発中・大きくなる量",	&m.explMagni,		0.1f	);
+				ImGui::DragFloat( u8"爆発中・透明になる量",	&m.explSubAlpha,	0.1f	);
 				
 				AdjustAABB( u8"当たり判定：ボム：", &m.hitBoxBomb );
 				AdjustAABB( u8"当たり判定：爆発：", &m.hitBoxExpl );
@@ -145,7 +192,16 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamBomb::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBomb::Member, 1 )
+
+bool Bomb::IsExplosionBox( const BoxEx  &source )
+{
+	return ::IsExplosionBox( source );
+}
+bool Bomb::IsExplosionBox( const AABBEx &source )
+{
+	return ::IsExplosionBox( source );
+}
 
 Donya::StaticMesh Bomb::modelExplosion{};
 void Bomb::ParameterInit()
@@ -182,7 +238,8 @@ void Bomb::UseParameterImGui()
 #endif // USE_IMGUI
 
 Bomb::Bomb() : GimmickBase(),
-	status( State::Bomb )
+	status( State::Bomb ),
+	scale( 1.0f ), alpha( 1.0f )
 {}
 Bomb::~Bomb() = default;
 
@@ -211,15 +268,15 @@ void Bomb::Update( float elapsedTime )
 	default: return;
 	}
 }
-void Bomb::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	switch ( status )
 	{
 	case Bomb::State::Bomb:
-		BombPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
+		BombPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist, allowCompress );
 		return;
 	case Bomb::State::Explosion:
-		ExplosionPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
+		ExplosionPhysicUpdate( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist, allowCompress );
 		return;
 	default: return;
 	}
@@ -230,8 +287,22 @@ void Bomb::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Don
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.4f, 0.1f, 0.1f, 0.8f };
+	if ( NowExplosioning() )
+	{
+		const Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, alpha };
+		modelExplosion.Render
+		(
+			nullptr,
+			/* useDefaultShading	= */ true,
+			/* isEnableFill			= */ true,
+			W * V * P, W, lightDir, color
+		);
+		return;
+	}
+	// else
 
+	// const Donya::Vector4 color{ 0.4f, 0.1f, 0.1f, alpha };
+	const Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, alpha };
 	BaseDraw( WVP, W, lightDir, color );
 }
 
@@ -242,13 +313,23 @@ void Bomb::WakeUp()
 
 bool Bomb::ShouldRemove() const
 {
-	// TODO : Implement this.
-	return false;
+	return ( alpha <= 0.0f ) ? true : false;
 }
 
 AABBEx Bomb::GetHitBox() const
 {
-	AABBEx base = ParamBomb::Get().Data().hitBoxBomb;
+	AABBEx base{};
+
+	if ( NowExplosioning() )
+	{
+		base		=  ParamBomb::Get().Data().hitBoxExpl;
+		base		=  ToExplosionBox( base );
+		base.pos	+= pos;
+		return base;
+	}
+	// else
+
+	base			= ParamBomb::Get().Data().hitBoxBomb;
 	base.pos		+= pos;
 	base.velocity	=  velocity;
 	base.attr		=  kind;
@@ -267,9 +348,9 @@ Donya::Vector4x4 Bomb::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 = wsBox.size.x * scale;
+	mat._22 = wsBox.size.y * scale;
+	mat._33 = wsBox.size.z * scale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
@@ -310,16 +391,35 @@ void Bomb::BombUpdate( float elapsedTime )
 }
 void Bomb::ExplosionUpdate( float elapsedTime )
 {
+	const auto param = ParamBomb::Get().Data();
 
+	scale += param.explMagni    * elapsedTime;
+	alpha -= param.explSubAlpha * elapsedTime;
 }
 
-void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ true, /* ignoreHitBoxExist = */ false, /* allowCompress = */ true );
+
+	if ( wasCompressed && !NowExplosioning() )
+	{
+		Explosion();
+	}
 }
-void Bomb::ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Bomb::ExplosionPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
 	// No op.
+}
+
+bool Bomb::NowExplosioning() const
+{
+	return ( status == State::Explosion ) ? true : false;
+}
+void Bomb::Explosion()
+{
+	status		= State::Explosion;
+	rollDegree	= 0.0f;
+	velocity	= 0.0f;
 }
 
 #if USE_IMGUI
@@ -502,7 +602,7 @@ void BombGenerator::Update( float elapsedTime )
 
 	UpdateBombs( elapsedTime );
 }
-void BombGenerator::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void BombGenerator::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
 	PhysicUpdateBombs( player, accompanyBox, terrains, collideToPlayer, ignoreHitBoxExist );
 }

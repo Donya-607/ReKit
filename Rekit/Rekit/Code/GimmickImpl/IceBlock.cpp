@@ -158,7 +158,7 @@ void IceBlock::Update( float elapsedTime )
 {
 
 }
-void IceBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void IceBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
