@@ -22,6 +22,7 @@ public:
 		float	openAmount{ 1.0f };	// Constant value.
 		float	closeSpeed{ 1.0f };	// Acceleration.
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
+		AABBEx	openTrigger{};		// The area that trigger of open. This offset will function to inverse direction of "openDirection".
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -34,6 +35,13 @@ public:
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
+			{
+				archive
+				(
+					CEREAL_NVP( openTrigger )
+				);
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -101,7 +109,12 @@ public:
 				ImGui::DragFloat( u8"開く量",		&m.openAmount, 0.1f, 0.001f );
 				ImGui::DragFloat( u8"閉まる速度",	&m.closeSpeed, 1.0f, 0.001f );
 
-				AdjustAABB( u8"当たり判定", &m.hitBox );
+				AdjustAABB( u8"当たり判定",			&m.hitBox );
+				ImGui::Text( "" );
+				AdjustAABB( u8"開くトリガー範囲",		&m.openTrigger );
+				ImGui::Text( u8"トリガーのオフセットは，「開く方向の逆方向」に長さとして作用します。" );
+				ImGui::Text( u8"トリガーのサイズは，デフォルトを右とする方向に応じて回転されます。" );
+				ImGui::Text( "" );
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
 				{
@@ -132,7 +145,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamOneWayBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamOneWayBlock::Member, 1 )
 
 void OneWayBlock::ParameterInit()
 {
@@ -179,16 +192,20 @@ void OneWayBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 	pos += velocity;
 
-	BoxEx wsMovedMyself = GetHitBox().Get2D();
-	BoxEx wsMovedPlayer = player;
-	wsMovedPlayer.pos  += player.velocity;
+	BoxEx wsMovedTrgArea	=  GetTriggerArea().Get2D();
+	BoxEx wsMovedPlayer		=  player;
+	wsMovedPlayer.pos		+= player.velocity;
 
-	if ( Donya::Box::IsHitBox( wsMovedMyself, wsMovedPlayer ) )
+	if ( Donya::Box::IsHitBox( wsMovedTrgArea, wsMovedPlayer ) )
 	{
 		Open();
 	}
 }
 
+#if DEBUG_MODE
+#include "Donya/GeometricPrimitive.h"
+#include "Common.h"
+#endif // DEBUG_MODE
 void OneWayBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
@@ -197,6 +214,39 @@ void OneWayBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, co
 	constexpr Donya::Vector4 color{ 0.8f, 0.9f, 1.0f, 0.9f };
 
 	BaseDraw( WVP, W, lightDir, color );
+
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		const auto trgArea = GetTriggerArea();
+
+		// Change the W matrix here.
+		{
+			const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+			const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
+			Donya::Vector4x4 mat{};
+			mat._11 = trgArea.size.x * 2.0f;
+			mat._22 = trgArea.size.y * 2.0f;
+			mat._33 = trgArea.size.z * 2.0f;
+			mat *= R;
+			mat._41 = trgArea.pos.x;
+			mat._42 = trgArea.pos.y;
+			mat._43 = trgArea.pos.z;
+
+			W   = mat;
+			WVP = W * V * P;
+		}
+
+		cube.Render
+		(
+			nullptr,
+			/* useDefaultShading	= */ true,
+			/* isEnableFill			= */ true,
+			WVP, W, lightDir, { 0.2f, 0.5f, 1.0f, 0.9f }
+		);
+	}
+#endif // DEBUG_MODE
 }
 
 bool OneWayBlock::ShouldRemove() const
@@ -212,6 +262,26 @@ AABBEx OneWayBlock::GetHitBox() const
 	base.velocity	=  velocity;
 	base.attr		=  kind;
 	return base;
+}
+
+AABBEx OneWayBlock::GetTriggerArea() const
+{
+	AABBEx lsTrgArea = ParamOneWayBlock::Get().Data().openTrigger;
+	
+	float offsetLength = lsTrgArea.pos.Length();
+	lsTrgArea.pos = -openDirection * offsetLength;	// Convert offset to inverse of the open-direction.
+	lsTrgArea.pos += pos;							// Convert to world space.
+
+	const float radian = atan2f( -openDirection.y, -openDirection.x + EPSILON );
+	Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), radian );
+	Donya::Vector3 rotatedSize = rotation.RotateVector( lsTrgArea.size );
+	rotatedSize.x = fabsf( rotatedSize.x );
+	rotatedSize.y = fabsf( rotatedSize.y );
+	rotatedSize.z = fabsf( rotatedSize.z );
+
+	AABBEx wsTrgArea = lsTrgArea;
+	wsTrgArea.size = rotatedSize;
+	return wsTrgArea;
 }
 
 void OneWayBlock::Close( float elapsedTime )

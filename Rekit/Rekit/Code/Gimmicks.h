@@ -1043,6 +1043,8 @@ public:
 	/// </summary>
 	AABBEx GetHitBox() const override;
 private:
+	AABBEx GetTriggerArea() const;
+
 	void Close( float elapsedTime );
 	void Open();
 
