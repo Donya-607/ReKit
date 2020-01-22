@@ -161,7 +161,7 @@ public:
 		//const float rollDegree = 0.0f;
 		auto rollDegree = EditParam::Get().Data().changeableGimmickDegree;
 
-		BoxEx changeable{ { mousePos.x, mousePos.y, size.x, size.y, true }, 1 };
+		BoxEx changeable{ { mousePos.x, mousePos.y, size.x, size.y, true }, 99 };
 		switch (EditParam::Data().nowSelect)
 		{
 		case SelectGimmick::Normal:

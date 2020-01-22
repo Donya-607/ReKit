@@ -473,17 +473,82 @@ void SceneGame::Draw( float elapsedTime )
 			Donya::Vector4x4 TB_T = Donya::Vector4x4::MakeTranslation( boardPos );
 			Donya::Vector4x4 TB_W = TB_S * TB_R * TB_T;
 
-			texBoard.RenderPart
-			(
-				texPos, texSize,
-				nullptr, // Specify use library's device-context.
-				/* useDefaultShading = */ true,
-				/* isEnableFill      = */ true,
-				( TB_W * V * P ), TB_W,
-				lightDir, boardColor
-			);
+			//texBoard.RenderPart
+			//(
+			//	texPos, texSize,
+			//	nullptr, // Specify use library's device-context.
+			//	/* useDefaultShading = */ true,
+			//	/* isEnableFill      = */ true,
+			//	( TB_W * V * P ), TB_W,
+			//	lightDir, boardColor
+			//);
 		}
 	#endif // DEBUG_MODE
+	}
+
+	{
+		constexpr const wchar_t* texturePathOfGear = L"./Data/Images/title_gear.png";
+		constexpr const wchar_t* texturePathOfTitle = L"./Data/Images/title_text.png";
+		std::wstring pass = L"./Data/Images/title_text.png";
+		std::wstring passGear = L"./Data/Images/title_gear.png";
+
+		static Donya::Geometric::TextureBoard	gear = Donya::Geometric::CreateTextureBoard(texturePathOfGear);
+		static Donya::Geometric::TextureBoard	title = Donya::Geometric::CreateTextureBoard(texturePathOfTitle);
+		size_t textureIndex = Donya::Sprite::Load(pass);
+		size_t texIndexGear = Donya::Sprite::Load(passGear);
+
+		static Donya::Vector2	texPos{};
+		static Donya::Vector2	texSize{ 1280.0f, 320.0f };
+
+		static Donya::Vector3	boardScale{ 10.0f, 10.0f, 10.0f };
+		static Donya::Vector3	boardPos{};
+		static float			boardRadian{};
+
+		static Donya::Vector4	boardColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		static Donya::Vector4	lightDir{ 0.0f,-1.0f, 1.0f, 0.0f };
+
+		Donya::Vector4x4 TB_S = Donya::Vector4x4::MakeScaling(boardScale);
+		Donya::Vector4x4 TB_R = title.CalcBillboardRotation((iCamera.GetPosition() - boardPos).Normalized(), boardRadian);
+		Donya::Vector4x4 TB_T = Donya::Vector4x4::MakeTranslation(boardPos);
+		Donya::Vector4x4 TB_W = TB_S * TB_T;
+
+		{
+			Donya::Sprite::SetDrawDepth(0.0f);
+			static int animTime = 0;
+			static int animFrame = 0;
+			if (++animTime % 6 == 0)
+			{
+				animTime = 0;
+				if (++animFrame >= 5)
+					animFrame = 0;
+			}
+			Donya::Sprite::DrawPart(textureIndex, 1000, 500, 0, 320 * animFrame, 1280.0f, 320.0f);
+		}
+		{
+			Donya::Sprite::SetDrawDepth(0.1f);
+			static int animTime = 0;
+			static int animFrame = 0;
+			if (++animTime % 30 == 0)
+			{
+				animTime = 0;
+				if (++animFrame >= 3)
+					animFrame = 0;
+			}
+			Donya::Sprite::DrawPart(texIndexGear, 1150, 350, 0, 480 * animFrame, 480.0f, 480.0f);
+			Donya::Sprite::DrawPart(texIndexGear, 820, 630, 0, 480 * (2 - animFrame), 480.0f, 480.0f);
+		}
+
+
+		//)itle.RenderPart
+		//)
+		//)	texPos, texSize,
+		//)	nullptr, // Specify use library's device-context.
+		//)	/* useDefaultShading = */ true,
+		//)	/* isEnableFill      = */ true,
+		//)	( TB_W * V * P ), TB_W,
+		//)	lightDir, boardColor
+		//);
+
 	}
 // #endif // DEBUG_MODE
 }
