@@ -224,7 +224,7 @@ void Elevator::Update ( float elapsedTime )
 		break;
 	}
 }
-void Elevator::PhysicUpdate ( const BoxEx & player, const BoxEx & accompanyBox, const std::vector<BoxEx> & terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress = false )
+void Elevator::PhysicUpdate ( const BoxEx & player, const BoxEx & accompanyBox, const std::vector<BoxEx> & terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	pos += velocity;
 }
