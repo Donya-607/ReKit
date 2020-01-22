@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "IceBlock.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -220,12 +220,9 @@ Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
 }
 
 #if USE_IMGUI
-
 void IceBlock::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[Ice]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

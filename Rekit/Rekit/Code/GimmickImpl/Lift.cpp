@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Lift.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -257,12 +257,9 @@ Donya::Vector4x4 Lift::GetWorldMatrix ( bool useDrawing ) const
 }
 
 #if USE_IMGUI
-
 void Lift::ShowImGuiNode ()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
+	ImGui::Text ( u8"種類：%d[Lift]", kind );
 	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
 	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
 }

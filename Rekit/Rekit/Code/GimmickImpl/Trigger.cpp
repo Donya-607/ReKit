@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Trigger.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -8,6 +8,7 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -673,7 +674,7 @@ void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox
 	{
 		for ( const auto &it : terrains )
 		{
-			if ( !Gimmick::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
+			if ( !GimmickUtility::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
 			// else
 
 			correspondingBoxes.emplace_back( it );

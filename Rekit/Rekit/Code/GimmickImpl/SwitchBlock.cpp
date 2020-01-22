@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "SwitchBlock.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -8,6 +8,7 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -264,7 +265,7 @@ void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 {
 	for ( const auto &it : terrains )
 	{
-		if ( !Gimmick::HasGatherAttribute( it ) ) { continue; }
+		if ( !GimmickUtility::HasGatherAttribute( it ) ) { continue; }
 		// else
 
 		if ( !Donya::Box::IsHitBox( it, GetHitBox().Get2D(), /* ignoreExistFlag = */ true ) ) { continue; }
@@ -286,9 +287,7 @@ void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 
 void SwitchBlock::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[SwitchBlock]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

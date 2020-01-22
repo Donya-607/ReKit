@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Elevator.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -9,6 +9,7 @@
 #include "Donya/Keyboard.h"
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -286,9 +287,7 @@ Donya::Vector4x4 Elevator::GetWorldMatrix ( bool useDrawing ) const
 
 void Elevator::ShowImGuiNode ()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
+	ImGui::Text ( u8"種類：%d[Elevator]", kind );
 	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
 	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
 }
