@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Code\Animation.cpp" />
+    <ClCompile Include="Code\BG.cpp" />
     <ClCompile Include="Code\Common.cpp" />
     <ClCompile Include="Code\Donya\AudioSystem.cpp" />
     <ClCompile Include="Code\Donya\Blend.cpp" />
@@ -172,10 +173,13 @@
     <ClCompile Include="Code\Framework.cpp" />
     <ClCompile Include="Code\GimmickImpl\BeltConveyor.cpp" />
     <ClCompile Include="Code\GimmickImpl\Bomb.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Door.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Elevator.cpp" />
     <ClCompile Include="Code\GimmickImpl\FlammableBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\FragileBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\HardBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\IceBlock.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Lift.cpp" />
     <ClCompile Include="Code\GimmickImpl\OneWayBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\Spike.cpp" />
     <ClCompile Include="Code\GimmickImpl\Shutter.cpp" />
@@ -204,6 +208,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code\Animation.h" />
+    <ClInclude Include="Code\BG.h" />
     <ClInclude Include="Code\Common.h" />
     <ClInclude Include="Code\DerivedCollision.h" />
     <ClInclude Include="Code\Donya\AudioSystem.h" />

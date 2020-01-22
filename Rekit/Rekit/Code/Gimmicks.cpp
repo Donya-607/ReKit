@@ -45,12 +45,15 @@ namespace GimmickUtility
 		case GimmickKind::Spike:			return "Spike";			// break;
 		case GimmickKind::SwitchBlock:		return "SwitchBlock";	// break;
 		case GimmickKind::FlammableBlock:	return "FlammableBlock";// break;
+		case GimmickKind::Lift:				return "Lift";			// break;
 		case GimmickKind::TriggerKey:		return "TriggerKey";	// break;
 		case GimmickKind::TriggerSwitch:	return "TriggerSwitch";	// break;
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
 		case GimmickKind::Bomb:				return "Bomb";			// break;
 		case GimmickKind::BombGenerator:	return "BombGenerator";	// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
+		case GimmickKind::Door:				return "Door";			// break;
+		case GimmickKind::Elevator:			return "Elevator";		// break;
 		case GimmickKind::BeltConveyor:		return "BeltConveyor";	// break;
 		case GimmickKind::OneWayBlock:		return "OneWayBlock";	// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
@@ -348,12 +351,15 @@ namespace GimmickModels
 	static Donya::StaticMesh spike{};
 	static Donya::StaticMesh switchBlock{};
 	static Donya::StaticMesh flammableBlock{};
+	static Donya::StaticMesh lift{};
 	static Donya::StaticMesh trgKey{};
 	static Donya::StaticMesh trgSwitch{};
 	static Donya::StaticMesh trgPull{};
 	static Donya::StaticMesh bomb{};
 	static Donya::StaticMesh bombGenerator{};
 	static Donya::StaticMesh shutter{};
+	static Donya::StaticMesh door{};
+	static Donya::StaticMesh elevator{};
 	static Donya::StaticMesh beltConveyor{};
 	static Donya::StaticMesh oneWayBlock{};
 	static bool wasLoaded{ false };
@@ -367,12 +373,15 @@ namespace GimmickModels
 		&spike,
 		&switchBlock,
 		&flammableBlock,
+		&lift,
 		&trgKey,
 		&trgSwitch,
 		&trgPull,
 		&bomb,
 		&bombGenerator,
 		&shutter,
+		&door,
+		&elevator,
 		&beltConveyor,
 		&oneWayBlock,
 	};
@@ -393,10 +402,13 @@ void Gimmick::InitParameters()
 	SpikeBlock::ParameterInit();
 	SwitchBlock::ParameterInit();
 	FlammableBlock::ParameterInit();
+	Lift::ParameterInit();
 	Trigger::ParameterInit();
 	Bomb::ParameterInit();
 	BombGenerator::ParameterInit();
 	Shutter::ParameterInit();
+	Door::ParameterInit();
+	Elevator::ParameterInit();
 	BeltConveyor::ParameterInit();
 	OneWayBlock::ParameterInit();
 }
@@ -414,12 +426,15 @@ bool Gimmick::LoadModels()
 		GimmickKind::Spike,
 		GimmickKind::SwitchBlock,
 		GimmickKind::FlammableBlock,
+		GimmickKind::Lift,
 		GimmickKind::TriggerKey,
 		GimmickKind::TriggerSwitch,
 		GimmickKind::TriggerPull,
 		GimmickKind::Bomb,
 		GimmickKind::BombGenerator,
 		GimmickKind::Shutter,
+		GimmickKind::Door,
+		GimmickKind::Elevator,
 		GimmickKind::BeltConveyor,
 		GimmickKind::OneWayBlock,
 	};
@@ -698,10 +713,13 @@ void Gimmick::UseImGui()
 	SpikeBlock::UseParameterImGui();
 	SwitchBlock::UseParameterImGui();
 	FlammableBlock::UseParameterImGui();
+	Lift::UseParameterImGui();
 	Trigger::UseParameterImGui();
 	Bomb::UseParameterImGui();
 	BombGenerator::UseParameterImGui();
 	Shutter::UseParameterImGui();
+	Door::UseParameterImGui ();
+	Elevator::UseParameterImGui();
 	BeltConveyor::UseParameterImGui();
 	OneWayBlock::UseParameterImGui();
 
@@ -709,12 +727,16 @@ void Gimmick::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			static float rollDegree{};
-			static Donya::Vector3 direction{ 0.0f, 1.0f, 0.0f };
+			static int				id{};
+			static float			rollDegree{};
+			static float			moveAmount{};
+			static Donya::Vector3	direction{ 0.0f, 1.0f, 0.0f };
 			if ( ImGui::TreeNode( u8"設置オプション" ) )
 			{
-				ImGui::DragFloat( u8"Ｚ軸回転量", &rollDegree );
-				ImGui::SliderFloat3( u8"シャッターや一方通行の開く方向", &direction.x, -1.0f, 1.0f );
+				ImGui::DragFloat	( u8"Ｚ軸回転量", &rollDegree );
+				ImGui::SliderFloat3	( u8"動作方向", &direction.x, -1.0f, 1.0f );
+				ImGui::DragInt		( u8"ID", &id );
+				ImGui::DragFloat	( u8"移動量", &moveAmount );
 
 				ImGui::TreePop();
 			}
@@ -754,6 +776,11 @@ void Gimmick::UseImGui()
 					pGimmicks.push_back( std::make_shared<FlammableBlock>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::FlammableBlock ), rollDegree, GENERATE_POS );
 				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Lift				) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Lift>( direction.Normalized(), moveAmount ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Lift ), rollDegree, GENERATE_POS );
+				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Trigger>() );
@@ -781,8 +808,18 @@ void Gimmick::UseImGui()
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter			) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Shutter>( NULL, direction.Normalized() ) );
+					pGimmicks.push_back( std::make_shared<Shutter>( id, direction.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Door				) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Door>( id, direction.Normalized() ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Door ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Elevator			) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<Elevator>( id, direction.Normalized(), moveAmount ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::Elevator ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BeltConveyor		) ).c_str() ) )
 				{

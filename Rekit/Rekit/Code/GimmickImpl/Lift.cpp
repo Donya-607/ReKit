@@ -14,13 +14,13 @@
 #undef max
 #undef min
 
-struct ParamShutter final : public Donya::Singleton<ParamShutter>
+struct ParamLift final : public Donya::Singleton<ParamLift>
 {
-	friend Donya::Singleton<ParamShutter>;
+	friend Donya::Singleton<ParamLift>;
 public:
 	struct Member
 	{
-		float	openSpeed{};
+		float	moveSpeed{};
 		AABBEx	hitBox{};
 	private:
 		friend class cereal::access;
@@ -29,7 +29,7 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP ( openSpeed ),
+				CEREAL_NVP ( moveSpeed ),
 				CEREAL_NVP ( hitBox )
 			);
 			if (1 <= version)
@@ -39,12 +39,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char* SERIAL_ID = "Shutter";
+	static constexpr const char* SERIAL_ID = "Lift";
 	Member m;
 private:
-	ParamShutter () : m () {}
+	ParamLift () : m () {}
 public:
-	~ParamShutter () = default;
+	~ParamLift () = default;
 public:
 	void Init ()
 	{
@@ -84,7 +84,7 @@ public:
 	{
 		if (ImGui::BeginIfAllowed ())
 		{
-			if (ImGui::TreeNode ( u8"ギミック[Shutter]・調整データ" ))
+			if (ImGui::TreeNode ( u8"ギミック[Lift]・調整データ" ))
 			{
 				auto AdjustAABB = []( const std::string& prefix, AABBEx* pHitBox )
 				{
@@ -94,7 +94,7 @@ public:
 					ImGui::Checkbox ( (prefix + u8"当たり判定は有効か").c_str (), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat ( u8"シャッターが開く速度", &m.openSpeed, 0.1f );
+				ImGui::DragFloat ( u8"エレベーターが動く速度", &m.moveSpeed, 0.1f );
 
 				AdjustAABB ( u8"当たり判定", &m.hitBox );
 
@@ -127,95 +127,109 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( ParamShutter::Member, 0 )
+CEREAL_CLASS_VERSION ( ParamLift::Member, 0 )
 
 
 
-void Shutter::ParameterInit ()
+void Lift::ParameterInit ()
 {
-	ParamShutter::Get ().Init ();
+	ParamLift::Get ().Init ();
 }
 #if USE_IMGUI
-void Shutter::UseParameterImGui ()
+void Lift::UseParameterImGui ()
 {
-	ParamShutter::Get ().UseImGui ();
+	ParamLift::Get ().UseImGui ();
 }
 #endif // USE_IMGUI
 
-Shutter::Shutter () : GimmickBase (),
-	id ( -1 ), direction ( 0, 0, 0 ), movedWidth ( 0 )
+Lift::Lift () : GimmickBase (),
+direction ( 0, 0, 0 ), moveAmount ( 0 ), maxMoveAmount ( 0 ), state ( 0 )
 {}
-Shutter::Shutter ( int id, const Donya::Vector3 & direction ) : GimmickBase (),
-	id ( id ), direction ( direction ), movedWidth ( 0 )
+Lift::Lift ( const Donya::Vector3& direction, float moveAmount ) : GimmickBase (),
+direction ( direction ), moveAmount ( 0 ), maxMoveAmount ( moveAmount ), state ( 0 )
 {}
-Shutter::~Shutter () = default;
+Lift::~Lift () = default;
 
-void Shutter::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
+void Lift::Init ( int gimmickKind, float roll, const Donya::Vector3 & wsPos )
 {
-	kind		= gimmickKind;
-	rollDegree	= roll;
-	pos			= wsPos;
-	velocity	= 0.0f;
+	kind = gimmickKind;
+	rollDegree = roll;
+	pos = wsPos;
+	velocity = 0.0f;
+	direction.Normalize ();
 }
-void Shutter::Uninit ()
+void Lift::Uninit ()
 {
-	// No op.
+	// No op
 }
 
-void Shutter::Update ( float elapsedTime )
+void Lift::Update ( float elapsedTime )
 {
-	// debug用なので消してね-----------------------------------
-	if (Donya::Keyboard::Trigger ( 'Q' ))
+	float speed;
+	switch (state)
 	{
-		GimmickStatus::Register ( id, true );
+	case 0:	// go
+		moveAmount += ParamLift::Get ().Data ().moveSpeed;
+		speed = ParamLift::Get ().Data ().moveSpeed;
+
+		if (moveAmount >= maxMoveAmount)
+		{
+			speed = ParamLift::Get ().Data ().moveSpeed - (moveAmount - maxMoveAmount);
+			moveAmount = maxMoveAmount;
+			state++;
+		}
+		break;
+
+	case 1:	// go back
+		moveAmount -= ParamLift::Get ().Data ().moveSpeed;
+		speed = ParamLift::Get ().Data ().moveSpeed * -1;
+
+		if (moveAmount <= 0)
+		{
+			speed = ParamLift::Get ().Data ().moveSpeed - moveAmount * -1;
+			moveAmount = 0;
+			state--;
+		}
+		break;
 	}
-	//---------------------------------------------------------
 
-	if (!GimmickStatus::Refer ( id ))	{ return; }
-
-	// 正方形なのでxでもyでもどっちでも良いのではないか説
-	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
-	{
-		velocity = 0;
-		GimmickStatus::Remove ( id );
-		return;
-	}
-
-	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
-	movedWidth += ParamShutter::Get ().Data ().openSpeed;
+	velocity = direction * speed;
 }
-void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
+void Lift::PhysicUpdate ( const BoxEx & player, const BoxEx & accompanyBox, const std::vector<BoxEx> & terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	pos += velocity;
 }
 
-void Shutter::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const Donya::Vector4 & lightDir ) const
+void Lift::Draw ( const Donya::Vector4x4 & V, const Donya::Vector4x4 & P, const Donya::Vector4 & lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix ( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 colors = { 0.0f, 0.2f, 0.3f, 0.8f };
+	constexpr Donya::Vector4 colors[] = {
+		{ 0.9f, 0.6f, 0.2f, 0.8f },		// Horizontal
+		{ 0.6f, 0.3f, 0.0f, 0.8f }		// Vertical
+	};
 
-	BaseDraw ( WVP, W, lightDir, colors );
+	BaseDraw ( WVP, W, lightDir, colors[scast<int> ( direction.x * direction.x )] );
 }
 
-void Shutter::WakeUp ()
+void Lift::WakeUp ()
 {
 	// No op.
 }
 
-bool Shutter::ShouldRemove () const
+bool Lift::ShouldRemove () const
 {
 	return false;
 }
 
-Donya::Vector3 Shutter::GetPosition () const
+Donya::Vector3 Lift::GetPosition () const
 {
 	return pos;
 }
-AABBEx Shutter::GetHitBox () const
+AABBEx Lift::GetHitBox () const
 {
-	const AABBEx hitBoxes = ParamShutter::Get ().Data ().hitBox;
+	const AABBEx hitBoxes = ParamLift::Get ().Data ().hitBox;
 
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
@@ -223,22 +237,19 @@ AABBEx Shutter::GetHitBox () const
 	return wsHitBox;
 }
 
-Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
+Donya::Vector4x4 Lift::GetWorldMatrix ( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox ();
 	if (useDrawing)
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		// wsBox.size *= 2.0f;
+		wsBox.size *= 2.0f;
 	}
 
-	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
-	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
 	mat._11 = wsBox.size.x;
 	mat._22 = wsBox.size.y;
 	mat._33 = wsBox.size.z;
-	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
@@ -247,14 +258,13 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 
 #if USE_IMGUI
 
-void Shutter::ShowImGuiNode ()
+void Lift::ShowImGuiNode ()
 {
 	using namespace GimmickUtility;
 
 	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
-	ImGui::DragFloat ( u8"Ｚ軸回転量", &rollDegree, 1.0f );
-	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
-	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );
+	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
+	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
 }
 
 #endif // USE_IMGUI

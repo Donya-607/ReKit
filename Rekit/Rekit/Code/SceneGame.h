@@ -8,6 +8,7 @@
 #include "Donya/Vector.h"
 #include "Donya/UseImGui.h"
 
+#include "BG.h"
 #include "Gimmicks.h"
 #include "Hook.h"
 #include "Player.h"
@@ -24,12 +25,12 @@ private:
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 
+	BG						bg;
 	Player					player;
+	std::unique_ptr<Hook>	pHook;
 
 	std::vector<Terrain>	terrains;		// The terrains per stage.
 	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
-
-	std::unique_ptr<Hook>	pHook;
 
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
@@ -52,8 +53,10 @@ private:
 	void	CameraUpdate();
 
 	void	PlayerUpdate( float elapsedTime );
+
 	bool	IsPlayerOutFromRoom() const;
 	void	UpdateCurrentStage();
+
 	void	HookUpdate( float elapsedTime );
 
 	bool	DetectClearMoment() const;
