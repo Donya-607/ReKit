@@ -255,7 +255,7 @@ namespace GimmickStatus
 	}
 	void Register( int id, bool configure )
 	{
-		auto found = statuses.find( id );
+		auto found =  statuses.find( id );
 		if ( found == statuses.end() )
 		{
 			statuses.insert( std::pair<int, bool>( id, configure ) );
@@ -267,7 +267,7 @@ namespace GimmickStatus
 	}
 	bool Refer( int id )
 	{
-		auto found = statuses.find( id );
+		auto found =  statuses.find( id );
 		if ( found == statuses.end() ) { return false; }
 		// else
 

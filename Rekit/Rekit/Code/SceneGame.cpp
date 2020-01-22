@@ -201,6 +201,7 @@ void SceneGame::Init()
 
 	GimmickUtility::LoadModels();
 	GimmickUtility::InitParameters();
+	GimmickStatus::Reset();
 
 	GameParam::Get().Init();
 

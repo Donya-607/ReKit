@@ -263,17 +263,17 @@ void Gimmick::UseImGui()
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerKey		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>( id, false ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerKey ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerSwitch		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>( id, false ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerSwitch ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::TriggerPull		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Trigger>() );
+					pGimmicks.push_back( std::make_shared<Trigger>( id, false ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::TriggerPull ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Bomb				) ).c_str() ) )

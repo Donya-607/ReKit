@@ -165,12 +165,12 @@ void Shutter::Uninit ()
 
 void Shutter::Update ( float elapsedTime )
 {
-	// debugópÇ»ÇÃÇ≈è¡ÇµÇƒÇÀ-----------------------------------
+#if DEBUG_MODE
 	if (Donya::Keyboard::Trigger ( 'Q' ))
 	{
 		GimmickStatus::Register ( id, true );
 	}
-	//---------------------------------------------------------
+#endif // DEBUG_MODE
 
 	if (!GimmickStatus::Refer ( id ))	{ return; }
 

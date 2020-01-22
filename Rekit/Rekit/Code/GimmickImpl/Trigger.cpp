@@ -169,6 +169,8 @@ public:
 	void Init()
 	{
 		LoadParameter();
+
+		m.mSwitch.gatheringArea = ToGatherBox( m.mSwitch.gatheringArea );
 	}
 	void Uninit()
 	{
@@ -514,7 +516,7 @@ AABBEx Trigger::GetHitBox() const
 }
 bool Trigger::HasMultipleHitBox() const
 {
-	return true;
+	return ( GimmickUtility::ToKind( kind ) == GimmickKind::TriggerSwitch ) ? true : false;
 }
 std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
 {
@@ -710,7 +712,7 @@ void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, 
 void Trigger::TurnOn()
 {
 	enable = true;
-	GimmickStatus::Register( kind, true );
+	GimmickStatus::Register( id, true );
 }
 
 #if USE_IMGUI

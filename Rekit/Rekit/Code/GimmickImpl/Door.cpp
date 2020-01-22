@@ -168,8 +168,18 @@ void Door::Update ( float elapsedTime )
 	switch (state)
 	{
 	case DoorState::Wait:
-		// debug—p
-		if (Donya::Keyboard::Trigger ( 'Q' )) { state = DoorState::Open; }
+	#if DEBUG_MODE
+		if (Donya::Keyboard::Trigger ( 'Q' ))
+		{
+			GimmickStatus::Register( id, true );
+		}
+	#endif // DEBUG_MODE
+
+		if (GimmickStatus::Refer( id ))
+		{
+			state = DoorState::Open;
+		}
+
 		break;
 
 	case DoorState::Open:

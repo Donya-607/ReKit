@@ -172,17 +172,17 @@ void Elevator::Update ( float elapsedTime )
 	switch (state)
 	{
 	case ElevatorState::Stay:
-		// debugópÇ»ÇÃÇ≈è¡ÇµÇƒÇÀ-----------------------------------
+	#if DEBUG_MODE
 		if (Donya::Keyboard::Trigger ( 'Q' ))
 		{
 			GimmickStatus::Register ( id, true );
 		}
-		//---------------------------------------------------------
+	#endif // DEBUG_MODE
 
 		velocity = 0;
+
 		if (GimmickStatus::Refer ( id ))
 		{
-			GimmickStatus::Remove ( id );
 			state = ElevatorState::Go;
 		}
 		break;
@@ -197,6 +197,8 @@ void Elevator::Update ( float elapsedTime )
 			velocity = direction * cma;
 			moveAmount = maxMoveAmount;
 			state = ElevatorState::Wait;
+
+			GimmickStatus::Remove( id );
 		}
 		break;
 
