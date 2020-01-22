@@ -146,10 +146,10 @@ void OneWayBlock::UseParameterImGui()
 #endif // USE_IMGUI
 
 OneWayBlock::OneWayBlock() : GimmickBase(),
-	openDirection( 0.0f, 1.0f, 0.0f ), velocity()
+	openDirection( 0.0f, 1.0f, 0.0f )
 {}
 OneWayBlock::OneWayBlock( const Donya::Vector3 &openDirection ) : GimmickBase(),
-	openDirection( openDirection.Normalized() ), velocity()
+	openDirection( openDirection.Normalized() )
 {}
 OneWayBlock::~OneWayBlock() = default;
 
@@ -175,11 +175,15 @@ void OneWayBlock::Update( float elapsedTime )
 void OneWayBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	// This block collide to only player.
+	// The player does not moved yet before this method, so I should consider as moved position.
 
 	pos += velocity;
 
-	const BoxEx wsMovedBody = GetHitBox().Get2D();
-	if ( Donya::Box::IsHitBox( wsMovedBody, player ) )
+	BoxEx wsMovedMyself = GetHitBox().Get2D();
+	BoxEx wsMovedPlayer = player;
+	wsMovedPlayer.pos  += player.velocity;
+
+	if ( Donya::Box::IsHitBox( wsMovedMyself, wsMovedPlayer ) )
 	{
 		Open();
 	}
@@ -227,8 +231,9 @@ void OneWayBlock::Close( float elapsedTime )
 }
 void OneWayBlock::Open()
 {
-	velocity = -openDirection;
+	velocity =  openDirection;
 	velocity *= ParamOneWayBlock::Get().Data().openAmount;
+	pos      += velocity; // I should apply the movement of open before next update.
 }
 
 Donya::Vector4x4 OneWayBlock::GetWorldMatrix( bool useDrawing ) const

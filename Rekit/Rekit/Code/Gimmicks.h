@@ -1005,7 +1005,6 @@ public:
 private:
 	const Donya::Vector3 openDirection;	// Normalized.
 	Donya::Vector3 initPos;				// World space.
-	Donya::Vector3 velocity;
 public:
 	OneWayBlock();
 	OneWayBlock( const Donya::Vector3 &openDirection );

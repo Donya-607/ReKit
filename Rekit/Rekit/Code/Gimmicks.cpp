@@ -710,11 +710,11 @@ void Gimmick::UseImGui()
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
 			static float rollDegree{};
-			static Donya::Vector3 shutterDirection{};
+			static Donya::Vector3 direction{ 0.0f, 1.0f, 0.0f };
 			if ( ImGui::TreeNode( u8"設置オプション" ) )
 			{
 				ImGui::DragFloat( u8"Ｚ軸回転量", &rollDegree );
-				ImGui::SliderFloat3( u8"シャッターの開く方向", &shutterDirection.x, -1.0f, 1.0f );
+				ImGui::SliderFloat3( u8"シャッターや一方通行の開く方向", &direction.x, -1.0f, 1.0f );
 
 				ImGui::TreePop();
 			}
@@ -781,7 +781,7 @@ void Gimmick::UseImGui()
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter			) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<Shutter>( NULL, shutterDirection.Normalized() ) );
+					pGimmicks.push_back( std::make_shared<Shutter>( NULL, direction.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::Shutter ), rollDegree, GENERATE_POS );
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BeltConveyor		) ).c_str() ) )
@@ -791,7 +791,7 @@ void Gimmick::UseImGui()
 				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::OneWayBlock		) ).c_str() ) )
 				{
-					pGimmicks.push_back( std::make_shared<OneWayBlock>() );
+					pGimmicks.push_back( std::make_shared<OneWayBlock>( direction.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::OneWayBlock ), rollDegree, GENERATE_POS );
 				}
 				/*
