@@ -860,7 +860,7 @@ private:
 	float			movedWidth;
 public:
 	Shutter();
-	Shutter( int id, const Donya::Vector3& direction );
+	Shutter( int id, const Donya::Vector3 &direction );
 	~Shutter();
 private:
 	friend class cereal::access;
@@ -1002,8 +1002,13 @@ public:
 	/// </summary>
 	static void UseParameterImGui();
 #endif // USE_IMGUI
+private:
+	const Donya::Vector3 openDirection;	// Normalized.
+	Donya::Vector3 initPos;				// World space.
+	Donya::Vector3 velocity;
 public:
 	OneWayBlock();
+	OneWayBlock( const Donya::Vector3 &openDirection );
 	~OneWayBlock();
 private:
 	friend class cereal::access;
@@ -1039,6 +1044,9 @@ public:
 	/// </summary>
 	AABBEx GetHitBox() const override;
 private:
+	void Close( float elapsedTime );
+	void Open();
+
 	Donya::Vector4x4 GetWorldMatrix( bool useDrawing = false ) const;
 public:
 #if USE_IMGUI

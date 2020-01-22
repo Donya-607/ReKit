@@ -145,7 +145,11 @@ void OneWayBlock::UseParameterImGui()
 }
 #endif // USE_IMGUI
 
-OneWayBlock::OneWayBlock() : GimmickBase()
+OneWayBlock::OneWayBlock() : GimmickBase(),
+	openDirection( 0.0f, 1.0f, 0.0f ), velocity()
+{}
+OneWayBlock::OneWayBlock( const Donya::Vector3 &openDirection ) : GimmickBase(),
+	openDirection( openDirection.Normalized() ), velocity()
 {}
 OneWayBlock::~OneWayBlock() = default;
 
@@ -155,6 +159,9 @@ void OneWayBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
+
+	initPos		= pos;
+	velocity	= Donya::Vector3::Zero();
 }
 void OneWayBlock::Uninit()
 {
@@ -163,11 +170,19 @@ void OneWayBlock::Uninit()
 
 void OneWayBlock::Update( float elapsedTime )
 {
-
+	Close( elapsedTime );
 }
 void OneWayBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	// This block collide to only player.
+
+	pos += velocity;
+
+	const BoxEx wsMovedBody = GetHitBox().Get2D();
+	if ( Donya::Box::IsHitBox( wsMovedBody, player ) )
+	{
+		Open();
+	}
 }
 
 void OneWayBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -193,6 +208,27 @@ AABBEx OneWayBlock::GetHitBox() const
 	base.velocity	=  velocity;
 	base.attr		=  kind;
 	return base;
+}
+
+void OneWayBlock::Close( float elapsedTime )
+{
+	const auto param = ParamOneWayBlock::Get().Data();
+
+	const Donya::Vector3 destVec	= initPos - pos;
+	const Donya::Vector3 closeVec	= destVec.Normalized() * param.closeSpeed * elapsedTime;
+
+	velocity += closeVec;
+
+	if ( destVec.LengthSq() <= velocity.LengthSq() )
+	{
+		// Prevent pass over the "initPos".
+		velocity = destVec;
+	}
+}
+void OneWayBlock::Open()
+{
+	velocity = -openDirection;
+	velocity *= ParamOneWayBlock::Get().Data().openAmount;
 }
 
 Donya::Vector4x4 OneWayBlock::GetWorldMatrix( bool useDrawing ) const
