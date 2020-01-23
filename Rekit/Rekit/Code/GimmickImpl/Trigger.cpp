@@ -412,17 +412,17 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 		};
 		const Donya::Vector4 colors[DrawCount]
 		{
-			{ 1.0f, 0.0f, 0.8f, 0.8f },
-			{ 1.0f, 0.0f, 0.8f, 0.8f },
-			{ 1.0f, 0.0f, 0.8f, 0.8f },
+			{ 0.8f, 0.8f, 0.8f, 0.8f },
+			{ 0.8f, 0.8f, 0.8f, 0.8f },
+			{ 0.8f, 0.8f, 0.8f, 0.8f },
 			{ 1.0f, 1.0f, 1.0f, 0.0f },
 		};
 		const Donya::Vector4 lightenFactors[DrawCount]
 		{
-			{ 0.0f, 1.0f, 0.2f, 0.0f },
-			{ 0.0f, 1.0f, 0.2f, 0.0f },
-			{ 0.0f, 1.0f, 0.2f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.8f },
+			{ 0.2f, 0.2f, 0.2f, 0.2f },
+			{ 0.2f, 0.2f, 0.2f, 0.2f },
+			{ 0.2f, 0.2f, 0.2f, 0.2f },
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
 		};
 
 		const int kindIndex = GetTriggerKindIndex();
@@ -448,15 +448,15 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 
 		constexpr Donya::Vector4 colors[]
 		{
-			{ 0.8f, 1.0f, 0.0f, 0.8f },		// Key
+			{ 0.8f, 0.8f, 0.8f, 0.8f },		// Key
 			{},								// Switch
-			{ 0.0f, 0.8f, 1.0f, 0.8f }		// Pull
+			{ 0.8f, 0.8f, 0.8f, 0.8f }		// Pull
 		};
 		constexpr Donya::Vector4 lightenFactors[]
 		{
-			{ 0.2f, 0.0f, 1.0f, 0.0f },		// Key
+			{ 0.2f, 0.2f, 0.2f, 0.2f },		// Key
 			{},								// Switch
-			{ 1.0f, 0.2f, 0.0f, 0.0f }		// Pull
+			{ 0.2f, 0.2f, 0.2f, 0.2f }		// Pull
 		};
 		const int kindIndex  = GetTriggerKindIndex();
 

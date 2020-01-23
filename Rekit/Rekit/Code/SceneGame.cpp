@@ -388,7 +388,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 void SceneGame::Draw( float elapsedTime )
 {
 	{
-		constexpr FLOAT BG_COLOR[4]{ 0.4f, 0.4f, 0.4f, 1.0f };
+		// constexpr FLOAT BG_COLOR[4]{ 0.4f, 0.4f, 0.4f, 1.0f };
+		constexpr FLOAT BG_COLOR[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
 		Donya::ClearViews( BG_COLOR );
 	}
 

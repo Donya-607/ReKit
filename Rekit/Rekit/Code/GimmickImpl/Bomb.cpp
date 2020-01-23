@@ -302,7 +302,6 @@ void Bomb::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Don
 	}
 	// else
 
-	// const Donya::Vector4 color{ 0.4f, 0.1f, 0.1f, alpha };
 	const Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, alpha };
 	BaseDraw( WVP, W, lightDir, color );
 }
@@ -657,7 +656,7 @@ void BombGenerator::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, 
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.7f, 0.7f, 0.7f, 0.8f };
+	constexpr Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	BaseDraw( WVP, W, lightDir, color );
 
@@ -971,7 +970,7 @@ void BombDuct::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 0.7f, 0.7f, 0.7f, 0.8f };
+	constexpr Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }
