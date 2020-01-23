@@ -294,6 +294,11 @@ void Gimmick::UseImGui()
 					pGimmicks.push_back( std::make_shared<BombGenerator>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::BombGenerator ), rollDegree, GENERATE_POS );
 				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::BombDuct			) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<BombDuct>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::BombDuct ), rollDegree, GENERATE_POS );
+				}
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind::Shutter			) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<Shutter>( id, direction.Normalized() ) );

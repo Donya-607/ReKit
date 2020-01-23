@@ -21,6 +21,7 @@ enum class GimmickKind
 	TriggerPull,		// Linking to the Elevator.
 	Bomb,
 	BombGenerator,
+	BombDuct,
 	Shutter,
 	Door,
 	Elevator,

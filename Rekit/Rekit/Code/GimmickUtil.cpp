@@ -54,6 +54,7 @@ namespace GimmickUtility
 		case GimmickKind::TriggerPull:		return "TriggerPull";	// break;
 		case GimmickKind::Bomb:				return "Bomb";			// break;
 		case GimmickKind::BombGenerator:	return "BombGenerator";	// break;
+		case GimmickKind::BombDuct:			return "BombDuct";		// break;
 		case GimmickKind::Shutter:			return "Shutter";		// break;
 		case GimmickKind::Door:				return "Door";			// break;
 		case GimmickKind::Elevator:			return "Elevator";		// break;
@@ -79,6 +80,7 @@ namespace GimmickUtility
 		Trigger::ParameterInit();
 		Bomb::ParameterInit();
 		BombGenerator::ParameterInit();
+		BombDuct::ParameterInit();
 		Shutter::ParameterInit();
 		Door::ParameterInit();
 		Elevator::ParameterInit();
@@ -113,6 +115,7 @@ namespace GimmickUtility
 			GimmickKind::TriggerPull,
 			GimmickKind::Bomb,
 			GimmickKind::BombGenerator,
+			GimmickKind::BombDuct,
 			GimmickKind::Shutter,
 			GimmickKind::Door,
 			GimmickKind::Elevator,
@@ -198,6 +201,7 @@ namespace GimmickUtility
 		Trigger::UseParameterImGui();
 		Bomb::UseParameterImGui();
 		BombGenerator::UseParameterImGui();
+		BombDuct::UseParameterImGui();
 		Shutter::UseParameterImGui();
 		Door::UseParameterImGui();
 		Elevator::UseParameterImGui();
