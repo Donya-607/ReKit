@@ -20,6 +20,16 @@
 class SceneGame : public Scene
 {
 private:
+	enum TutorialState
+	{
+		Jump = 0,
+		Extend,
+		Make,
+		Pull,
+		Erase,
+	};
+
+private:
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
@@ -34,7 +44,9 @@ private:
 	std::vector<Terrain>	terrains;		// The terrains per stage.
 	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
 
+	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
+	bool					nowTutorial;	// Do you doing tutorial now?
 public:
 	SceneGame();
 	~SceneGame();
@@ -64,6 +76,8 @@ private:
 	bool	DetectClearMoment() const;
 
 	void	StartFade() const;
+
+	void	UpdateOfTutorial();
 private:
 	Result	ReturnResult();
 private:

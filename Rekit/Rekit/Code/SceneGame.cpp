@@ -189,7 +189,9 @@ SceneGame::SceneGame() :
 	roomOriginPos(),
 	bg(), player(), pHook( nullptr ),
 	terrains(), gimmicks(),
-	useCushion( true )
+	useCushion( true ),
+	nowTutorial( true ),
+	tutorialState()
 {}
 SceneGame::~SceneGame() = default;
 
@@ -210,6 +212,9 @@ void SceneGame::Init()
 	currentStageNo = 0;
 
 	CameraInit();
+
+	nowTutorial = true;
+	tutorialState = TutorialState::Jump;
 
 	player.Init( GameParam::Get().Data().initPlayerPos );
 	Hook::Init();
@@ -341,6 +346,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	CameraUpdate();
 
+	// 7. tutorial update
+	if (nowTutorial)
+	{
+		UpdateOfTutorial();
+	}
+
 #if DEBUG_MODE
 	// Scene Transition Demo.
 	{
@@ -444,6 +455,7 @@ void SceneGame::Draw( float elapsedTime )
 		}
 
 	#if DEBUG_MODE
+
 		// Drawing TextureBoard Demo.
 		{
 			constexpr const wchar_t *texturePath	= L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
@@ -501,34 +513,24 @@ void SceneGame::Draw( float elapsedTime )
 	#endif // DEBUG_MODE
 	}
 
+
+	// Drawing title text
+	if(nowTutorial)
 	{
 		constexpr const wchar_t* texturePathOfGear = L"./Data/Images/title_gear.png";
 		constexpr const wchar_t* texturePathOfTitle = L"./Data/Images/title_text.png";
 		std::wstring pass = L"./Data/Images/title_text.png";
 		std::wstring passGear = L"./Data/Images/title_gear.png";
+		std::wstring passTutorial = L"./Data/Images/Tutorial.png";
 
 		static Donya::Geometric::TextureBoard	gear = Donya::Geometric::CreateTextureBoard(texturePathOfGear);
 		static Donya::Geometric::TextureBoard	title = Donya::Geometric::CreateTextureBoard(texturePathOfTitle);
 		size_t textureIndex = Donya::Sprite::Load(pass);
 		size_t texIndexGear = Donya::Sprite::Load(passGear);
-
-		static Donya::Vector2	texPos{};
-		static Donya::Vector2	texSize{ 1280.0f, 320.0f };
-
-		static Donya::Vector3	boardScale{ 10.0f, 10.0f, 10.0f };
-		static Donya::Vector3	boardPos{};
-		static float			boardRadian{};
-
-		static Donya::Vector4	boardColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static Donya::Vector4	lightDir{ 0.0f,-1.0f, 1.0f, 0.0f };
-
-		Donya::Vector4x4 TB_S = Donya::Vector4x4::MakeScaling(boardScale);
-		Donya::Vector4x4 TB_R = title.CalcBillboardRotation((iCamera.GetPosition() - boardPos).Normalized(), boardRadian);
-		Donya::Vector4x4 TB_T = Donya::Vector4x4::MakeTranslation(boardPos);
-		Donya::Vector4x4 TB_W = TB_S * TB_T;
+		size_t texIndexTutorial = Donya::Sprite::Load(passTutorial);
 
 		{
-			Donya::Sprite::SetDrawDepth(0.0f);
+			Donya::Sprite::SetDrawDepth(0.1f);
 			static int animTime = 0;
 			static int animFrame = 0;
 			if (++animTime % 6 == 0)
@@ -540,7 +542,7 @@ void SceneGame::Draw( float elapsedTime )
 			Donya::Sprite::DrawPart(textureIndex, 1000, 500, 0, 320 * animFrame, 1280.0f, 320.0f);
 		}
 		{
-			Donya::Sprite::SetDrawDepth(0.1f);
+			Donya::Sprite::SetDrawDepth(0.2f);
 			static int animTime = 0;
 			static int animFrame = 0;
 			if (++animTime % 30 == 0)
@@ -552,17 +554,79 @@ void SceneGame::Draw( float elapsedTime )
 			Donya::Sprite::DrawPart(texIndexGear, 1150, 350, 0, 480 * animFrame, 480.0f, 480.0f);
 			Donya::Sprite::DrawPart(texIndexGear, 820, 630, 0, 480 * (2 - animFrame), 480.0f, 480.0f);
 		}
+		{
+			auto ConvertionScreenToWorld = [&](Donya::Vector3 worldPos, Donya::Vector4x4 _V, Donya::Vector4x4 _P)
+			{
+				float screenWidth = Common::ScreenWidth();
+				float screenHeight = Common::ScreenHeight();
+#if 0
+				Donya::Vector4x4 Vp;
+				// ビューポート行列の作成
+				Vp = Vp.Identity();
+				Vp.m[0][0] = screenWidth / 2.0f;	Vp.m[1][1] = -screenHeight / 2.0f;
+				Vp.m[3][0] = screenWidth / 2.0f;	Vp.m[3][1] = screenHeight / 2.0f;
 
+				Donya::Vector4 tmpVec4Pos;
+				tmpVec4Pos = Donya::Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+				tmpVec4Pos = tmpVec4Pos * V;
+				tmpVec4Pos = tmpVec4Pos * P;
 
-		//)itle.RenderPart
-		//)
-		//)	texPos, texSize,
-		//)	nullptr, // Specify use library's device-context.
-		//)	/* useDefaultShading = */ true,
-		//)	/* isEnableFill      = */ true,
-		//)	( TB_W * V * P ), TB_W,
-		//)	lightDir, boardColor
-		//);
+				tmpVec4Pos.x = tmpVec4Pos.x / tmpVec4Pos.w;
+				tmpVec4Pos.y = tmpVec4Pos.x / tmpVec4Pos.w;
+				tmpVec4Pos.z = tmpVec4Pos.x / tmpVec4Pos.w;
+				tmpVec4Pos.w = 1.0f;
+
+				tmpVec4Pos = tmpVec4Pos * Vp;
+				return Donya::Vector2(tmpVec4Pos.x, tmpVec4Pos.y);
+#else
+				using namespace DirectX;
+				XMMATRIX V = {
+					_V.m[0][0], _V.m[0][1], _V.m[0][2], _V.m[0][3],
+					_V.m[1][0], _V.m[1][1], _V.m[1][2], _V.m[1][3],
+					_V.m[2][0], _V.m[2][1], _V.m[2][2], _V.m[2][3],
+					_V.m[3][0], _V.m[3][1], _V.m[3][2], _V.m[3][3]
+				};
+				XMMATRIX P = {
+					_P.m[0][0], _P.m[0][1], _P.m[0][2], _P.m[0][3],
+					_P.m[1][0], _P.m[1][1], _P.m[1][2], _P.m[1][3],
+					_P.m[2][0], _P.m[2][1], _P.m[2][2], _P.m[2][3],
+					_P.m[3][0], _P.m[3][1], _P.m[3][2], _P.m[3][3]
+				};
+				XMMATRIX Vp = {
+					screenWidth / 2,	0.0f,				0.0f, 0.0f,
+					0.0f,				-(screenHeight / 2),0.0f, 0.0f,
+					0.0f,				0.0f,				1.0f, 0.0f,
+					screenWidth / 2,	screenHeight / 2,	0.0f, 1.0f
+				};
+				XMVECTOR v_worldPos = DirectX::XMVectorSet(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+				v_worldPos = DirectX::XMVector3Transform(v_worldPos, V);
+				v_worldPos = DirectX::XMVector3Transform(v_worldPos, P);
+				XMFLOAT3 tmpPos;
+				XMStoreFloat3(&tmpPos, v_worldPos);
+
+				XMVECTOR view_vec = DirectX::XMVectorSet(tmpPos.x / tmpPos.z, tmpPos.y / tmpPos.z, 1.0f, 1.0f);
+				XMVECTOR tmp = DirectX::XMVector3Transform(view_vec, Vp);
+				XMFLOAT2 ans;
+				XMStoreFloat2(&ans, tmp);
+				return ans;
+#endif
+			};
+
+			Donya::Vector2 pos = ConvertionScreenToWorld(player.GetPosition(), V, P);
+			Donya::Sprite::SetDrawDepth(0.0f);
+			if (tutorialState == TutorialState::Pull)
+			{
+				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x - 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState+1), 1280.0f, 448.0f, 0.3f, 0.3f);
+			}
+			else
+			{
+				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+			}
+			Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+			//Donya::Sprite::DrawPart(texIndexTutorial, pos.x + 100, pos.y - 200, 0, 0, 1280.0f, 448.0f);
+		}
+
 
 	}
 // #endif // DEBUG_MODE
@@ -931,6 +995,43 @@ void SceneGame::StartFade() const
 	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
+}
+
+void SceneGame::UpdateOfTutorial()
+{
+	if (Donya::Keyboard::Trigger('N'))
+	{
+		switch (tutorialState)
+		{
+		case TutorialState::Jump:
+			tutorialState = Extend;
+			break;
+
+		case TutorialState::Extend:
+			tutorialState = Make;
+			break;
+
+
+		case TutorialState::Make:
+			tutorialState = Pull;
+			break;
+
+
+		case TutorialState::Pull:
+			//tutorialState = Erase;
+			nowTutorial = false;
+			break;
+
+
+		case TutorialState::Erase:
+			nowTutorial = false;
+			break;
+
+
+		default:
+			break;
+		}
+	}
 }
 
 Scene::Result SceneGame::ReturnResult()
