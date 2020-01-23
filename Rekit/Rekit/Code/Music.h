@@ -11,6 +11,7 @@ namespace Music
 
 		ItemChoose,
 		ItemDecision,
+		Alert,
 
 		Jump,
 		Throw,

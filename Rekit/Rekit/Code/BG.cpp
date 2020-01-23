@@ -151,7 +151,7 @@ void BG::UseParameterImGui ()
 #endif // USE_IMGUI
 
 BG::BG () :
-	pos (), degree ()
+	gear (), pos (), degree ()
 {}
 BG::~BG () = default;
 

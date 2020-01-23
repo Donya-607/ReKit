@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Code\alert.cpp" />
     <ClCompile Include="Code\Animation.cpp" />
     <ClCompile Include="Code\BG.cpp" />
     <ClCompile Include="Code\Common.cpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="External\ImGui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Code\alert.h" />
     <ClInclude Include="Code\Animation.h" />
     <ClInclude Include="Code\BG.h" />
     <ClInclude Include="Code\Common.h" />

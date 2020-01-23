@@ -103,6 +103,7 @@ bool Framework::LoadSounds()
 			
 			{ ID::ItemChoose,			"./Data/Sounds/SE/UI/ItemChoose.wav",			false },
 			{ ID::ItemDecision,			"./Data/Sounds/SE/UI/ItemDecision.wav",			false },
+			{ ID::Alert,				"./Data/Sounds/SE/UI/Alert.wav",				false },
 
 			{ ID::Jump,					"./Data/Sounds/SE/PL_Jump.wav",					false },
 			{ ID::Throw,				"./Data/Sounds/SE/HK_Throw.wav",				false },
