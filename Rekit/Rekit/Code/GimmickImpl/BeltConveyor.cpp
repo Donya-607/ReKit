@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "BeltConveyor.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -8,6 +8,7 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -278,9 +279,7 @@ Donya::Vector4x4 BeltConveyor::GetWorldMatrix( bool useDrawing ) const
 
 void BeltConveyor::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[BeltConveyor]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

@@ -1,14 +1,15 @@
-#include "Gimmicks.h"
+#include "FlammableBlock.h"
 
-#include <algorithm>		// Use std::max, min.
+#include <algorithm>			// Use std::max, min.
 #include <string>
 
 #include "Donya/Sound.h"
 #include "Donya/Template.h"
-#include "Donya/Useful.h"	// Use convert string functions.
+#include "Donya/Useful.h"		// Use convert string functions.
 
 #include "FilePath.h"
 #include "Music.h"
+#include "GimmickImpl/Bomb.h"	// Use for confirming to "is the box Bomb?".
 
 #undef max
 #undef min
@@ -230,9 +231,7 @@ Donya::Vector4x4 FlammableBlock::GetWorldMatrix( bool useDrawing ) const
 
 void FlammableBlock::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[FlammableBlock]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

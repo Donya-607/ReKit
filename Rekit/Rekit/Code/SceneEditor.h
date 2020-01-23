@@ -1,14 +1,19 @@
 #pragma once
 
+#undef max
+#undef min
+#include <cereal/types/memory.hpp>
 
 #include "Donya/Camera.h"
 #include "Donya/GamepadXInput.h"
-#include "Donya/Vector.h"
+#include "Donya/Serializer.h"
 #include "Donya/UseImGui.h"
+#include "Donya/Vector.h"
 
-#include "Gimmicks.h"
+#include "DerivedCollision.h"
 #include "Player.h"
 #include "Scene.h"
+#include "GimmickImpl/GimmickBase.h"
 
 struct StageConfiguration
 {

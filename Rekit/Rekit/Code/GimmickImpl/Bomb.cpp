@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Bomb.h"
 
 #include <algorithm>		// Use std::max, min, remove_if
 #include <string>
@@ -9,6 +9,7 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max

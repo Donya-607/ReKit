@@ -4,14 +4,11 @@
 
 #include <cereal/types/vector.hpp>
 
-#include "Donya/Camera.h"
-#include "Donya/CBuffer.h"
 #include "Donya/Constant.h"
 #include "Donya/Donya.h"		// Use GetFPS().
 #include "Donya/GeometricPrimitive.h"
 #include "Donya/Keyboard.h"
 #include "Donya/Mouse.h"
-#include "Donya/Quaternion.h"
 #include "Donya/Sound.h"
 #include "Donya/Sprite.h"
 #include "Donya/Useful.h"
@@ -21,6 +18,7 @@
 #include "Common.h"
 #include "Fader.h"
 #include "FilePath.h"
+#include "GimmickUtil.h"
 #include "Music.h"
 #include "SceneEditor.h"	// Use StageConfiguration.
 
@@ -203,8 +201,9 @@ void SceneGame::Init()
 
 	Terrain::LoadModel();
 
-	Gimmick::LoadModels();
-	Gimmick::InitParameters();
+	GimmickUtility::LoadModels();
+	GimmickUtility::InitParameters();
+	GimmickStatus::Reset();
 
 	GameParam::Get().Init();
 
@@ -299,7 +298,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 2. Update velocity of all objects.
 	refGimmick.Update( elapsedTime );
 	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
-	HookUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
+	HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
 
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
@@ -331,17 +330,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	refTerrain.Append( ExtractHitBoxes( refGimmick ) );
 	
 	// 6. The player's PhysicUpdate().
-	player.PhysicUpdate( refTerrain.Acquire() );
-	if ( player.IsDead() )
 	{
-		if ( !Fader::Get().IsExist() )
+		player.PhysicUpdate( refTerrain.Acquire() );
+		if ( player.IsDead() )
 		{
-			StartFade();
+			if ( !Fader::Get().IsExist() )
+			{
+				StartFade();
+			}
 		}
-	}
-	else if ( IsPlayerOutFromRoom() )
-	{
-		UpdateCurrentStage();
+		else if ( IsPlayerOutFromRoom() )
+		{
+			UpdateCurrentStage();
+		}
 	}
 
 	CameraUpdate();

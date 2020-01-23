@@ -1,24 +1,27 @@
 #include "Player.h"
 
 #include <array>
-#include <algorithm>		// Use std::min(), max().
+#include <algorithm>			// Use std::min(), max().
 #include <vector>
 
-#include "Donya/Constant.h"	// Use DEBUG_MODE, scast macros.
+#include "Donya/Constant.h"		// Use DEBUG_MODE, scast macros.
 #include "Donya/Sound.h"
-#include "Donya/Template.h"
-#include "Donya/Useful.h"	// Use convert string functions.
+#include "Donya/Template.h"		
+#include "Donya/Useful.h"		// Use convert string functions.
 
 #if DEBUG_MODE
 #include "Donya/Keyboard.h"
 #endif // DEBUG_MODE
 
 #include "FilePath.h"
-#include "Gimmicks.h"		// Use for confirm to slip ground.
+#include "GimmickUtil.h"		// Use for confirming to slip ground.
+#include "GimmickImpl/Bomb.h"	// Use for confirming to "is the attribute danger?".
 #include "Music.h"
 
 #undef max
 #undef min
+
+using namespace GimmickUtility;
 
 class PlayerParam final : public Donya::Singleton<PlayerParam>
 {
@@ -263,7 +266,7 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			if ( other == BoxEx::Nil() ) { break; } // Does not detected a collision.
 			// else
 
-			if ( Bomb::IsExplosionBox( other ) || Gimmick::HasDangerAttribute( other ) )
+			if ( Bomb::IsExplosionBox( other ) || HasDangerAttribute( other ) )
 			{
 				KillMe();
 				return;
@@ -322,9 +325,9 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 				{
 					Landing();
 
-					aboveSlipGround = Gimmick::HasSlipAttribute( other );
+					aboveSlipGround = HasSlipAttribute( other );
 					
-					influence = Gimmick::HasInfluence( other );
+					influence = HasInfluence( other );
 				}
 
 				movedXYBody.pos.y += resolver.y;

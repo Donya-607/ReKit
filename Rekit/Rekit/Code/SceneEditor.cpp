@@ -4,7 +4,6 @@
 #include <memory>
 #include <vector>
 
-
 #include "Donya/Keyboard.h"
 #include "Donya/Camera.h"
 #include "Donya/CBuffer.h"
@@ -24,8 +23,26 @@
 #include "Fader.h"
 #include "FilePath.h"
 #include "DerivedCollision.h"
-#include "Gimmicks.h"
+#include "GimmickUtil.h"
 #include "Terrain.h"
+
+// This includes is the order in the GimmickKind.
+#include "GimmickImpl/FragileBlock.h"
+#include "GimmickImpl/HardBlock.h"
+#include "GimmickImpl/IceBlock.h"
+#include "GimmickImpl/Spike.h"
+#include "GimmickImpl/SwitchBlock.h"
+#include "GimmickImpl/FlammableBlock.h"
+#include "GimmickImpl/Lift.h"
+#include "GimmickImpl/Trigger.h"
+#include "GimmickImpl/Bomb.h"
+#include "GimmickImpl/Shutter.h"
+#include "GimmickImpl/Door.h"
+#include "GimmickImpl/Elevator.h"
+#include "GimmickImpl/BeltConveyor.h"
+#include "GimmickImpl/OneWayBlock.h"
+
+using namespace GimmickUtility;
 
 #pragma region EditParam
 class EditParam final : public Donya::Singleton<EditParam>
@@ -391,8 +408,8 @@ void SceneEditor::Init()
 
 	Terrain::LoadModel();
 
-	Gimmick::LoadModels();
-	Gimmick::InitParameters();
+	GimmickUtility::LoadModels();
+	GimmickUtility::InitParameters();
 
 	CameraInit();
 

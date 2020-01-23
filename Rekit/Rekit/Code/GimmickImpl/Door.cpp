@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Door.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -9,6 +9,7 @@
 #include "Donya/Keyboard.h"
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -167,8 +168,18 @@ void Door::Update ( float elapsedTime )
 	switch (state)
 	{
 	case DoorState::Wait:
-		// debug用
-		if (Donya::Keyboard::Trigger ( 'Q' )) { state = DoorState::Open; }
+	#if DEBUG_MODE
+		if (Donya::Keyboard::Trigger ( 'Q' ))
+		{
+			GimmickStatus::Register( id, true );
+		}
+	#endif // DEBUG_MODE
+
+		if (GimmickStatus::Refer( id ))
+		{
+			state = DoorState::Open;
+		}
+
 		break;
 
 	case DoorState::Open:
@@ -255,9 +266,7 @@ Donya::Vector4x4 Door::GetWorldMatrix ( bool useDrawing ) const
 
 void Door::ShowImGuiNode ()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
+	ImGui::Text ( u8"種類：%d[Door]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量", &rollDegree, 1.0f );
 	ImGui::DragFloat3 ( u8"ワールド座標", &pos.x, 0.1f );
 	ImGui::DragFloat3 ( u8"速度", &velocity.x, 0.01f );
