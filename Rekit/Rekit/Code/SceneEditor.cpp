@@ -60,7 +60,7 @@ public:
 
 
 		Donya::Vector3		transformMousePos{};
-		Donya::Vector2		changeableBoxSize{4.0f, 4.0f};
+		Donya::Vector2		changeableBoxSize{2.0f, 2.0f};
 		float				changeableGimmickDegree = 0.0f;
 		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
@@ -184,7 +184,7 @@ public:
 		case SelectGimmick::Normal:
 			EditParam::Get().DataRef().editObjects.editBlocks.emplace_back(changeable);
 			break;
-		case SelectGimmick::Fragile:
+		case SelectGimmick::FlammableBlock:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<FragileBlock>());
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
@@ -208,6 +208,47 @@ public:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<IceBlock>());
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
+		case SelectGimmick::Spike:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<SpikeBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Spike), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::SwitchBlock:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<SwitchBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::SwitchBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Lift:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Lift>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Lift), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Bomb:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Bomb>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Bomb), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::BombGenerator:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<BombGenerator>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombGenerator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Shutter:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Shutter>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Shutter), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Door:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Door>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Door), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::Elevator:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Elevator>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Elevator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::BeltConveyor:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<BeltConveyor>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BeltConveyor), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::OneWayBlock:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<OneWayBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::OneWayBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+
 		default:
 			break;
 		}
@@ -317,7 +358,7 @@ public:
 						}
 						if (ImGui::Button(u8"Fragile"))
 						{
-							data = SelectGimmick::Fragile;
+							data = SelectGimmick::FlammableBlock;
 						}
 						if (ImGui::Button(u8"Hard"))
 						{
@@ -339,6 +380,47 @@ public:
 						{
 							data = SelectGimmick::Ice;
 						}
+						if (ImGui::Button(u8"Spike"))
+						{
+							data = SelectGimmick::Spike;
+						}
+						if (ImGui::Button(u8"SwitchBlock"))
+						{
+							data = SelectGimmick::SwitchBlock;
+						}
+						if (ImGui::Button(u8"Lift"))
+						{
+							data = SelectGimmick::Lift;
+						}
+						if (ImGui::Button(u8"Bomb"))
+						{
+							data = SelectGimmick::Bomb;
+						}
+						if (ImGui::Button(u8"BombGenerator"))
+						{
+							data = SelectGimmick::BombGenerator;
+						}
+						if (ImGui::Button(u8"Shutter"))
+						{
+							data = SelectGimmick::Shutter;
+						}
+						if (ImGui::Button(u8"Door"))
+						{
+							data = SelectGimmick::Door;
+						}
+						if (ImGui::Button(u8"Elevator"))
+						{
+							data = SelectGimmick::Elevator;
+						}
+						if (ImGui::Button(u8"BeltConveyor"))
+						{
+							data = SelectGimmick::BeltConveyor;
+						}
+						if (ImGui::Button(u8"OneWayBlock"))
+						{
+							data = SelectGimmick::OneWayBlock;
+						}
+
 						EditParam::DataRef().nowSelect = data;
 						ImGui::EndChild();
 					}
@@ -498,7 +580,7 @@ void SceneEditor::Draw(float elapsedTime)
 		auto pos = EditParam::Get().DataRef().transformMousePos;
 		auto size = EditParam::Get().Data().changeableBoxSize;
 		cubeT = Donya::Vector4x4::MakeTranslation(EditParam::Get().DataRef().transformMousePos);
-		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ 1.0f * size.x, 1.0f * size.y, 1.0f });
+		cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ size.x * 2.0f, size.y * 2.0f, 1.0f });
 		cubeR = Donya::Vector4x4::MakeRotationAxis(Donya::Vector3(0.0f, 0.0f, 1.0f), ToRadian(EditParam::Get().Data().changeableGimmickDegree));
 
 		cubeW = cubeS * cubeR * cubeT;
@@ -531,7 +613,7 @@ void SceneEditor::Draw(float elapsedTime)
 			// So we should to double it size.
 
 			cubeT = Donya::Vector4x4::MakeTranslation(Donya::Vector3{ it.pos, 0.0f });
-			cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ it.size, 1.0f });
+			cubeS = Donya::Vector4x4::MakeScaling(Donya::Vector3{ it.size * 2.0f, 1.0f });
 			cubeW = cubeS * cubeR * cubeT;
 
 			cube.Render

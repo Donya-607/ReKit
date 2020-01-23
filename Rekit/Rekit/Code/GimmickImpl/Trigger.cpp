@@ -713,6 +713,7 @@ void Trigger::TurnOn()
 {
 	enable = true;
 	GimmickStatus::Register( id, true );
+	Donya::Sound::Play( Music::GetKey );
 }
 
 #if USE_IMGUI

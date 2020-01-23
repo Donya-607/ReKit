@@ -464,6 +464,8 @@ void Bomb::Explosion()
 	status		= State::Explosion;
 	rollDegree	= 0.0f;
 	velocity	= 0.0f;
+
+	Donya::Sound::Play( Music::BombExplotion );
 }
 
 #if USE_IMGUI

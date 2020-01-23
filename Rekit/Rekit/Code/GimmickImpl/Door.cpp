@@ -178,6 +178,7 @@ void Door::Update ( float elapsedTime )
 		if (GimmickStatus::Refer( id ))
 		{
 			state = DoorState::Open;
+			Donya::Sound::Play( Music::DoorOpenOrClose );
 		}
 
 		break;

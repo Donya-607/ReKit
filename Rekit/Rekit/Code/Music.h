@@ -18,6 +18,11 @@ namespace Music
 		Pull,
 		Insert,
 
+		GetKey,
+		BombExplotion,
+		DoorOpenOrClose,
+		Aleat,
+
 		MUSIC_COUNT
 	};
 }

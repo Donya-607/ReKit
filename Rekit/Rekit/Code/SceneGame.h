@@ -19,6 +19,16 @@
 class SceneGame : public Scene
 {
 private:
+	enum TutorialState
+	{
+		Jump = 0,
+		Extend,
+		Make,
+		Pull,
+		Erase,
+	};
+
+private:
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
@@ -36,7 +46,9 @@ private:
 
 	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
+	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
+	bool					nowTutorial;	// Do you doing tutorial now?
 public:
 	SceneGame();
 	~SceneGame();
@@ -69,6 +81,9 @@ private:
 	bool	DetectClearMoment() const;
 
 	void	StartFade() const;
+
+	void	UpdateOfTutorial();
+	void	DrawOfTutorial();
 private:
 	Result	ReturnResult();
 private:
