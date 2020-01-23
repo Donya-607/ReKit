@@ -214,6 +214,7 @@ void SceneGame::Init()
 
 	nowTutorial = true;
 	tutorialState = TutorialState::Jump;
+	//tutorialState = TutorialState::Pull;
 
 	player.Init( GameParam::Get().Data().initPlayerPos );
 	Hook::Init();
@@ -617,14 +618,14 @@ void SceneGame::Draw( float elapsedTime )
 			Donya::Sprite::SetDrawDepth(0.0f);
 			if (tutorialState == TutorialState::Pull)
 			{
-				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
-				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x - 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState+1), 1280.0f, 448.0f, 0.3f, 0.3f);
+				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>(tutorialState+1), 1280.0f, 448.0f, 0.3f, 0.3f);
 			}
 			else
 			{
 				Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
 			}
-			Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+			//Donya::Sprite::DrawPartExt(texIndexTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
 			//Donya::Sprite::DrawPart(texIndexTutorial, pos.x + 100, pos.y - 200, 0, 0, 1280.0f, 448.0f);
 		}
 
@@ -1000,27 +1001,39 @@ void SceneGame::StartFade() const
 
 void SceneGame::UpdateOfTutorial()
 {
-	if (Donya::Keyboard::Trigger('N'))
+	//if (Donya::Keyboard::Trigger('N')) // debug button
 	{
+		auto dir = controller.RightStick();
+
 		switch (tutorialState)
 		{
 		case TutorialState::Jump:
-			tutorialState = Extend;
+			if (controller.Trigger(Donya::Gamepad::LT))
+			{
+				tutorialState = Extend;
+			}
 			break;
 
 		case TutorialState::Extend:
-			tutorialState = Make;
+			if (dir.x != 0.0f || dir.y != 0.0f)
+			{
+				tutorialState = Make;
+			}
 			break;
 
 
 		case TutorialState::Make:
-			tutorialState = Pull;
+			if (controller.Trigger(Donya::Gamepad::RT))
+			{
+				tutorialState = Pull;
+			}
 			break;
 
 
 		case TutorialState::Pull:
-			//tutorialState = Erase;
-			nowTutorial = false;
+			if (controller.Trigger(Donya::Gamepad::RT) || controller.Trigger(Donya::Gamepad::RB))
+				tutorialState = Erase;
+			//nowTutorial = false;
 			break;
 
 

@@ -116,6 +116,11 @@ bool Framework::LoadSounds()
 			{ ID::Pull,					"./Data/Sounds/SE/HK_Pull.wav",					false },
 			{ ID::Insert,				"./Data/Sounds/SE/HK_Insert.wav",				false },
 
+			{ ID::GetKey,				"./Data/Sounds/SE/GetKey.wav",					false },
+			{ ID::BombExplotion,		"./Data/Sounds/SE/BombExplotion.wav",			false },
+			{ ID::DoorOpenOrClose,		"./Data/Sounds/SE/DoorOpen_orClose.wav",		false },
+			{ ID::Aleat,				"./Data/Sounds/SE/Alert.wav",					false },
+
 		},
 	};
 

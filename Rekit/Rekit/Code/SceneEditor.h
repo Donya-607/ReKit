@@ -41,13 +41,23 @@ private:
 
 enum class SelectGimmick
 {
-	Normal = 0,
-	Fragile,
-	Hard,
-	TriggerKey,
-	TriggerSwitch,
-	TriggerPull,
-	Ice,
+	Normal = 0,//
+	Hard,//
+	Ice,//
+	Spike,
+	SwitchBlock,
+	FlammableBlock,
+	Lift,
+	TriggerKey,//			// Linking to the Door.
+	TriggerSwitch,//		// Linking to the Shutter. Gather the switch block.
+	TriggerPull,//		// Linking to the Elevator.
+	Bomb,
+	BombGenerator,
+	Shutter,
+	Door,
+	Elevator,
+	BeltConveyor,
+	OneWayBlock,
 
 	GimmicksCount
 };
