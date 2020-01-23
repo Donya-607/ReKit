@@ -223,7 +223,6 @@ namespace GimmickUtility
 		const GimmickKind dangerList[]
 		{
 			GimmickKind::Spike,
-			GimmickKind::JammerArea,
 		};
 		for ( const auto &it : dangerList )
 		{
