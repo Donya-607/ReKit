@@ -38,6 +38,9 @@ private:
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 	Donya::Vector3			respawnPos;		// Use for store.
 
+	size_t					mission;
+	size_t					complete;
+
 	BG						bg;
 	Player					player;
 	Alert					alert;
