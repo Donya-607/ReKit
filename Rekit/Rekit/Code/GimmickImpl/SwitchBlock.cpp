@@ -25,6 +25,7 @@ public:
 		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
 		float	stopThreshold{};	// The threshold of a judge to stop instead of the brake.
 		float	gatherSpeed{};		// Gather to switch.
+		float	scalingSpeed{ 1.0f };// Use for the performance of appear.
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -41,6 +42,10 @@ public:
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( scalingSpeed ) );
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -110,6 +115,8 @@ public:
 				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
 				ImGui::DragFloat( u8"停止する閾値（Ｘ軸）",	&m.stopThreshold,	0.1f	);
 				ImGui::DragFloat( u8"スイッチに近づく速度",	&m.gatherSpeed,		0.1f	);
+				ImGui::Text( "" );
+				ImGui::DragFloat( u8"大きくなる早さ",			&m.scalingSpeed,	0.1f	);
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -155,7 +162,8 @@ void SwitchBlock::UseParameterImGui()
 }
 #endif // USE_IMGUI
 
-SwitchBlock::SwitchBlock() : GimmickBase()
+SwitchBlock::SwitchBlock() : GimmickBase(),
+	wasBroken( false ), scale( 1.0f )
 {}
 SwitchBlock::~SwitchBlock() = default;
 
@@ -165,6 +173,8 @@ void SwitchBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
+
+	initPos		= pos;
 }
 void SwitchBlock::Uninit()
 {
@@ -173,12 +183,42 @@ void SwitchBlock::Uninit()
 
 void SwitchBlock::Update( float elapsedTime )
 {
+	if ( WasBroken() )
+	{
+		Respawn();
+	}
+
 	Fall( elapsedTime );
 
 	Brake( elapsedTime );
+
+	Scale( elapsedTime );
 }
 void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
+	if ( WasBroken() ) { return; }
+	// else
+
+	// VS Spike.
+	{
+		constexpr GimmickKind igniteKind = GimmickKind::Spike;
+		BoxEx movedBody = GetHitBox().Get2D();
+		movedBody.pos.x += velocity.x; // Move temporally.
+		movedBody.pos.y += velocity.y; // Move temporally.
+
+		for ( const auto &it : terrains )
+		{
+			if ( !GimmickUtility::HasAttribute( igniteKind, it ) ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, movedBody ) )
+			{
+				BreakMe();
+				return;
+			}
+		}
+	}
+
 	GatherToTheTarget( terrains );
 
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
@@ -186,6 +226,9 @@ void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 
 void SwitchBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
+	if ( WasBroken() ) { return; }
+	// else
+
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
@@ -209,6 +252,7 @@ AABBEx SwitchBlock::GetHitBox() const
 {
 	AABBEx base = ParamSwitchBlock::Get().Data().hitBox;
 	base.pos		+= pos;
+	base.size		*= scale;
 	base.velocity	=  velocity;
 	base.attr		=  kind;
 	return base;
@@ -226,9 +270,9 @@ Donya::Vector4x4 SwitchBlock::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 = wsBox.size.x * scale;
+	mat._22 = wsBox.size.y * scale;
+	mat._33 = wsBox.size.z * scale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
@@ -259,6 +303,34 @@ void SwitchBlock::Brake( float elapsedTime )
 
 	const float brakeSpeed = std::min( nowSpeed, ParamSwitchBlock::Get().Data().brakeSpeed );
 	velocity.x -= brakeSpeed * moveSign;
+}
+
+bool SwitchBlock::WasBroken() const
+{
+	return ( wasBroken ) ? true : false;
+}
+void SwitchBlock::BreakMe()
+{
+	velocity		= 0.0f;
+	wasCompressed	= false;
+
+	wasBroken		= true;
+	scale			= 0.0f;
+}
+
+void SwitchBlock::Scale( float elapsedTime )
+{
+	scale += ParamSwitchBlock::Get().Data().scalingSpeed * elapsedTime;
+	scale =  std::min( 1.0f, scale );
+}
+void SwitchBlock::Respawn()
+{
+	pos				= initPos;
+	velocity		= 0.0f;
+	wasCompressed	= false;
+
+	wasBroken		= false;
+	scale			= 0.0f;
 }
 
 void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
