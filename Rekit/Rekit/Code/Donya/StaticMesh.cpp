@@ -181,7 +181,7 @@ namespace Donya
 		"\n"
 		"	float3	outputColor	= sampleColor.rgb * diffuseColor.rgb;\n"
 		"	float3	light		= lightColor.rgb * lightColor.w;\n"
-		"	return	float4( saturate( outputColor + ambient ) * light, sampleColor.a );\n"
+		"	return	float4( saturate( outputColor + ambient ) * light, sampleColor.a * materialColor.a );\n"
 		"\n"
 		/*
 		"	float4	nNormal		= normalize( pin.normal );\n"
