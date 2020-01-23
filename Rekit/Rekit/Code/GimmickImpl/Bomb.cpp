@@ -400,9 +400,34 @@ void Bomb::ExplosionUpdate( float elapsedTime )
 
 void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool arrowCompress )
 {
+	if ( NowExplosioning() ) { return; }
+	// else
+	
+	// VS Spike.
+	{
+		constexpr GimmickKind igniteKind = GimmickKind::Spike;
+		BoxEx movedBody = GetHitBox().Get2D();
+		movedBody.pos.x += velocity.x; // Move temporally.
+		movedBody.pos.y += velocity.y; // Move temporally.
+
+		for ( const auto &it : terrains )
+		{
+			if ( !GimmickUtility::HasAttribute( igniteKind, it ) ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, movedBody ) )
+			{
+				Explosion();
+
+				pos += velocity; // Move actually.
+				return;
+			}
+		}
+	}
+
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ true, /* ignoreHitBoxExist = */ false, /* allowCompress = */ true );
 
-	if ( wasCompressed && !NowExplosioning() )
+	if ( wasCompressed )
 	{
 		Explosion();
 	}
