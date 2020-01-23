@@ -8,11 +8,14 @@
 class Alert
 {
 private:
-	size_t emergency;			// Flashing emergency
-	size_t flowingEmergency;	// Flowing emergency
+	size_t flashingEmergency;
+	size_t flowingEmergency;
 
-	Donya::Vector2		pos[2];	// Screen space.
-	float				alpha;
+	Donya::Vector2	pos[2];	// Screen space.
+	float			alpha;
+	float			degree;
+	float			fadeCount;
+	int				state;
 public:
 	Alert ();
 	~Alert ();

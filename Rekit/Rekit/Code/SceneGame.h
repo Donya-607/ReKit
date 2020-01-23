@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Scene.h"
 #include "Terrain.h"
+#include "Alert.h"
 
 class SceneGame : public Scene
 {
@@ -27,6 +28,7 @@ private:
 
 	BG						bg;
 	Player					player;
+	Alert					alert;
 	std::unique_ptr<Hook>	pHook;
 
 	std::vector<Terrain>	terrains;		// The terrains per stage.

@@ -185,7 +185,7 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
-	bg(), player(), pHook( nullptr ),
+	bg(), player(), pHook( nullptr ), alert(),
 	terrains(), gimmicks(),
 	useCushion( true )
 {}
@@ -213,6 +213,7 @@ void SceneGame::Init()
 	player.Init( GameParam::Get().Data().initPlayerPos );
 	Hook::Init();
 	bg.Init ();
+	alert.Init ();
 }
 void SceneGame::Uninit()
 {
@@ -272,7 +273,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	controller.Update();
 
-	bg.Update (elapsedTime);
+	bg.Update ( elapsedTime );
+	alert.Update (elapsedTime);
 
 	/*
 	Update-order memo:
@@ -377,6 +379,7 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::Sprite::SetDrawDepth( 1.0f );
 		bg.Draw();
 		Donya::Sprite::SetDrawDepth( prevDepth );
+		alert.Draw ();
 	}
 
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
