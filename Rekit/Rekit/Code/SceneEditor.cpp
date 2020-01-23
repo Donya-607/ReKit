@@ -41,6 +41,7 @@
 #include "GimmickImpl/Elevator.h"
 #include "GimmickImpl/BeltConveyor.h"
 #include "GimmickImpl/OneWayBlock.h"
+#include "GimmickImpl/Jammer.h"
 
 using namespace GimmickUtility;
 
@@ -63,6 +64,9 @@ public:
 		Donya::Vector2		changeableBoxSize{2.0f, 2.0f};
 		Donya::Vector3		changeableDirection{ 0.0f,0.0f,0.0f };
 		float				changeableGimmickDegree = 0.0f;
+		float				changeableGimmickRange = 1.0f;
+		float				changeableGimmickIntervalSecond = 1.0f;
+		float				changeableGimmickApperSecond = 1.0f;
 		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
 		SelectGimmick		nowSelect;
@@ -219,7 +223,7 @@ public:
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::SwitchBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Lift:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<Lift>(dir.Normalize(), 1.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Lift>(dir.Normalize(), m.changeableGimmickRange));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Lift), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Bomb:
@@ -239,7 +243,7 @@ public:
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Door), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Elevator:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<Elevator>(m.doorID, dir.Normalize(), 1.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Elevator>(m.doorID, dir.Normalize(), m.changeableGimmickRange));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Elevator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::BeltConveyor:
@@ -253,6 +257,14 @@ public:
 		case SelectGimmick::ClearBlock:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(SceneEditor::ClearID, false));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::JammerOrigin:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<JammerOrigin>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerOrigin), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::JammerArea:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<JammerArea>(m.changeableGimmickApperSecond, m.changeableGimmickIntervalSecond));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerArea), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		default:
 			break;
@@ -430,6 +442,15 @@ public:
 						{
 							data = SelectGimmick::ClearBlock;
 						}
+						if (ImGui::Button(u8"JammerOrigin"))
+						{
+							data = SelectGimmick::JammerOrigin;
+						}
+						if (ImGui::Button(u8"JammerArea"))
+						{
+							data = SelectGimmick::JammerArea;
+						}
+
 
 						EditParam::DataRef().nowSelect = data;
 						ImGui::EndChild();
@@ -441,6 +462,15 @@ public:
 						{
 							m.changeableBoxSize = Donya::Vector2(4.0f, 4.0f);
 						}
+					}
+					if (EditParam::Data().nowSelect == SelectGimmick::Lift || EditParam::Data().nowSelect == SelectGimmick::Elevator)
+					{
+						ImGui::SliderFloat(u8"動く幅", &m.changeableGimmickRange, 1.0f, 100.0f);
+					}
+					if (EditParam::Data().nowSelect == SelectGimmick::JammerArea)
+					{
+						ImGui::SliderFloat(u8"Apper Second", &m.changeableGimmickApperSecond, 0.0f, 100.0f);
+						ImGui::SliderFloat(u8"Interval Second", &m.changeableGimmickIntervalSecond, 0.0f, 100.0f);
 					}
 					ImGui::SliderFloat(u8"オブジェクトのDegree", &m.changeableGimmickDegree, -180.0f, 179.9f);
 					if (ImGui::Button(u8"Degreeを0度に戻す"))
