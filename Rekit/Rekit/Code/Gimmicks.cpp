@@ -39,10 +39,13 @@ void Gimmick::Uninit()
 	pGimmicks.clear();
 }
 
-void Gimmick::Update( float elapsedTime )
+void Gimmick::Update( float elapsedTime, bool useImGui )
 {
 #if USE_IMGUI
-	UseImGui();
+	if ( useImGui )
+	{
+		UseImGui();
+	}
 #endif // USE_IMGUI
 
 	for ( auto &it : pGimmicks )
@@ -198,6 +201,7 @@ void Gimmick::SaveParameter()
 #include "GimmickImpl/Elevator.h"
 #include "GimmickImpl/BeltConveyor.h"
 #include "GimmickImpl/OneWayBlock.h"
+#include "GimmickImpl/Jammer.h"
 
 void Gimmick::UseImGui()
 {
@@ -207,9 +211,11 @@ void Gimmick::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"ギミック" ) )
 		{
-			static int				id{};
-			static float			rollDegree{};
-			static float			moveAmount{};
+			static int				id{};			// For triggers.
+			static float			rollDegree{};	// For everyone.
+			static float			moveAmount{};	// For lift and elevator.
+			static float			appearSec{};	// For jammer.
+			static float			intervalSec{};	// For jammer.
 			static Donya::Vector3	direction{ 0.0f, 1.0f, 0.0f };
 			if ( ImGui::TreeNode( u8"設置オプション" ) )
 			{
@@ -217,6 +223,8 @@ void Gimmick::UseImGui()
 				ImGui::SliderFloat3	( u8"動作方向", &direction.x, -1.0f, 1.0f );
 				ImGui::DragInt		( u8"ID", &id );
 				ImGui::DragFloat	( u8"移動量", &moveAmount );
+				ImGui::DragFloat	( u8"開始時間（秒）", &appearSec );
+				ImGui::DragFloat	( u8"点滅間隔（秒）", &intervalSec );
 
 				ImGui::TreePop();
 			}
@@ -310,6 +318,16 @@ void Gimmick::UseImGui()
 				{
 					pGimmicks.push_back( std::make_shared<OneWayBlock>( direction.Normalized() ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::OneWayBlock ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::JammerArea		) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<JammerArea>( appearSec, intervalSec  ) );
+					pGimmicks.back()->Init( ToInt( GimmickKind::JammerArea ), rollDegree, GENERATE_POS );
+				}
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::JammerOrigin ) ).c_str() ) )
+				{
+					pGimmicks.push_back( std::make_shared<JammerOrigin>() );
+					pGimmicks.back()->Init( ToInt( GimmickKind::JammerOrigin ), rollDegree, GENERATE_POS );
 				}
 				/*
 				if ( ImGui::Button( ( prefix + ToString( GimmickKind:: ) ).c_str() ) )

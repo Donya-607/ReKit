@@ -29,8 +29,8 @@ private:
 	Player					player;
 	std::unique_ptr<Hook>	pHook;
 
-	std::vector<Terrain>	terrains;		// The terrains per stage.
-	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
+	std::vector<Terrain>	terrains;		// The terrains per room.
+	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
 
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:

@@ -20,6 +20,7 @@
 #include "GimmickImpl/Elevator.h"
 #include "GimmickImpl/BeltConveyor.h"
 #include "GimmickImpl/OneWayBlock.h"
+#include "GimmickImpl/Jammer.h"
 
 namespace GimmickUtility
 {
@@ -58,6 +59,8 @@ namespace GimmickUtility
 		case GimmickKind::Elevator:			return "Elevator";		// break;
 		case GimmickKind::BeltConveyor:		return "BeltConveyor";	// break;
 		case GimmickKind::OneWayBlock:		return "OneWayBlock";	// break;
+		case GimmickKind::JammerArea:		return "JammerArea";	// break;
+		case GimmickKind::JammerOrigin:		return "JammerOrigin";	// break;
 		default: _ASSERT_EXPR( 0, L"Error : Unexpected kind detected!" ); break;
 		}
 
@@ -81,6 +84,8 @@ namespace GimmickUtility
 		Elevator::ParameterInit();
 		BeltConveyor::ParameterInit();
 		OneWayBlock::ParameterInit();
+		JammerArea::ParameterInit();
+		JammerOrigin::ParameterInit();
 	}
 	
 	namespace Instance
@@ -113,11 +118,13 @@ namespace GimmickUtility
 			GimmickKind::Elevator,
 			GimmickKind::BeltConveyor,
 			GimmickKind::OneWayBlock,
+			GimmickKind::JammerArea,
+			GimmickKind::JammerOrigin,
 		};
 
 		auto MakeModelPath			= []( const std::string &kindName )
 		{
-			const std::string directory{ "./Data/Models/Gimmicks/" };
+			const std::string directory{ "./Data/Models/" };
 			const std::string extension{ ".bin" };
 
 			return directory + kindName + extension;
@@ -196,6 +203,8 @@ namespace GimmickUtility
 		Elevator::UseParameterImGui();
 		BeltConveyor::UseParameterImGui();
 		OneWayBlock::UseParameterImGui();
+		JammerArea::UseParameterImGui();
+		JammerOrigin::UseParameterImGui();
 	}
 #endif // USE_IMGUI
 
@@ -208,13 +217,30 @@ namespace GimmickUtility
 		return HasAttribute( GimmickKind::Ice, gimmick );
 	}
 
+	bool IsDanger( GimmickKind kind )
+	{
+		// Danger for the player.
+		const GimmickKind dangerList[]
+		{
+			GimmickKind::Spike,
+			GimmickKind::JammerArea,
+		};
+		for ( const auto &it : dangerList )
+		{
+			if ( it == kind )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 	bool HasDangerAttribute( const BoxEx  &gimmick )
 	{
-		return HasAttribute( GimmickKind::Spike, gimmick );
+		return IsDanger( ToKind( gimmick.attr ) );
 	}
 	bool HasDangerAttribute( const AABBEx &gimmick )
 	{
-		return HasAttribute( GimmickKind::Spike, gimmick );
+		return IsDanger( ToKind( gimmick.attr ) );
 	}
 
 	bool HasGatherAttribute( const BoxEx  &gimmick )

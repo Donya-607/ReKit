@@ -214,7 +214,7 @@ void Bomb::ParameterInit()
 	// else
 
 	Donya::Loader loader{};
-	bool  loadSucceeded = loader.Load( "./Data/Models/Gimmicks/BombExplosion.bin", nullptr );
+	bool  loadSucceeded = loader.Load( "./Data/Models/BombExplosion.bin", nullptr );
 	if ( !loadSucceeded )
 	{
 		_ASSERT_EXPR( 0, L"Failed : Load a explosion model." );

@@ -14,17 +14,17 @@ namespace TerrainModel
 		// else
 
 		Donya::Loader loader{};
-		bool  loadSucceeded = loader.Load( "./Data/Models/Gimmicks/Normal.bin", nullptr );
+		bool  loadSucceeded = loader.Load( "./Data/Models/Normal.bin", nullptr );
 		if ( !loadSucceeded )
 		{
-			_ASSERT_EXPR( 0, L"Failed : Load a explosion model." );
+			_ASSERT_EXPR( 0, L"Failed : Load a terrains model." );
 			return false;
 		}
 
 		bool  createSucceeded = Donya::StaticMesh::Create( loader, block );
 		if ( !createSucceeded )
 		{
-			_ASSERT_EXPR( 0, L"Failed : Create a explosion model." );
+			_ASSERT_EXPR( 0, L"Failed : Create a terrains model." );
 			return false;
 		}
 

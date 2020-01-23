@@ -180,6 +180,7 @@
     <ClCompile Include="Code\GimmickImpl\GimmickBase.cpp" />
     <ClCompile Include="Code\GimmickImpl\HardBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\IceBlock.cpp" />
+    <ClCompile Include="Code\GimmickImpl\Jammer.cpp" />
     <ClCompile Include="Code\GimmickImpl\Lift.cpp" />
     <ClCompile Include="Code\GimmickImpl\OneWayBlock.cpp" />
     <ClCompile Include="Code\GimmickImpl\Spike.cpp" />
@@ -261,6 +262,7 @@
     <ClInclude Include="Code\GimmickImpl\GimmickBase.h" />
     <ClInclude Include="Code\GimmickImpl\HardBlock.h" />
     <ClInclude Include="Code\GimmickImpl\IceBlock.h" />
+    <ClInclude Include="Code\GimmickImpl\Jammer.h" />
     <ClInclude Include="Code\GimmickImpl\Lift.h" />
     <ClInclude Include="Code\GimmickImpl\OneWayBlock.h" />
     <ClInclude Include="Code\GimmickImpl\Shutter.h" />

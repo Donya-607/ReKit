@@ -26,6 +26,8 @@ enum class GimmickKind
 	Elevator,
 	BeltConveyor,
 	OneWayBlock,
+	JammerArea,
+	JammerOrigin,
 
 	GimmicksCount
 };

@@ -746,6 +746,7 @@ AABBEx Player::GetHitBox() const
 	AABBEx wsAABB	=  PlayerParam::Get().Data().hitBoxPhysic;
 	wsAABB.pos		+= GetPosition();
 	wsAABB.velocity	=  velocity;
+	wsAABB.exist	=  ( status == State::Dead ) ? false : true;
 	return wsAABB;
 }
 

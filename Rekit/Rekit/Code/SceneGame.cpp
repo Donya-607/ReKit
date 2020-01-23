@@ -291,9 +291,16 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	refTerrain.Reset();
 
 	// 2. Update velocity of all objects.
-	refGimmick.Update( elapsedTime );
-	PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
-	HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
+	{
+		bool useImGui = true; // Only once.
+		for ( auto &room : gimmicks )
+		{
+			room.Update( elapsedTime, useImGui );
+			useImGui = false;
+		}
+		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
+		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
+	}
 
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
