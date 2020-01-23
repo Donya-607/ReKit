@@ -532,6 +532,8 @@ void SceneGame::Draw( float elapsedTime )
 	}
 // #endif // DEBUG_MODE
 
+
+	// Drawing Titie and Tutorial.
 	if (nowTutorial)
 	{
 		auto ConvertionScreenToWorld = [&](DirectX::XMFLOAT3 worldPos, Donya::Vector4x4 _V, Donya::Vector4x4 _P)
@@ -575,6 +577,7 @@ void SceneGame::Draw( float elapsedTime )
 			XMStoreFloat2(&ans, viewVec);
 			return ans;
 		};
+
 		std::wstring titleText = L"./Data/Images/title_text.png";
 		std::wstring titleGear = L"./Data/Images/title_gear.png";
 		std::wstring tutorial = L"./Data/Images/Tutorial.png";

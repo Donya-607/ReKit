@@ -59,12 +59,15 @@ enum class SelectGimmick
 	Elevator,
 	BeltConveyor,
 	OneWayBlock,
+	ClearBlock,
 
 	GimmicksCount
 };
 
 class SceneEditor : public Scene
 {
+public:
+	static constexpr int ClearID = 99;
 private:
 	struct DirectionalLight
 	{
