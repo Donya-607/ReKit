@@ -17,6 +17,10 @@
 #include "Terrain.h"
 #include "Alert.h"
 
+/// <summary>
+/// The "Stage" and "room" means is same.
+/// </summary>
+
 class SceneGame : public Scene
 {
 private:
@@ -49,8 +53,9 @@ private:
 	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
-	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 	bool					nowTutorial;	// Do you doing tutorial now?
+	bool					enableAlert;	// Will be true when the player ariived at the last room.
+	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
 	SceneGame();
 	~SceneGame();
@@ -77,6 +82,8 @@ private:
 
 	bool	IsPlayerOutFromRoom() const;
 	void	UpdateCurrentStage();
+
+	bool	InLastStage() const;
 
 	void	HookUpdate( float elapsedTime );
 

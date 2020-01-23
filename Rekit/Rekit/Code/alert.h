@@ -23,6 +23,8 @@ public:
 	void Init ();
 	void Uninit ();
 
+	void TurnOn ();
+
 	void Update ( float elpasedTime );
 
 	void Draw () const;

@@ -210,6 +210,9 @@ SceneGame::SceneGame() :
 	roomOriginPos(), respawnPos(),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
+	tutorialState( scast<TutorialState>( 0 ) ),
+	nowTutorial( true ),
+	enableAlert( false ),
 	useCushion( true )
 {}
 SceneGame::~SceneGame() = default;
@@ -238,6 +241,9 @@ void SceneGame::Init()
 		GameStorage::RegisterRespawnPos( spawnPos );
 	}
 
+	respawnPos = spawnPos;
+
+	// 0-based.
 	auto CalcStageNo = [&]( const Donya::Vector3 &wsPos )
 	{
 		const auto param = GameParam::Get().Data();
@@ -260,21 +266,30 @@ void SceneGame::Init()
 		ssPosI.x = std::max( 0, std::min( param.roomCounts.x - 1, ssPosI.x ) );
 		ssPosI.y = std::max( 0, std::min( param.roomCounts.y - 1, ssPosI.y ) );
 
-		return ssPosI.x + ( param.roomCounts.x * ssPosI.y );
+		return std::min( stageCount - 1, ssPosI.x + ( param.roomCounts.x * ssPosI.y ) );
 	};
 	currentStageNo = CalcStageNo( spawnPos );
-	respawnPos = spawnPos;
 
-	nowTutorial = true;
-	tutorialState = TutorialState::Jump;
-
+	if ( currentStageNo == 0 )
+	{
+		nowTutorial		=  true;
+		tutorialState	=  TutorialState::Jump;
+	}
 	CameraInit();
 
 	player.Init( spawnPos );
 
 	Hook::Init();
 	bg.Init();
-	alert.Init ();
+
+	// Only initialize for loading a sprites.
+	alert.Init();
+
+	if ( InLastStage() )
+	{
+		enableAlert = true;
+		alert.TurnOn();
+	}
 }
 void SceneGame::Uninit()
 {
@@ -282,7 +297,7 @@ void SceneGame::Uninit()
 
 	GameParam::Get().Uninit();
 
-	bg.Uninit ();
+	bg.Uninit();
 	alert.Uninit();
 	player.Uninit();
 	Hook::Uninit();
@@ -336,7 +351,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	controller.Update();
 
 	bg.Update( elapsedTime );
-	alert.Update ( elapsedTime );
+
+	if ( enableAlert )
+	{
+		alert.Update( elapsedTime );
+	}
 
 	/*
 	Update-order memo:
@@ -418,6 +437,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			UpdateCurrentStage();
 
 			respawnPos = player.GetPosition();
+
+			if ( InLastStage() && !enableAlert )
+			{
+				enableAlert = true;
+				alert.TurnOn();
+			}
 		}
 
 	#if DEBUG_MODE
@@ -471,12 +496,17 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::ClearViews( BG_COLOR );
 	}
 
+	// Drawing a BG.
 	{
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
 		Donya::Sprite::SetDrawDepth( 1.0f );
 		bg.Draw();
 		Donya::Sprite::SetDrawDepth( prevDepth );
-		alert.Draw ();
+	}
+
+	if ( enableAlert )
+	{
+		alert.Draw();
 	}
 
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
@@ -859,6 +889,11 @@ void SceneGame::UpdateCurrentStage()
 		// Fail-safe.
 		currentStageNo = prevStageNo;
 	}
+}
+
+bool SceneGame::InLastStage() const
+{
+	return ( currentStageNo == GameParam::Get().Data().lastRoomIndex ) ? true : false;
 }
 
 void SceneGame::HookUpdate( float elapsedTime )
