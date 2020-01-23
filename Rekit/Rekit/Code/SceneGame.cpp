@@ -42,6 +42,8 @@ public:
 		Donya::Vector2		roomSize{ 10.0f, 10.0f };	// Whole-size. Use for check to "is the player on outside place?"
 		Donya::Int2			roomCounts{ 4, 5 };			// 1-based. Represent the row and column count of neighboring rooms.
 		
+		int					lastRoomIndex{ 2 };			// 0-based. row_major.
+
 		Donya::Vector3		initPlayerPos{};
 
 		BoxEx debugClearTrigger{ { -10.0f, -10.0f, 6.0f, 6.0f, true }, 0 }; // Does not serialize.
@@ -65,6 +67,10 @@ public:
 				archive( CEREAL_NVP( cameraSlerp ) );
 			}
 			if ( 2 <= version )
+			{
+				archive( CEREAL_NVP( lastRoomIndex ) );
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -132,6 +138,7 @@ public:
 					ImGui::SliderFloat( u8"カメラの補間速度",		&m.cameraSlerp,		0.01f, 1.0f );
 					ImGui::DragFloat2( u8"ルームサイズ（全体）",	&m.roomSize.x,		0.1f, 0.1f );
 					ImGui::SliderInt2( u8"ルームの数（縦横）",	&m.roomCounts.x,	1, 16 );
+					ImGui::InputInt( u8"最後の部屋番号（０始まり・列優先）",	&m.lastRoomIndex );
 					ImGui::Text( "" );
 					ImGui::DragFloat3( u8"自機の初期位置",		&m.initPlayerPos.x );
 
@@ -272,7 +279,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	controller.Update();
 
-	bg.Update (elapsedTime);
+	bg.Update( elapsedTime );
 
 	/*
 	Update-order memo:
@@ -300,6 +307,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		}
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
+	}
+
+	// Add the elevator's hit-boxes. Use for the movement between the rooms.
+	{
+		const auto elevatorHitBoxes = FetchElevatorHitBoxes();
+		refTerrain.Append( elevatorHitBoxes );
 	}
 
 	// 3. The hook's PhysicUpdate().
@@ -454,57 +467,57 @@ void SceneGame::Draw( float elapsedTime )
 	#if DEBUG_MODE
 		// Drawing TextureBoard Demo.
 		{
-			constexpr const wchar_t *texturePath	= L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
-			static Donya::Geometric::TextureBoard	texBoard = Donya::Geometric::CreateTextureBoard( texturePath );
-			static Donya::Vector2	texPos{};
-			static Donya::Vector2	texSize{ 728.0f, 192.0f };
+		constexpr const wchar_t *texturePath = L"./Data/Images/Rights/FMOD Logo White - Black Background.png";
+		static Donya::Geometric::TextureBoard	texBoard = Donya::Geometric::CreateTextureBoard( texturePath );
+		static Donya::Vector2	texPos{};
+		static Donya::Vector2	texSize{ 728.0f, 192.0f };
 
-			static Donya::Vector3	boardScale{ 1.0f, 1.0f, 1.0f };
-			static Donya::Vector3	boardPos{};
-			static float			boardRadian{};
+		static Donya::Vector3	boardScale{ 1.0f, 1.0f, 1.0f };
+		static Donya::Vector3	boardPos{};
+		static float			boardRadian{};
 
-			static Donya::Vector4	boardColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-			static Donya::Vector4	lightDir  { 0.0f,-1.0f, 1.0f, 0.0f };
+		static Donya::Vector4	boardColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		static Donya::Vector4	lightDir{ 0.0f,-1.0f, 1.0f, 0.0f };
 
-		#if USE_IMGUI
+	#if USE_IMGUI
 
-			if ( ImGui::BeginIfAllowed() )
+		if ( ImGui::BeginIfAllowed() )
+		{
+			if ( ImGui::TreeNode( u8"板ポリ描画テスト" ) )
 			{
-				if ( ImGui::TreeNode( u8"板ポリ描画テスト" ) )
-				{
-					ImGui::DragFloat2( u8"切り取り位置・左上", &texPos.x );
-					ImGui::DragFloat2( u8"切り取りサイズ・全体", &texSize.x );
-					ImGui::Text( "" );
-					ImGui::DragFloat3( u8"スケール", &boardScale.x );
-					ImGui::DragFloat3( u8"ワールド位置", &boardPos.x );
-					ImGui::DragFloat( u8"Z回転", &boardRadian, ToRadian( 10.0f ) );
-					ImGui::Text( "" );
-					ImGui::ColorEdit4( u8"ブレンド色", &boardColor.x );
-					ImGui::SliderFloat3( u8"板ポリのライト方向", &lightDir.x, -1.0f, 1.0f );
-					ImGui::Text( "" );
+				ImGui::DragFloat2( u8"切り取り位置・左上", &texPos.x );
+				ImGui::DragFloat2( u8"切り取りサイズ・全体", &texSize.x );
+				ImGui::Text( "" );
+				ImGui::DragFloat3( u8"スケール", &boardScale.x );
+				ImGui::DragFloat3( u8"ワールド位置", &boardPos.x );
+				ImGui::DragFloat( u8"Z回転", &boardRadian, ToRadian( 10.0f ) );
+				ImGui::Text( "" );
+				ImGui::ColorEdit4( u8"ブレンド色", &boardColor.x );
+				ImGui::SliderFloat3( u8"板ポリのライト方向", &lightDir.x, -1.0f, 1.0f );
+				ImGui::Text( "" );
 
-					ImGui::TreePop();
-				}
-
-				ImGui::End();
+				ImGui::TreePop();
 			}
 
-		#endif // USE_IMGUI
+			ImGui::End();
+		}
 
-			Donya::Vector4x4 TB_S = Donya::Vector4x4::MakeScaling( boardScale );
-			Donya::Vector4x4 TB_R = texBoard.CalcBillboardRotation( ( iCamera.GetPosition() - boardPos ).Normalized(), boardRadian );
-			Donya::Vector4x4 TB_T = Donya::Vector4x4::MakeTranslation( boardPos );
-			Donya::Vector4x4 TB_W = TB_S * TB_R * TB_T;
+	#endif // USE_IMGUI
 
-			texBoard.RenderPart
-			(
-				texPos, texSize,
-				nullptr, // Specify use library's device-context.
-				/* useDefaultShading = */ true,
-				/* isEnableFill      = */ true,
-				( TB_W * V * P ), TB_W,
-				lightDir, boardColor
-			);
+		Donya::Vector4x4 TB_S = Donya::Vector4x4::MakeScaling( boardScale );
+		Donya::Vector4x4 TB_R = texBoard.CalcBillboardRotation( ( iCamera.GetPosition() - boardPos ).Normalized(), boardRadian );
+		Donya::Vector4x4 TB_T = Donya::Vector4x4::MakeTranslation( boardPos );
+		Donya::Vector4x4 TB_W = TB_S * TB_R * TB_T;
+
+		texBoard.RenderPart
+		(
+			texPos, texSize,
+			nullptr, // Specify use library's device-context.
+			/* useDefaultShading = */ true,
+			/* isEnableFill      = */ true,
+			( TB_W *V *P ), TB_W,
+			lightDir, boardColor
+		);
 		}
 	#endif // DEBUG_MODE
 	}
@@ -513,11 +526,11 @@ void SceneGame::Draw( float elapsedTime )
 
 void SceneGame::LoadAllStages()
 {
-	auto MakeIdentifier = []( int stageNo )->std::string
+	auto MakeIdentifier		= []( int stageNo )->std::string
 	{
 		return std::string{ StageConfiguration::FILE_NAME + std::to_string( stageNo ) };
 	};
-	auto MakeFilePath = [&MakeIdentifier]( int stageNo )->std::string
+	auto MakeFilePath		= [&MakeIdentifier]( int stageNo )->std::string
 	{
 		return GenerateSerializePath
 		(
@@ -525,7 +538,7 @@ void SceneGame::LoadAllStages()
 			/* useBinaryExtension = */ true
 		);
 	};
-	auto LoadGimmicksFile = []( const std::string &filePath, const std::string &identifier )->StageConfiguration
+	auto LoadGimmicksFile	= []( const std::string &filePath, const std::string &identifier )->StageConfiguration
 	{
 		StageConfiguration stage{};
 		Donya::Serializer  seria{};
@@ -544,8 +557,25 @@ void SceneGame::LoadAllStages()
 		return stage;
 	};
 
+	auto HasContainElevator	= []( const std::vector<std::shared_ptr<GimmickBase>> &pGimmicks )
+	{
+		for ( const auto &pIt : pGimmicks )
+		{
+			if ( !pIt ) { continue; }
+			// else
+
+			if ( GimmickUtility::ToKind( pIt->GetKind() ) == GimmickKind::Elevator )
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	terrains.clear();
 	gimmicks.clear();
+	elevatorRoomIndices.clear();
 
 	int stageNo = 0; // 0-based.
 	std::string filePath = MakeFilePath( stageNo );
@@ -574,11 +604,51 @@ void SceneGame::LoadAllStages()
 			config
 		);
 
+		if ( HasContainElevator( config.pEditGimmicks ) )
+		{
+			elevatorRoomIndices.emplace_back( stageNo );
+		}
+
 		stageNo++;
 		filePath = MakeFilePath( stageNo );
 	}
 
 	stageCount = stageNo;
+}
+
+std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
+{
+	auto FetchElevatorBoxes = []( const Gimmick &gimmicks )
+	{
+		std::vector<BoxEx> wsHitBoxes{};
+
+		const auto wsAllHitBoxes = gimmicks.RequireHitBoxes();
+		for ( const auto &it : wsAllHitBoxes )
+		{
+			if ( !GimmickUtility::HasAttribute( GimmickKind::Elevator, it ) ) { continue; }
+			// else
+
+			wsHitBoxes.emplace_back( it.Get2D() );
+		}
+
+		return wsHitBoxes;
+	};
+
+	std::vector<BoxEx> wsAllBoxes{};
+	std::vector<BoxEx> wsLocalBoxes{};
+
+	// We consider as the gimmicks count to immutabe.
+
+	for ( const auto &i : elevatorRoomIndices )
+	{
+		wsLocalBoxes = FetchElevatorBoxes( gimmicks[i] );
+		for ( const auto &it : wsLocalBoxes )
+		{
+			wsAllBoxes.emplace_back( it );
+		}
+	}
+
+	return wsAllBoxes;
 }
 
 Donya::Int2 SceneGame::CalcRoomIndex( int stageNo ) const

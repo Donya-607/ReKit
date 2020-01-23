@@ -9,6 +9,7 @@
 #include "Donya/Vector.h"
 
 #include "BG.h"
+#include "DerivedCollision.h"
 #include "Gimmicks.h"
 #include "Hook.h"
 #include "Player.h"
@@ -32,6 +33,8 @@ private:
 	std::vector<Terrain>	terrains;		// The terrains per room.
 	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
 
+	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
+
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
 	SceneGame();
@@ -45,6 +48,8 @@ public:
 	void	Draw( float elapsedTime ) override;
 private:
 	void	LoadAllStages();
+
+	std::vector<BoxEx> FetchElevatorHitBoxes() const;
 
 	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;
