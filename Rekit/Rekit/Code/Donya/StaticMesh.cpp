@@ -232,7 +232,7 @@ namespace Donya
 	{
 		D3D11_RASTERIZER_DESC standard{};
 		standard.FillMode				= fillMode;
-		standard.CullMode				= D3D11_CULL_BACK;
+		standard.CullMode				= D3D11_CULL_FRONT;
 		standard.FrontCounterClockwise	= FALSE;
 		standard.DepthBias				= 0;
 		standard.DepthBiasClamp			= 0;
