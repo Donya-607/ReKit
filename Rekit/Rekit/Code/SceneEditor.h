@@ -6,6 +6,7 @@
 
 #include "Donya/Camera.h"
 #include "Donya/GamepadXInput.h"
+#include "Donya/GeometricPrimitive.h"
 #include "Donya/Serializer.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"

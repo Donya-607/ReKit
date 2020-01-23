@@ -2,10 +2,8 @@
 
 #include <vector>
 
-#include "Donya/CBuffer.h"
 #include "Donya/Collision.h"
-#include "Donya/GeometricPrimitive.h"
-#include "Donya/Shader.h"
+#include "Donya/StaticMesh.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
@@ -41,23 +39,21 @@ private:
 		End				// delete
 	};
 
-	Donya::Vector3						pos;				// World space.
-	Donya::Vector3						velocity;
-	Donya::Vector3						direction;
-	ActionState							state;
+	Donya::Vector3				pos;				// World space.
+	Donya::Vector3				velocity;
+	Donya::Vector3				direction;
+	ActionState					state;
 
-	float								easingTime;
-	float								distance;			// distance between player and hook.
-	float								momentPullDist;		// The distance between the player and the hook at the moment of the pull.
-	bool								prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
-	bool								exist;				// Exist flag			 : [TRUE:Exist] [FALSE:not exist]
-	bool								isHitCheckEnable;	// Hit judgment flag	 : [TRUE:judge] [FALSE:Do not judge]
-	bool								placeablePoint;		// Use for represent to user when state == Throw.
+	float						easingTime;
+	float						distance;			// distance between player and hook.
+	float						momentPullDist;		// The distance between the player and the hook at the moment of the pull.
+	bool						prevPress;			// Previous button state : [TRUE:Pressed] [FALSE:Not pressed]
+	bool						exist;				// Exist flag			 : [TRUE:Exist] [FALSE:not exist]
+	bool						isHitCheckEnable;	// Hit judgment flag	 : [TRUE:judge] [FALSE:Do not judge]
+	bool						placeablePoint;		// Use for represent to user when state == Throw.
 
-	static Donya::Geometric::Cube		drawModel;
-	static Donya::CBuffer<Constants>	cbuffer;
-	static Donya::VertexShader			VSDemo;
-	static Donya::PixelShader			PSDemo;
+	static Donya::StaticMesh	drawModel;
+	static bool					wasLoaded;
 public:
 	Hook(const Donya::Vector3& playerPos);
 	~Hook();
@@ -83,8 +79,6 @@ public:
 	/// </summary>
 	AABBEx GetHitBox() const;
 private:
-	static void CreateRenderingObjects();
-
 	void ThrowUpdate(float elapsedTime, Input controller);
 	void PullUpdate(float elapsedTime, Input controller);
 	void EraseUpdate(float elapsedTime, Input controller);

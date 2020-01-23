@@ -35,30 +35,12 @@ std::string GetModelPath( ModelAttribute modelAttribute )
 {
 	switch ( modelAttribute )
 	{
-	case ModelAttribute::Demo:
-		return "./Foo/Bar/Anonymous.bin"; // break;
+	case ModelAttribute::Player:
+		return "./Data/Models/Player.bin"; // break;
+	case ModelAttribute::Hook:
+		return "./Data/Models/Hook.bin"; // break;
 	default:
 		assert( !"Error : Specified unexpect model type." ); break;
-	}
-
-	return "ERROR_ATTRIBUTE";
-}
-
-std::string GetShaderPath( ShaderAttribute shaderAttribute, bool wantVS )
-{
-	auto AddPostfix = []( const std::string &filePath, bool isVS )->std::string
-	{
-		const std::string type = ( isVS ) ? "VS" : "PS";
-		return filePath + type + ".cso";
-	};
-
-	std::string fileName{};
-	switch ( shaderAttribute )
-	{
-	case ShaderAttribute::Demo:
-		return AddPostfix( "./Data/Shaders/DemoShader", wantVS ); // break;
-	default:
-		assert( !"Error : Specified unexpect shader type." ); break;
 	}
 
 	return "ERROR_ATTRIBUTE";

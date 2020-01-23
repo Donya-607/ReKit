@@ -21,10 +21,7 @@ public:
 	void Init( const Donya::Vector3 &wsRoomOriginPos, const std::vector<BoxEx> &sourceTerrain );
 	void Uninit();
 
-	/// <summary>
-	/// Draw the current editable hit-boxes.
-	/// </summary>
-	void Draw( const Donya::Vector4x4 &matVP, const Donya::Vector4 &lightDir ) const;
+	void Draw( const Donya::Vector4x4 &matVP, const Donya::Vector4 &lightDir, bool drawEditableBoxes = false ) const;
 public:
 	/// <summary>
 	/// Reset the edited hit-boxes to be initial state.

@@ -173,7 +173,7 @@ void SpikeBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, con
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 1.0f, 0.1f, 0.0f, 0.8f };
+	constexpr Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }

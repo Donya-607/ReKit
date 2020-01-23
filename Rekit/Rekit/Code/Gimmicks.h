@@ -48,7 +48,7 @@ public:
 	void Init( int stageNumber, const StageConfiguration &stageConfig );
 	void Uninit();
 
-	void Update( float elapsedTime );
+	void Update( float elapsedTime, bool useImGui = false );
 	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;

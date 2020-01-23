@@ -48,6 +48,13 @@ private:
 		);
 		if ( 1 <= version )
 		{
+			archive
+			(
+				CEREAL_NVP( direction )
+			);
+		}
+		if ( 2 <= version )
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
@@ -85,7 +92,7 @@ public:
 	void ShowImGuiNode() override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( Shutter, 0 )
+CEREAL_CLASS_VERSION( Shutter, 1 )
 CEREAL_REGISTER_TYPE( Shutter )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, Shutter )
 

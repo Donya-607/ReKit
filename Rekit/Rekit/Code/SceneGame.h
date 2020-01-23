@@ -9,6 +9,7 @@
 #include "Donya/Vector.h"
 
 #include "BG.h"
+#include "DerivedCollision.h"
 #include "Gimmicks.h"
 #include "Hook.h"
 #include "Player.h"
@@ -25,14 +26,17 @@ private:
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
+	Donya::Vector3			respawnPos;		// Use for store.
 
 	BG						bg;
 	Player					player;
 	Alert					alert;
 	std::unique_ptr<Hook>	pHook;
 
-	std::vector<Terrain>	terrains;		// The terrains per stage.
-	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
+	std::vector<Terrain>	terrains;		// The terrains per room.
+	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
+
+	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
@@ -48,11 +52,14 @@ public:
 private:
 	void	LoadAllStages();
 
+	std::vector<BoxEx> FetchElevatorHitBoxes() const;
+
 	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;
 
 	void	CameraInit();
 	void	CameraUpdate();
+	void	MoveCamera();
 
 	void	PlayerUpdate( float elapsedTime );
 

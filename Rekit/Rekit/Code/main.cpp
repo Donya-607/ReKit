@@ -36,7 +36,7 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 	constexpr bool fullScreenMode = false;
 #endif // DEBUG_MODE
 
-	std::string title{ "エクスプローラー" };
+	std::string title{ "フックトリー" };
 	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), fullScreenMode );
 
 	Donya::SetWindowIcon( instance, IDI_ICON );
