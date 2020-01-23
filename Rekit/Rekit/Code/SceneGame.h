@@ -90,6 +90,7 @@ private:
 	bool	DetectClearMoment() const;
 
 	void	StartFade() const;
+	void	PrepareGoToTitle();
 
 	void	UpdateOfTutorial();
 	void	DrawOfTutorial();

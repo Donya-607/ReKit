@@ -1014,6 +1014,21 @@ void SceneGame::StartFade() const
 	Fader::Get().StartFadeOut( config );
 }
 
+void SceneGame::PrepareGoToTitle()
+{
+	const auto param = GameParam::Get().Data();
+	GameStorage::RegisterRespawnPos( param.initPlayerPos );
+
+	nowTutorial = true;
+	enableAlert = false;
+	useCushion  = true;
+
+	if ( !Fader::Get().IsExist() )
+	{
+		StartFade();
+	}
+}
+
 void SceneGame::UpdateOfTutorial()
 {
 	auto dir = controller.RightStick();
