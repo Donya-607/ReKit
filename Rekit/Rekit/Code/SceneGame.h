@@ -25,6 +25,7 @@ private:
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
+	Donya::Vector3			respawnPos;		// Use for store.
 
 	BG						bg;
 	Player					player;
@@ -56,6 +57,7 @@ private:
 
 	void	CameraInit();
 	void	CameraUpdate();
+	void	MoveCamera();
 
 	void	PlayerUpdate( float elapsedTime );
 

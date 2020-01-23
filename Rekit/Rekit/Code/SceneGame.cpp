@@ -184,14 +184,30 @@ public:
 
 #endif // USE_IMGUI
 };
-
 CEREAL_CLASS_VERSION( GameParam::Member, 1 )
+
+namespace GameStorage
+{
+	static Donya::Vector3 playerRespawnPos{};
+	void InitializeRespawnPos()
+	{
+		playerRespawnPos = GameParam::Get().Data().initPlayerPos;
+	}
+	void RegisterRespawnPos( const Donya::Vector3 &wsPos )
+	{
+		playerRespawnPos = wsPos;
+	}
+	Donya::Vector3 AcquireRespawnPos()
+	{
+		return playerRespawnPos;
+	}
+}
 
 SceneGame::SceneGame() :
 	stageCount( -1 ), currentStageNo( 0 ),
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
-	roomOriginPos(),
+	roomOriginPos(), respawnPos(),
 	bg(), player(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	useCushion( true )
@@ -213,13 +229,48 @@ void SceneGame::Init()
 	GameParam::Get().Init();
 
 	LoadAllStages();
-	currentStageNo = 0;
+
+	Donya::Vector3 spawnPos = GameStorage::AcquireRespawnPos();
+	if ( spawnPos.IsZero() )
+	{
+		// When is the first time.
+		spawnPos = GameParam::Get().Data().initPlayerPos;
+		GameStorage::RegisterRespawnPos( spawnPos );
+	}
+
+	auto CalcStageNo = [&]( const Donya::Vector3 &wsPos )
+	{
+		const auto param = GameParam::Get().Data();
+		const auto roomSize = param.roomSize;
+
+		Donya::Vector2 ssPos{};
+		ssPos.x =  wsPos.x;
+		ssPos.y = -wsPos.y;
+
+		ssPos  -=  roomSize * 0.5f; // Translate the origin from center to left-top.
+
+		ssPos.x /= roomSize.x;
+		ssPos.y /= roomSize.y;
+
+		Donya::Int2 ssPosI
+		{
+			scast<int>( ssPos.x ),
+			scast<int>( ssPos.y ),
+		};
+		ssPosI.x = std::max( 0, std::min( param.roomCounts.x - 1, ssPosI.x ) );
+		ssPosI.y = std::max( 0, std::min( param.roomCounts.y - 1, ssPosI.y ) );
+
+		return ssPosI.x + ( param.roomCounts.x * ssPosI.y );
+	};
+	currentStageNo = CalcStageNo( spawnPos );
+	respawnPos = spawnPos;
 
 	CameraInit();
 
-	player.Init( GameParam::Get().Data().initPlayerPos );
+	player.Init( spawnPos );
+
 	Hook::Init();
-	bg.Init ();
+	bg.Init();
 }
 void SceneGame::Uninit()
 {
@@ -352,15 +403,36 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			if ( !Fader::Get().IsExist() )
 			{
 				StartFade();
+
+				GameStorage::RegisterRespawnPos( respawnPos );
 			}
 		}
 		else if ( IsPlayerOutFromRoom() )
 		{
 			UpdateCurrentStage();
+
+			respawnPos = player.GetPosition();
 		}
+
+	#if DEBUG_MODE
+		if ( Donya::Keyboard::Trigger( 'Q' ) )
+		{
+			if ( !Fader::Get().IsExist() )
+			{
+				StartFade();
+
+				GameStorage::RegisterRespawnPos( respawnPos );
+			}
+		}
+	#endif // DEBUG_MODE
 	}
 
 	CameraUpdate();
+
+	if ( DetectClearMoment() )
+	{
+		StartFade();
+	}
 
 #if DEBUG_MODE
 	// Scene Transition Demo.
@@ -376,11 +448,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		}
 	}
 #endif // DEBUG_MODE
-
-	if ( DetectClearMoment() )
-	{
-		StartFade();
-	}
 
 	return ReturnResult();
 }
@@ -441,8 +508,8 @@ void SceneGame::Draw( float elapsedTime )
 
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
-// #if DEBUG_MODE
-	// if ( Common::IsShowCollision() )
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
 	{
 		static auto cube = Donya::Geometric::CreateCube();
 
@@ -522,7 +589,7 @@ void SceneGame::Draw( float elapsedTime )
 		}
 	#endif // DEBUG_MODE
 	}
-// #endif // DEBUG_MODE
+#endif // DEBUG_MODE
 }
 
 void SceneGame::LoadAllStages()
@@ -677,10 +744,11 @@ void SceneGame::CameraInit()
 	iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 	iCamera.SetProjectionPerspective();
 
+	MoveCamera();
+
 	// I can setting a configuration,
 	// but current data is not changed by this immediately.
 	// So update here.
-
 	Donya::ICamera::Controller moveInitPoint{};
 	moveInitPoint.SetNoOperation();
 	moveInitPoint.slerpPercent = 1.0f;
@@ -688,20 +756,7 @@ void SceneGame::CameraInit()
 }
 void SceneGame::CameraUpdate()
 {
-	// Adjust position to origin of current room.
-	{
-		const auto param = GameParam::Get().Data();
-		const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
-
-		Donya::Vector3 currentPos{};
-		currentPos.x = param.roomSize.x *  roomIndex.x;
-		currentPos.y = param.roomSize.y * -roomIndex.y; // Convert Y from screen space -> world space.
-		currentPos.z = param.cameraDolly;
-		iCamera.SetPosition( currentPos );
-
-		roomOriginPos.x =  currentPos.x;
-		roomOriginPos.y = -currentPos.y; // Convert Y from world space -> screen space.
-	}
+	MoveCamera();
 
 	Donya::ICamera::Controller input{};
 	input.slerpPercent = GameParam::Get().Data().cameraSlerp;
@@ -724,6 +779,20 @@ void SceneGame::CameraUpdate()
 #endif // DEBUG_MODE
 
 	iCamera.Update( input );
+}
+void SceneGame::MoveCamera()
+{
+	const auto param = GameParam::Get().Data();
+	const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
+
+	Donya::Vector3 currentPos{};
+	currentPos.x = param.roomSize.x *  roomIndex.x;
+	currentPos.y = param.roomSize.y * -roomIndex.y; // Convert Y from screen space -> world space.
+	currentPos.z = param.cameraDolly;
+	iCamera.SetPosition( currentPos );
+
+	roomOriginPos.x =  currentPos.x;
+	roomOriginPos.y = -currentPos.y; // Convert Y from world space -> screen space.
 }
 
 void SceneGame::PlayerUpdate( float elapsedTime )
@@ -924,6 +993,8 @@ bool SceneGame::DetectClearMoment() const
 	if ( Fader::Get().IsExist() ) { return false; }
 	// else
 
+#if DEBUG_MODE
+
 	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
 	const auto playerBox	= player.GetHitBox();
 	BoxEx xyPlayer{};
@@ -936,6 +1007,8 @@ bool SceneGame::DetectClearMoment() const
 	}
 
 	return ( Donya::Box::IsHitBox( xyPlayer, clearBox ) ) ? true : false;
+
+#endif // DEBUG_MODE
 }
 
 void SceneGame::StartFade() const
@@ -956,6 +1029,9 @@ Scene::Result SceneGame::ReturnResult()
 		change.sceneType = Scene::Type::Game;
 		return change;
 	}
+	// else
+
+#if DEBUG_MODE
 
 	bool requestPause	= controller.Trigger( Donya::Gamepad::Button::START ) || controller.Trigger( Donya::Gamepad::Button::SELECT ) || Donya::Keyboard::Trigger( 'P' );
 	bool allowPause		= !Fader::Get().IsExist();
@@ -969,6 +1045,8 @@ Scene::Result SceneGame::ReturnResult()
 		return pause;
 	}
 	// else
+
+#endif // DEBUG_MODE
 
 	Scene::Result noop{ Scene::Request::NONE, Scene::Type::Null };
 	return noop;
