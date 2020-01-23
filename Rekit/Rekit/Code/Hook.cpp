@@ -10,6 +10,7 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"
 #include "Music.h"
 
 #undef max
@@ -266,12 +267,31 @@ void Hook::Update(float elapsedTime, Input controller)
 
 void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos)
 {
+	auto IsHitToJammer = [&]()->bool
+	{
+		const BoxEx wsBody = GetHitBox().Get2D();
+		
+		for ( const auto &it : terrains )
+		{
+			if ( !GimmickUtility::HasAttribute( GimmickKind::JammerArea, it ) ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( it, wsBody, /* ignoreExistFlag = */ true ) )
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	if ( state == ActionState::Throw )
 	{
 		pos.x = direction.x * distance + playerPos.x;
 		pos.y = direction.y * distance + playerPos.y;
 
 		placeablePoint = true;
+
 		const auto wsAABB = GetHitBox();
 		BoxEx xyBody = wsAABB.Get2D();
 		xyBody.exist = true;
@@ -282,6 +302,11 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 				placeablePoint = false;
 				break;
 			}
+		}
+
+		if ( IsHitToJammer() )
+		{
+			placeablePoint = false;
 		}
 
 		return;
@@ -307,6 +332,12 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 		playerBody.exist		= true;
 	}
 	if ( Donya::Sphere::IsHitSphere( hookBody, playerBody ) )
+	{
+		state = ActionState::End;
+		return;
+	}
+	// else
+	if ( IsHitToJammer() )
 	{
 		state = ActionState::End;
 		return;

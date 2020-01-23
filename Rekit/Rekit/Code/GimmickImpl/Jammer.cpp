@@ -200,7 +200,15 @@ AABBEx JammerArea::GetHitBox() const
 	base.pos		+= pos;
 	base.velocity	=  velocity;
 	base.attr		=  kind;
-	base.exist		=  enable;
+	base.exist		=  false;
+
+	if ( !enable )
+	{
+		// Adjust the kind to be not the jammer.
+		// For prevent that hit-box have the collision.
+		base.attr += 1; // After this, that hit-box will regard as the JammerOrigin.
+	}
+
 	return base;
 }
 
