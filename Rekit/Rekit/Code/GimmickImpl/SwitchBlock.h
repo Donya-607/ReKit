@@ -28,6 +28,10 @@ public:
 	/// </summary>
 	static void UseParameterImGui();
 #endif // USE_IMGUI
+private:
+	bool			wasBroken;
+	float			scale;		// Use for the performance of appear.
+	Donya::Vector3	initPos;
 public:
 	SwitchBlock();
 	~SwitchBlock();
@@ -70,6 +74,12 @@ private:
 	void Fall( float elapsedTime );
 
 	void Brake( float elapsedTime );
+
+	bool WasBroken() const;
+	void BreakMe();
+
+	void Scale( float elapsedTime );
+	void Respawn();
 
 	void GatherToTheTarget( const std::vector<BoxEx> &terrains );
 public:

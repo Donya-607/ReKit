@@ -9,6 +9,7 @@
 #include "Donya/Vector.h"
 
 #include "BG.h"
+#include "DerivedCollision.h"
 #include "Gimmicks.h"
 #include "Hook.h"
 #include "Player.h"
@@ -39,8 +40,10 @@ private:
 	Player					player;
 	std::unique_ptr<Hook>	pHook;
 
-	std::vector<Terrain>	terrains;		// The terrains per stage.
-	std::vector<Gimmick>	gimmicks;		// The gimmicks per stage.
+	std::vector<Terrain>	terrains;		// The terrains per room.
+	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
+
+	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
@@ -57,6 +60,8 @@ public:
 	void	Draw( float elapsedTime ) override;
 private:
 	void	LoadAllStages();
+
+	std::vector<BoxEx> FetchElevatorHitBoxes() const;
 
 	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;

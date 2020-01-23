@@ -45,6 +45,14 @@ private:
 		);
 		if (1 <= version)
 		{
+			archive
+			(
+				CEREAL_NVP( direction ),
+				CEREAL_NVP( maxMoveAmount )
+			);
+		}
+		if (2 <= version)
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
@@ -82,7 +90,7 @@ public:
 	void ShowImGuiNode () override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( Lift, 0 )
+CEREAL_CLASS_VERSION ( Lift, 1 )
 CEREAL_REGISTER_TYPE ( Lift )
 CEREAL_REGISTER_POLYMORPHIC_RELATION ( GimmickBase, Lift )
 

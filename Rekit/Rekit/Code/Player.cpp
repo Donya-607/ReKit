@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Donya/Constant.h"		// Use DEBUG_MODE, scast macros.
+#include "Donya/Loader.h"
 #include "Donya/Sound.h"
 #include "Donya/Template.h"		
 #include "Donya/Useful.h"		// Use convert string functions.
@@ -161,11 +162,13 @@ public:
 
 CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
 
+Donya::StaticMesh	Player::drawModel{};
+bool				Player::wasLoaded{ false };
+
 Player::Player() :
 	status( State::Normal ),
 	remainJumpCount( 1 ), drawAlpha( 1.0f ),
 	pos(), velocity(),
-	drawModel( Donya::Geometric::CreateSphere() ), cbuffer(), VSDemo(), PSDemo(),
 	aboveSlipGround( false )
 {}
 Player::~Player() = default;
@@ -174,7 +177,7 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 {
 	PlayerParam::Get().Init();
 
-	CreateRenderingObjects();
+	LoadModel();
 
 	pos = wsInitPos;
 }
@@ -717,24 +720,18 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
+	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size );
 	Donya::Vector4x4 W = S * T;
 
-	cbuffer.data.world					= W.XMFloat();
-	cbuffer.data.worldViewProjection	= ( W * matViewProjection ).XMFloat();
-	cbuffer.data.lightDirection			= lightDirection;
-	cbuffer.data.lightColor				= lightColor;
-	cbuffer.data.materialColor			= Donya::Vector4{ 1.0f, 0.6f, 0.8f, drawAlpha };
-
-	cbuffer.Activate( 0, /* setVS = */ true, /* setPS = */ true );
-	VSDemo.Activate();
-	PSDemo.Activate();
-
-	drawModel.Render( nullptr, /* useDefaultShading = */ false );
-	
-	PSDemo.Deactivate();
-	VSDemo.Deactivate();
-	cbuffer.Deactivate();
+	drawModel.Render
+	(
+		nullptr,
+		/* useDefaultShading	= */ true,
+		/* isEnableFill			= */ true,
+		W * matViewProjection, W,
+		lightDirection, Donya::Vector4{ 1.0f, 1.0f, 1.0f, drawAlpha }
+	);
 }
 
 Donya::Vector3 Player::GetPosition() const
@@ -746,6 +743,7 @@ AABBEx Player::GetHitBox() const
 	AABBEx wsAABB	=  PlayerParam::Get().Data().hitBoxPhysic;
 	wsAABB.pos		+= GetPosition();
 	wsAABB.velocity	=  velocity;
+	wsAABB.exist	=  ( status == State::Dead ) ? false : true;
 	return wsAABB;
 }
 
@@ -754,19 +752,27 @@ bool Player::IsDead() const
 	return ( status == State::Dead && drawAlpha <= 0.0f ) ? true : false;
 }
 
-void Player::CreateRenderingObjects()
+void Player::LoadModel()
 {
-	cbuffer.Create();
+	if ( wasLoaded ) { return; }
+	// else
 
-	constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 2> inputElements
+	Donya::Loader loader{};
+	bool  succeeded = loader.Load( GetModelPath( ModelAttribute::Player ), nullptr );
+	if ( !succeeded )
 	{
-		D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		D3D11_INPUT_ELEMENT_DESC{ "NORMAL"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	// The function requires argument is std::vector, so convert.
-	const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementsVector{ inputElements.begin(), inputElements.end() };
-	VSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ true  ), inputElementsVector );
-	PSDemo.CreateByCSO( GetShaderPath( ShaderAttribute::Demo, /* wantVS */ false ) );
+		_ASSERT_EXPR( 0, L"Failed : Load the Player's model." );
+		return;
+	}
+
+	succeeded = Donya::StaticMesh::Create( loader, drawModel );
+	if ( !succeeded )
+	{
+		_ASSERT_EXPR( 0, L"Failed : Create the Player's model." );
+		return;
+	}
+
+	wasLoaded = true;
 }
 
 void Player::NormalUpdate( float elapsedTime, Input controller )
