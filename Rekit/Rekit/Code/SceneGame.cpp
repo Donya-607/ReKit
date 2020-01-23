@@ -215,6 +215,9 @@ void SceneGame::Init()
 	LoadAllStages();
 	currentStageNo = 0;
 
+	nowTutorial = true;
+	tutorialState = TutorialState::Jump;
+
 	CameraInit();
 
 	player.Init( GameParam::Get().Data().initPlayerPos );
@@ -377,6 +380,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	}
 #endif // DEBUG_MODE
 
+	if (nowTutorial)
+	{
+		UpdateOfTutorial();
+	}
+
 	if ( DetectClearMoment() )
 	{
 		StartFade();
@@ -523,6 +531,99 @@ void SceneGame::Draw( float elapsedTime )
 	#endif // DEBUG_MODE
 	}
 // #endif // DEBUG_MODE
+
+	if (nowTutorial)
+	{
+		auto ConvertionScreenToWorld = [&](DirectX::XMFLOAT3 worldPos, Donya::Vector4x4 _V, Donya::Vector4x4 _P)
+		{
+			using namespace DirectX;
+
+			XMVECTOR worldPos_v = XMLoadFloat3(&worldPos);
+
+			float w = Common::HalfScreenWidthF();
+			float h = Common::HalfScreenHeightF();
+
+			XMMATRIX V = {
+				_V.m[0][0],_V.m[0][1],_V.m[0][2],_V.m[0][3],
+				_V.m[1][0],_V.m[1][1],_V.m[1][2],_V.m[1][3],
+				_V.m[2][0],_V.m[2][1],_V.m[2][2],_V.m[2][3],
+				_V.m[3][0],_V.m[3][1],_V.m[3][2],_V.m[3][3],
+			};
+			XMMATRIX P = {
+				_P.m[0][0],_P.m[0][1],_P.m[0][2],_P.m[0][3],
+				_P.m[1][0],_P.m[1][1],_P.m[1][2],_P.m[1][3],
+				_P.m[2][0],_P.m[2][1],_P.m[2][2],_P.m[2][3],
+				_P.m[3][0],_P.m[3][1],_P.m[3][2],_P.m[3][3],
+			};
+
+			XMMATRIX Vp = {
+				w, 0, 0, 0,
+				0, -h, 0, 0,
+				0, 0, 1, 0,
+				w, h, 0, 1,
+			};
+
+			worldPos_v = XMVector3Transform(worldPos_v, V);
+			worldPos_v = XMVector3Transform(worldPos_v, P);
+
+			XMFLOAT3 tmp;
+			XMStoreFloat3(&tmp, worldPos_v);
+
+			XMVECTOR viewVec = XMVectorSet(tmp.x / tmp.z, tmp.y / tmp.z, 1.0f, 1.0f);
+			viewVec = XMVector3Transform(viewVec, Vp);
+			XMFLOAT2 ans;
+			XMStoreFloat2(&ans, viewVec);
+			return ans;
+		};
+		std::wstring titleText = L"./Data/Images/title_text.png";
+		std::wstring titleGear = L"./Data/Images/title_gear.png";
+		std::wstring tutorial = L"./Data/Images/Tutorial.png";
+		size_t titleTextID = Donya::Sprite::Load(titleText);
+		size_t titleGearID = Donya::Sprite::Load(titleGear);
+		size_t tutorialID = Donya::Sprite::Load(tutorial);
+
+		DirectX::XMFLOAT3 playerPos{ player.GetPosition() };
+		auto pos = ConvertionScreenToWorld(playerPos, V, P);
+
+		Donya::Sprite::SetDrawDepth(0.0f);
+
+		if (tutorialState == TutorialState::Pull)
+		{
+			Donya::Sprite::DrawPartExt(tutorialID, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+			Donya::Sprite::DrawPartExt(tutorialID, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>(tutorialState + 1), 1280.0f, 448.0f, 0.3f, 0.3f);
+		}
+		else
+		{
+			Donya::Sprite::DrawPartExt(tutorialID, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>(tutorialState), 1280.0f, 448.0f, 0.3f, 0.3f);
+		}
+
+		static int animCount = 0;
+		static int animFrame = 0;
+		static int animCountGear = 0;
+		static int animFrameGear = 0;
+
+		if (++animCount % 8 == 0)
+		{
+			if (++animFrame >= 5)
+			{
+				animFrame = 0;
+			}
+		}
+		if (++animCountGear % 20 == 0)
+		{
+			if (++animFrameGear >= 3)
+			{
+				animFrameGear = 0;
+			}
+		}
+
+		Donya::Sprite::SetDrawDepth(0.1f);
+		Donya::Sprite::DrawPart(titleTextID, 1000.0f, 500.0f, 0.0f, 320.0f * animFrame, 1280.0f, 320.0f);
+
+		Donya::Sprite::SetDrawDepth(0.2f);
+		Donya::Sprite::DrawPart(titleGearID, 770.0f, 600.0f, 0.0f, 480.0f * animFrameGear, 480.0f, 480.0f);
+		Donya::Sprite::DrawPart(titleGearID, 1200.0f, 400.0f, 0.0f, 480.0f *  (2 - animFrameGear), 480.0f, 480.0f);
+	}
 }
 
 void SceneGame::LoadAllStages()
@@ -945,6 +1046,47 @@ void SceneGame::StartFade() const
 	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
+}
+
+void SceneGame::UpdateOfTutorial()
+{
+	auto dir = controller.RightStick();
+
+	switch (tutorialState)
+	{
+	case TutorialState::Jump:
+		if (controller.Trigger(Donya::Gamepad::LT))
+		{
+			tutorialState = TutorialState::Extend;
+		}
+			break;
+
+	case TutorialState::Extend:
+		if (dir.x != 0.0f || dir.y != 0.0f)
+		{
+			tutorialState = TutorialState::Make;
+		}
+		break;
+
+	case TutorialState::Make:
+		if (controller.Trigger(Donya::Gamepad::RT))
+		{
+			tutorialState = TutorialState::Pull;
+		}
+		break;
+
+	case TutorialState::Pull:
+		if (controller.Trigger(Donya::Gamepad::RT) || controller.Trigger(Donya::Gamepad::RB))
+		{
+			tutorialState = TutorialState::Erase;
+		}
+		break;
+
+	case TutorialState::Erase:
+		nowTutorial = false;
+		break;
+
+	}
 }
 
 Scene::Result SceneGame::ReturnResult()
