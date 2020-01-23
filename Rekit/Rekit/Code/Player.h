@@ -2,10 +2,8 @@
 
 #include <vector>
 
-#include "Donya/CBuffer.h"
 #include "Donya/Collision.h"
-#include "Donya/GeometricPrimitive.h"
-#include "Donya/Shader.h"
+#include "Donya/StaticMesh.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
@@ -13,6 +11,9 @@
 
 class Player
 {
+private:
+	static Donya::StaticMesh	drawModel;
+	static bool					wasLoaded;
 public:
 	struct Input
 	{
@@ -42,11 +43,6 @@ private:
 	Donya::Vector3				pos;				// World space.
 	Donya::Vector3				velocity;
 
-	Donya::Geometric::Sphere	drawModel;
-	Donya::CBuffer<Constants>	cbuffer;
-	Donya::VertexShader			VSDemo;
-	Donya::PixelShader			PSDemo;
-
 	bool						aboveSlipGround;
 public:
 	Player();
@@ -71,7 +67,7 @@ public:
 
 	bool IsDead() const;
 private:
-	void CreateRenderingObjects();
+	void LoadModel();
 
 	void NormalUpdate( float elapsedTime, Input controller );
 	void DeadUpdate( float elapsedTime, Input controller );

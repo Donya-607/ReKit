@@ -20,14 +20,8 @@ std::wstring GetSpritePath( SpriteAttribute spriteAttribute );
 
 enum class ModelAttribute
 {
-	Demo, // For copy. Can erase this.
+	Player,
+	Hook,
 };
 
 std::string GetModelPath( ModelAttribute modelAttribute );
-
-enum class ShaderAttribute
-{
-	Demo,
-};
-
-std::string GetShaderPath( ShaderAttribute shaderAttribute, bool wantVS );

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Donya/Easing.h"
+#include "Donya/Loader.h"
 #include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
@@ -178,10 +179,8 @@ public:
 
 CEREAL_CLASS_VERSION(HookParam::Member, 0)
 
-Donya::Geometric::Cube			Hook::drawModel{};
-Donya::CBuffer<Hook::Constants>	Hook::cbuffer{};
-Donya::VertexShader				Hook::VSDemo{};
-Donya::PixelShader				Hook::PSDemo{};
+Donya::StaticMesh	Hook::drawModel{};
+bool				Hook::wasLoaded{};
 
 Hook::Hook(const Donya::Vector3& playerPos) :
 	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
@@ -194,8 +193,27 @@ void Hook::Init()
 {
 	HookParam::Get().Init();
 
-	drawModel = { Donya::Geometric::CreateCube() };
-	CreateRenderingObjects();
+	if ( !wasLoaded )
+	{
+		Donya::Loader loader{};
+		bool  succeeded = loader.Load( GetModelPath( ModelAttribute::Hook ), nullptr );
+		if ( !succeeded )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Load the Hook's model." );
+			return;
+		}
+		// else
+
+		succeeded = Donya::StaticMesh::Create( loader, drawModel );
+		if ( !succeeded )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Create the Hook's model." );
+			return;
+		}
+		// else
+
+		wasLoaded = true;
+	}
 }
 void Hook::Uninit()
 {
@@ -461,26 +479,22 @@ void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4&
 {
 	const AABBEx wsHitBox = GetHitBox();
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
+	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size );
 	Donya::Vector4x4 W = S * T;
 
-	cbuffer.data.world					= W.XMFloat();
-	cbuffer.data.worldViewProjection	= (W * matViewProjection).XMFloat();
-	cbuffer.data.lightDirection			= lightDirection;
-	cbuffer.data.lightColor				= lightColor;
-	cbuffer.data.materialColor			= ( placeablePoint )
-										? Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f }
-										: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
+	const Donya::Vector4 color	= ( placeablePoint )
+								? Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f }
+								: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
 
-	cbuffer.Activate(0, /* setVS = */ true, /* setPS = */ true);
-	VSDemo.Activate();
-	PSDemo.Activate();
-
-	drawModel.Render(nullptr, /* useDefaultShading = */ false);
-
-	PSDemo.Deactivate();
-	VSDemo.Deactivate();
-	cbuffer.Deactivate();
+	drawModel.Render
+	(
+		nullptr,
+		/* useDefaultShading	= */ true,
+		/* isEnableFill			= */ true,
+		W * matViewProjection, W,
+		lightDirection, color
+	);
 }
 
 Donya::Vector3 Hook::GetPosition() const
@@ -501,21 +515,6 @@ AABBEx Hook::GetHitBox() const
 					? true
 					: false;
 	return wsBox;
-}
-
-void Hook::CreateRenderingObjects()
-{
-	cbuffer.Create();
-
-	constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 2> inputElements
-	{
-		D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		D3D11_INPUT_ELEMENT_DESC{ "NORMAL"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	// The function requires argument is std::vector, so convert.
-	const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementsVector{ inputElements.begin(), inputElements.end() };
-	VSDemo.CreateByCSO(GetShaderPath(ShaderAttribute::Demo, /* wantVS */ true), inputElementsVector);
-	PSDemo.CreateByCSO(GetShaderPath(ShaderAttribute::Demo, /* wantVS */ false));
 }
 
 void Hook::ThrowUpdate(float elapsedTime, Input controller)
