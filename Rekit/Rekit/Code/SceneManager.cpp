@@ -15,6 +15,7 @@
 #include "SceneOver.h"
 #include "SceneTitle.h"
 #include "ScenePause.h"
+#include "SceneEditor.h"
 
 #undef max
 #undef min
@@ -30,7 +31,7 @@ SceneMng::~SceneMng()
 
 void SceneMng::Init( Scene::Type initScene )
 {
-	PushScene( initScene, /* isFront = */ true );
+	PushScene( initScene, /* isFront = */ false );
 
 	Fader::Get().Init();
 }
@@ -214,6 +215,11 @@ void SceneMng::PushScene( Scene::Type type, bool isFront )
 		( isFront )
 		? pScenes.push_front( std::make_unique<ScenePause>() )
 		: pScenes.push_back ( std::make_unique<ScenePause>() );
+		break;
+	case Scene::Type::Editor:
+		(isFront)
+			? pScenes.push_front(std::make_unique<SceneEditor>())
+			: pScenes.push_back(std::make_unique<SceneEditor>());
 		break;
 	default: _ASSERT_EXPR( 0, L"Error : The scene does not exist." ); return;
 	}

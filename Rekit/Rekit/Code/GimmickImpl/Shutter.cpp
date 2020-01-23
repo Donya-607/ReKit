@@ -1,4 +1,4 @@
-#include "Gimmicks.h"
+#include "Shutter.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -9,6 +9,7 @@
 #include "Donya/Keyboard.h"
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -164,12 +165,12 @@ void Shutter::Uninit ()
 
 void Shutter::Update ( float elapsedTime )
 {
-	// debug用なので消してね-----------------------------------
+#if DEBUG_MODE
 	if (Donya::Keyboard::Trigger ( 'Q' ))
 	{
 		GimmickStatus::Register ( id, true );
 	}
-	//---------------------------------------------------------
+#endif // DEBUG_MODE
 
 	if (!GimmickStatus::Refer ( id ))	{ return; }
 
@@ -184,7 +185,7 @@ void Shutter::Update ( float elapsedTime )
 	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
 	movedWidth += ParamShutter::Get ().Data ().openSpeed;
 }
-void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	pos += velocity;
 }
@@ -229,7 +230,7 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 	if (useDrawing)
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		wsBox.size *= 2.0f;
+		// wsBox.size *= 2.0f;
 	}
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
@@ -249,9 +250,7 @@ Donya::Vector4x4 Shutter::GetWorldMatrix ( bool useDrawing ) const
 
 void Shutter::ShowImGuiNode ()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text ( u8"種類：%d[%s]", kind, ToString ( ToKind ( kind ) ).c_str () );
+	ImGui::Text ( u8"種類：%d[Shutter]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量", &rollDegree, 1.0f );
 	ImGui::DragFloat3( u8"ワールド座標", &pos.x, 0.1f );
 	ImGui::DragFloat3( u8"速度", &velocity.x, 0.01f );

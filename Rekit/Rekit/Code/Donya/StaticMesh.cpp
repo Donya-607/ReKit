@@ -290,6 +290,7 @@ namespace Donya
 		meshes(), collisionFaces(),
 		wasLoaded( false )
 	{}
+	/* Unnecessary.
 	StaticMesh::~StaticMesh()
 	{
 		meshes.clear();
@@ -297,6 +298,7 @@ namespace Donya
 		collisionFaces.clear();
 		collisionFaces.shrink_to_fit();
 	}
+	*/
 
 	void StaticMesh::CreateDefaultSettings( ID3D11Device *pDevice )
 	{

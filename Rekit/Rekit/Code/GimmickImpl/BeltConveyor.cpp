@@ -1,4 +1,4 @@
-#include "IceBlock.h"
+#include "BeltConveyor.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
@@ -8,17 +8,19 @@
 #include "Donya/Useful.h"	// Use convert string functions.
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
 #undef min
 
-struct ParamIceBlock final : public Donya::Singleton<ParamIceBlock>
+struct ParamBeltConveyor final : public Donya::Singleton<ParamBeltConveyor>
 {
-	friend Donya::Singleton<ParamIceBlock>;
+	friend Donya::Singleton<ParamBeltConveyor>;
 public:
 	struct Member
 	{
+		float	influence{};
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -27,6 +29,7 @@ public:
 		{
 			archive
 			(
+				CEREAL_NVP( influence ),
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
@@ -36,12 +39,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "IceBlock";
+	static constexpr const char *SERIAL_ID = "BeltConveyor";
 	Member m;
 private:
-	ParamIceBlock() : m() {}
+	ParamBeltConveyor() : m() {}
 public:
-	~ParamIceBlock() = default;
+	~ParamBeltConveyor() = default;
 public:
 	void Init()
 	{
@@ -84,7 +87,7 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ギミック[Ice]・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[BeltConveyor]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
@@ -93,6 +96,8 @@ public:
 					ImGui::DragInt   ( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
+
+				ImGui::DragFloat( u8"影響させる速度", &m.influence, 0.1f );
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -125,45 +130,106 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamIceBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBeltConveyor::Member, 0 )
 
-void IceBlock::ParameterInit()
+namespace
 {
-	ParamIceBlock::Get().Init();
+	const int BELT_C_SIGN_ID = GimmickUtility::ToInt( GimmickKind::BeltConveyor );
+	Donya::Vector2 MakeVelocity( float degree )
+	{
+		const Donya::Vector2 unit
+		{
+			cosf( ToRadian( degree ) ),
+			sinf( ToRadian( degree ) )
+		};
+		return unit * ParamBeltConveyor::Get().Data().influence;
+	}
+	BoxEx	ToBeltConveyorBox( BoxEx  source, float degree )
+	{
+		source.velocity = MakeVelocity( degree );
+		source.attr  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_SIGN_ID;
+		source.exist = true;
+		return source;
+	}
+	AABBEx	ToBeltConveyorBox( AABBEx source, float degree )
+	{	
+		source.velocity = Donya::Vector3{ MakeVelocity( degree ), 0.0f };
+		source.attr  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_SIGN_ID;
+		source.exist = true;
+		return source;
+	}
+	bool	IsBeltConveyorBox( const BoxEx  &source )
+	{
+		// I regard as : if ( |velocity| - |SPEED| == 0 ) true.
+		const float beltSpeed = ParamBeltConveyor::Get().Data().influence;
+		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
+
+		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.exist != true ) { return false; }
+		return true;
+	}
+	bool	IsBeltConveyorBox( const AABBEx &source )
+	{
+		// I regard as : if ( |velocity| - |SPEED| == 0 ) true.
+		const float beltSpeed = ParamBeltConveyor::Get().Data().influence;
+		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
+
+		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.exist != true ) { return false; }
+		return true;
+	}
+}
+
+Donya::Vector2 BeltConveyor::HasInfluence( const BoxEx  &gimmick )
+{
+	return ( ::IsBeltConveyorBox( gimmick ) ) ? gimmick.velocity : Donya::Vector2::Zero();
+}
+Donya::Vector3 BeltConveyor::HasInfluence( const AABBEx &gimmick )
+{
+	return ( ::IsBeltConveyorBox( gimmick ) ) ? gimmick.velocity : Donya::Vector3::Zero();
+}
+
+void BeltConveyor::ParameterInit()
+{
+	ParamBeltConveyor::Get().Init();
 }
 #if USE_IMGUI
-void IceBlock::UseParameterImGui()
+void BeltConveyor::UseParameterImGui()
 {
-	ParamIceBlock::Get().UseImGui();
+	ParamBeltConveyor::Get().UseImGui();
 }
 #endif // USE_IMGUI
 
-IceBlock::IceBlock() : GimmickBase()
+BeltConveyor::BeltConveyor() : GimmickBase()
 {}
-IceBlock::~IceBlock() = default;
+BeltConveyor::~BeltConveyor() = default;
 
-void IceBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
+void BeltConveyor::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }
-void IceBlock::Uninit()
+void BeltConveyor::Uninit()
 {
 	// No op.
 }
 
-void IceBlock::Update( float elapsedTime )
+void BeltConveyor::Update( float elapsedTime )
 {
 
 }
-void IceBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
+void BeltConveyor::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
 
-void IceBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void BeltConveyor::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
@@ -173,31 +239,21 @@ void IceBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const
 	BaseDraw( WVP, W, lightDir, color );
 }
 
-void IceBlock::WakeUp()
-{
-	// No op.
-}
-
-bool IceBlock::ShouldRemove() const
+bool BeltConveyor::ShouldRemove() const
 {
 	// Don't destroy.
 	return false;
 }
 
-Donya::Vector3 IceBlock::GetPosition() const
+AABBEx BeltConveyor::GetHitBox() const
 {
-	return pos;
-}
-AABBEx IceBlock::GetHitBox() const
-{
-	AABBEx base = ParamIceBlock::Get().Data().hitBox;
-	base.pos		+= pos;
-	base.velocity	=  velocity;
-	base.attr		=  kind;
+	AABBEx base	=  ParamBeltConveyor::Get().Data().hitBox;
+	base		=  ToBeltConveyorBox( base, rollDegree );
+	base.pos	+= pos;
 	return base;
 }
 
-Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 BeltConveyor::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -220,9 +276,10 @@ Donya::Vector4x4 IceBlock::GetWorldMatrix( bool useDrawing ) const
 }
 
 #if USE_IMGUI
-void IceBlock::ShowImGuiNode()
+
+void BeltConveyor::ShowImGuiNode()
 {
-	ImGui::Text( u8"種類：%d[Ice]", kind );
+	ImGui::Text( u8"種類：%d[BeltConveyor]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

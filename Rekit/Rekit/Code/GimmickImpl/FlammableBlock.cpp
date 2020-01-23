@@ -1,26 +1,26 @@
-#include "Spike.h"
+#include "FlammableBlock.h"
 
-#include <algorithm>		// Use std::max, min.
+#include <algorithm>			// Use std::max, min.
 #include <string>
 
 #include "Donya/Sound.h"
 #include "Donya/Template.h"
-#include "Donya/Useful.h"	// Use convert string functions.
+#include "Donya/Useful.h"		// Use convert string functions.
 
 #include "FilePath.h"
 #include "Music.h"
+#include "GimmickImpl/Bomb.h"	// Use for confirming to "is the box Bomb?".
 
 #undef max
 #undef min
 
-struct ParamSpikeBlock final : public Donya::Singleton<ParamSpikeBlock>
+struct ParamFlammableBlock final : public Donya::Singleton<ParamFlammableBlock>
 {
-	friend Donya::Singleton<ParamSpikeBlock>;
+	friend Donya::Singleton<ParamFlammableBlock>;
 public:
 	struct Member
 	{
-		float	rotationSpeed{};
-		AABBEx	hitBox{};		// Hit-Box of using to the collision to the stage.
+		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -28,7 +28,6 @@ public:
 		{
 			archive
 			(
-				CEREAL_NVP( rotationSpeed ),
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
@@ -38,12 +37,12 @@ public:
 		}
 	};
 private:
-	static constexpr const char *SERIAL_ID = "SpikeBlock";
+	static constexpr const char *SERIAL_ID = "FlammableBlock";
 	Member m;
 private:
-	ParamSpikeBlock() : m() {}
+	ParamFlammableBlock() : m() {}
 public:
-	~ParamSpikeBlock() = default;
+	~ParamFlammableBlock() = default;
 public:
 	void Init()
 	{
@@ -86,17 +85,15 @@ public:
 	{
 		if ( ImGui::BeginIfAllowed() )
 		{
-			if ( ImGui::TreeNode( u8"ギミック[Spike]・調整データ" ) )
+			if ( ImGui::TreeNode( u8"ギミック[Flammable]・調整データ" ) )
 			{
 				auto AdjustAABB = []( const std::string &prefix, AABBEx *pHitBox )
 				{
 					ImGui::DragFloat2( ( prefix + u8"中心位置のオフセット" ).c_str(), &pHitBox->pos.x );
 					ImGui::DragFloat2( ( prefix + u8"サイズ（半分を指定）" ).c_str(), &pHitBox->size.x );
-					ImGui::DragInt( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
-					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
+					ImGui::DragInt   ( ( prefix + u8"質量" ).c_str(), &pHitBox->mass, 1.0f, 0 );
+					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
-
-				ImGui::DragFloat( u8"回転速度", &m.rotationSpeed, ToRadian( 1.0f ) );
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -129,76 +126,86 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamSpikeBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamFlammableBlock::Member, 0 )
 
-void SpikeBlock::ParameterInit()
+void FlammableBlock::ParameterInit()
 {
-	ParamSpikeBlock::Get().Init();
+	ParamFlammableBlock::Get().Init();
 }
 #if USE_IMGUI
-void SpikeBlock::UseParameterImGui()
+void FlammableBlock::UseParameterImGui()
 {
-	ParamSpikeBlock::Get().UseImGui();
+	ParamFlammableBlock::Get().UseImGui();
 }
 #endif // USE_IMGUI
 
-SpikeBlock::SpikeBlock() : GimmickBase(),
-	radian()
+FlammableBlock::FlammableBlock() : GimmickBase(),
+	wasFlamed( false )
 {}
-SpikeBlock::~SpikeBlock() = default;
+FlammableBlock::~FlammableBlock() = default;
 
-void SpikeBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
+void FlammableBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos )
 {
 	kind		= gimmickKind;
 	rollDegree	= roll;
 	pos			= wsPos;
 	velocity	= 0.0f;
 }
-void SpikeBlock::Uninit()
+void FlammableBlock::Uninit()
 {
 	// No op.
 }
 
-void SpikeBlock::Update( float elapsedTime )
+void FlammableBlock::Update( float elapsedTime )
 {
-	radian += ParamSpikeBlock::Get().Data().rotationSpeed;
+
 }
-void SpikeBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
+void FlammableBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
-	// No op.
+	if ( wasFlamed ) { return; }
+	// else
+
+	for ( const auto &it : terrains )
+	{
+		if ( !Bomb::IsExplosionBox( it ) ) { continue; }
+		// else
+
+		if ( Donya::Box::IsHitBox( it, GetHitBox().Get2D(), /* ignoreExistFlag = */ true ) )
+		{
+			wasFlamed = true;
+			return;
+		}
+	}
 }
 
-void SpikeBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void FlammableBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	Donya::Vector4x4 W = GetWorldMatrix( /* useDrawing = */ true );
 	Donya::Vector4x4 WVP = W * V * P;
 
-	constexpr Donya::Vector4 color{ 1.0f, 0.1f, 0.0f, 0.8f };
+	constexpr Donya::Vector4 color{ 0.8f, 0.9f, 1.0f, 0.9f };
 
 	BaseDraw( WVP, W, lightDir, color );
 }
 
-void SpikeBlock::WakeUp()
+bool FlammableBlock::ShouldRemove() const
 {
-	// No op.
+	return wasFlamed;
 }
 
-bool SpikeBlock::ShouldRemove() const
+AABBEx FlammableBlock::GetHitBox() const
 {
-	// Don't destroy.
-	return false;
-}
+	if ( wasFlamed ) { return AABBEx::Nil(); }
+	// else
 
-AABBEx SpikeBlock::GetHitBox() const
-{
-	AABBEx base = ParamSpikeBlock::Get().Data().hitBox;
+	AABBEx base = ParamFlammableBlock::Get().Data().hitBox;
 	base.pos		+= pos;
-	base.velocity	= velocity;
-	base.attr		= kind;
+	base.velocity	=  velocity;
+	base.attr		=  kind;
 	return base;
 }
 
-Donya::Vector4x4 SpikeBlock::GetWorldMatrix( bool useDrawing ) const
+Donya::Vector4x4 FlammableBlock::GetWorldMatrix( bool useDrawing ) const
 {
 	auto wsBox = GetHitBox();
 	if ( useDrawing )
@@ -207,11 +214,13 @@ Donya::Vector4x4 SpikeBlock::GetWorldMatrix( bool useDrawing ) const
 		// wsBox.size *= 2.0f;
 	}
 
-	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), radian + ToRadian( rollDegree ) );
+	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
-	const Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsBox.size );
-
-	Donya::Vector4x4 mat = S * R;
+	Donya::Vector4x4 mat{};
+	mat._11 = wsBox.size.x;
+	mat._22 = wsBox.size.y;
+	mat._33 = wsBox.size.z;
+	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;
@@ -219,9 +228,10 @@ Donya::Vector4x4 SpikeBlock::GetWorldMatrix( bool useDrawing ) const
 }
 
 #if USE_IMGUI
-void SpikeBlock::ShowImGuiNode()
+
+void FlammableBlock::ShowImGuiNode()
 {
-	ImGui::Text( u8"種類：%d[Spike]", kind );
+	ImGui::Text( u8"種類：%d[FlammableBlock]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

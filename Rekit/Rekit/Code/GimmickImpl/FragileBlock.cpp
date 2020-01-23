@@ -1,11 +1,11 @@
-#include "Gimmicks.h"
+#include "FragileBlock.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
 
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
-#include "Donya/Sound.h"
 
 #include "FilePath.h"
 #include "Music.h"
@@ -163,8 +163,7 @@ void FragileBlock::UseParameterImGui()
 }
 #endif // USE_IMGUI
 
-FragileBlock::FragileBlock() : GimmickBase(),
-	wasBroken( false )
+FragileBlock::FragileBlock() : GimmickBase()
 {}
 FragileBlock::~FragileBlock() = default;
 
@@ -186,12 +185,14 @@ void FragileBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void FragileBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void FragileBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, true, false, true );
+	
 	// Store also the player(player is not contain to terrains).
-	std::vector<BoxEx> wholeCollisions = terrains;
-	wholeCollisions.emplace_back( player );
-	AssignVelocity( accompanyBox, wholeCollisions );
+	// std::vector<BoxEx> wholeCollisions = terrains;
+	// wholeCollisions.emplace_back( player );
+	// AssignVelocity( accompanyBox, wholeCollisions );
 }
 
 void FragileBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -211,7 +212,7 @@ void FragileBlock::WakeUp()
 
 bool FragileBlock::ShouldRemove() const
 {
-	return wasBroken;
+	return wasCompressed;
 }
 
 Donya::Vector3 FragileBlock::GetPosition() const
@@ -233,7 +234,7 @@ Donya::Vector4x4 FragileBlock::GetWorldMatrix( bool useDrawing ) const
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		wsBox.size *= 2.0f;
+		// wsBox.size *= 2.0f;
 	}
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
@@ -436,7 +437,7 @@ void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<
 		if ( JudgeWillCompressed( pushDirection ) )
 		{
 			Donya::Sound::Play( Music::Insert );
-			wasBroken = true;
+			wasCompressed = true;
 			break; // Break from hit-boxes loop.
 		}
 		// else
@@ -858,9 +859,7 @@ void FragileBlock::AssignVelocity( const BoxEx &accompanyBox, const std::vector<
 
 void FragileBlock::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[FragileBlock]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

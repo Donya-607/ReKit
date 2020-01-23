@@ -1,13 +1,14 @@
-#include "Gimmicks.h"
+#include "Trigger.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
 
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
-#include "Donya/Sound.h"
 
 #include "FilePath.h"
+#include "GimmickUtil.h"	// Use for the GimmickKind, a namespaces.
 #include "Music.h"
 
 #undef max
@@ -168,6 +169,8 @@ public:
 	void Init()
 	{
 		LoadParameter();
+
+		m.mSwitch.gatheringArea = ToGatherBox( m.mSwitch.gatheringArea );
 	}
 	void Uninit()
 	{
@@ -365,7 +368,7 @@ void Trigger::Update( float elapsedTime )
 	default: return;
 	}
 }
-void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	switch ( kind )
 	{
@@ -513,7 +516,7 @@ AABBEx Trigger::GetHitBox() const
 }
 bool Trigger::HasMultipleHitBox() const
 {
-	return true;
+	return ( GimmickUtility::ToKind( kind ) == GimmickKind::TriggerSwitch ) ? true : false;
 }
 std::vector<AABBEx> Trigger::GetAnotherHitBoxes() const
 {
@@ -565,7 +568,7 @@ Donya::Vector4x4 Trigger::GetWorldMatrix( const AABBEx &inputBox, bool useDrawin
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		wsBox.size *= 2.0f;
+		// wsBox.size *= 2.0f;
 	}
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
@@ -673,7 +676,7 @@ void Trigger::PhysicUpdateSwitch( const BoxEx &player, const BoxEx &accompanyBox
 	{
 		for ( const auto &it : terrains )
 		{
-			if ( !Gimmick::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
+			if ( !GimmickUtility::HasAttribute( GimmickKind::SwitchBlock, it ) ) { continue; }
 			// else
 
 			correspondingBoxes.emplace_back( it );
@@ -709,7 +712,7 @@ void Trigger::PhysicUpdatePull( const BoxEx &player, const BoxEx &accompanyBox, 
 void Trigger::TurnOn()
 {
 	enable = true;
-	GimmickStatus::Register( kind, true );
+	GimmickStatus::Register( id, true );
 }
 
 #if USE_IMGUI

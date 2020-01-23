@@ -1,11 +1,11 @@
-#include "Gimmicks.h"
+#include "HardBlock.h"
 
 #include <algorithm>		// Use std::max, min.
 #include <string>
 
+#include "Donya/Sound.h"
 #include "Donya/Template.h"
 #include "Donya/Useful.h"	// Use convert string functions.
-#include "Donya/Sound.h"
 
 #include "FilePath.h"
 #include "Music.h"
@@ -173,7 +173,7 @@ void HardBlock::Update( float elapsedTime )
 
 	Brake( elapsedTime );
 }
-void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist )
+void HardBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
 	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
 }
@@ -218,7 +218,7 @@ Donya::Vector4x4 HardBlock::GetWorldMatrix( bool useDrawing ) const
 	if ( useDrawing )
 	{
 		// The AABB size is half, but drawing object's size is whole.
-		wsBox.size *= 2.0f;
+		// wsBox.size *= 2.0f;
 	}
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
@@ -260,12 +260,9 @@ void HardBlock::Brake( float elapsedTime )
 }
 
 #if USE_IMGUI
-
 void HardBlock::ShowImGuiNode()
 {
-	using namespace GimmickUtility;
-
-	ImGui::Text( u8"種類：%d[%s]", kind, ToString( ToKind( kind ) ).c_str() );
+	ImGui::Text( u8"種類：%d[HardBlock]", kind );
 	ImGui::DragFloat ( u8"Ｚ軸回転量",	&rollDegree,	1.0f	);
 	ImGui::DragFloat3( u8"ワールド座標",	&pos.x,			0.1f	);
 	ImGui::DragFloat3( u8"速度",			&velocity.x,	0.01f	);

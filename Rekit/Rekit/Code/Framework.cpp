@@ -30,7 +30,8 @@ bool Framework::Init()
 	pSceneMng = std::make_unique<SceneMng>();
 
 #if DEBUG_MODE
-	pSceneMng->Init( Scene::Type::Game );
+	pSceneMng->Init( Scene::Type::Title );
+	// pSceneMng->Init( Scene::Type::Game );
 #else
 	pSceneMng->Init( Scene::Type::Logo );
 #endif // DEBUG_MODE
@@ -52,6 +53,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		if ( Donya::Keyboard::Trigger( 'C' ) )
 		{
 			char debugstopper = 0;
+		}
+		if ( Donya::Keyboard::Trigger( 'D' ) )
+		{
+			assert( _CrtCheckMemory() );
+			char breakPoint = 0;
 		}
 		if ( Donya::Keyboard::Trigger( 'T' ) )
 		{
