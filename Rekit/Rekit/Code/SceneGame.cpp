@@ -985,6 +985,8 @@ bool SceneGame::DetectClearMoment() const
 	if ( Fader::Get().IsExist() ) { return false; }
 	// else
 
+	return GimmickStatus::Refer( SceneEditor::ClearID );
+
 #if DEBUG_MODE
 
 	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
