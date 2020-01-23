@@ -53,6 +53,13 @@ private:
 		);
 		if (1 <= version)
 		{
+			archive
+			(
+				CEREAL_NVP( direction )
+			);
+		}
+		if (2 <= version)
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
@@ -90,7 +97,7 @@ public:
 	void ShowImGuiNode () override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( Door, 0 )
+CEREAL_CLASS_VERSION ( Door, 1 )
 CEREAL_REGISTER_TYPE ( Door )
 CEREAL_REGISTER_POLYMORPHIC_RELATION ( GimmickBase, Door )
 

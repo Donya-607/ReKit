@@ -62,7 +62,7 @@ void Terrain::Uninit()
 
 void Terrain::Draw( const Donya::Vector4x4 &matVP, const Donya::Vector4 &lightDir, bool drawEditableBoxes ) const
 {
-	constexpr Donya::Vector4 color{ 0.6f, 0.6f, 0.6f, 0.6f };
+	constexpr Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	Donya::StaticMesh model = TerrainModel::GetModel();
 	Donya::Vector4x4 S{}, T{}, W{};
