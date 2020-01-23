@@ -20,6 +20,10 @@ std::wstring GetSpritePath( SpriteAttribute sprAttribute )
 		return L"./Data/Images/Rights/FMOD Logo White - Black Background.png";	// break;
 	case SpriteAttribute::Gear:
 		return L"./Data/Images/BG/Gear.png";									// break;
+	case SpriteAttribute::Emergerncy:
+		return L"./Data/Images/UI/emergency.png";								// break;
+	case SpriteAttribute::EmergerncySoloFrame:
+		return L"./Data/Images/UI/Emergency_SoloFrame.png";						// break;
 	default:
 		assert( !"Error : Specified unexpect sprite type." ); break;
 	}
