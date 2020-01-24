@@ -243,7 +243,7 @@ void SceneGame::Init()
 		GameStorage::RegisterRespawnPos( spawnPos );
 	}
 
-	respawnPos = spawnPos;
+	// respawnPos = spawnPos;
 
 	// 0-based.
 	auto CalcStageNo = [&]( const Donya::Vector3 &wsPos )
@@ -276,6 +276,10 @@ void SceneGame::Init()
 	{
 		nowTutorial		=  true;
 		tutorialState	=  TutorialState::Jump;
+	}
+	else
+	{
+		nowTutorial		= false;
 	}
 	CameraInit();
 
