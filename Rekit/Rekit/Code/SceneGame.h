@@ -17,6 +17,10 @@
 #include "Terrain.h"
 #include "Alert.h"
 
+/// <summary>
+/// The "Stage" and "room" means is same.
+/// </summary>
+
 class SceneGame : public Scene
 {
 private:
@@ -38,10 +42,10 @@ private:
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 	Donya::Vector3			respawnPos;		// Use for store.
 
-	size_t					mission;
-	size_t					complete;
-	size_t					inset;
-	size_t					bomb;
+	size_t					mission;		// Sprite.
+	size_t					complete;		// Sprite.
+	size_t					inset;			// Sprite.
+	size_t					bomb;			// Sprite.
 
 	BG						bg;
 	Player					player;
@@ -55,7 +59,7 @@ private:
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					nowTutorial;	// Do you doing tutorial now?
-	bool					enableAlert;
+	bool					enableAlert;	// Will be true when the player ariived at the last room.
 	bool					nowCleared;
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
@@ -85,11 +89,14 @@ private:
 	bool	IsPlayerOutFromRoom() const;
 	void	UpdateCurrentStage();
 
+	bool	InLastStage() const;
+
 	void	HookUpdate( float elapsedTime );
 
 	bool	DetectClearMoment() const;
 
 	void	StartFade() const;
+	void	PrepareGoToTitle();
 
 	void	UpdateOfTutorial();
 	void	DrawOfTutorial();
