@@ -184,7 +184,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( GameParam::Member, 1 )
+CEREAL_CLASS_VERSION( GameParam::Member, 2 )
 
 namespace GameStorage
 {
@@ -590,6 +590,7 @@ void SceneGame::Draw( float elapsedTime )
 		static auto cube = Donya::Geometric::CreateCube();
 
 		// Drawing area of clear-trigger.
+		if ( 0 )
 		{
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 			const auto box = GameParam::Get().Data().debugClearTrigger;
@@ -1021,7 +1022,7 @@ bool SceneGame::DetectClearMoment() const
 	return GimmickStatus::Refer( SceneEditor::ClearID );
 
 #if DEBUG_MODE
-
+	/*
 	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
 	const auto playerBox	= player.GetHitBox();
 	BoxEx xyPlayer{};
@@ -1034,6 +1035,7 @@ bool SceneGame::DetectClearMoment() const
 	}
 
 	return ( Donya::Box::IsHitBox( xyPlayer, clearBox ) ) ? true : false;
+	*/
 
 #endif // DEBUG_MODE
 }
