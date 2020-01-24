@@ -18,6 +18,10 @@ enum class SpriteAttribute
 	EmergerncySoloFrame,
 	Mission,
 	Complete,
+	KeyGet,
+	KeyNothing,
+	CommentaryBomb,
+	CommentaryInset,
 };
 
 std::wstring GetSpritePath( SpriteAttribute spriteAttribute );

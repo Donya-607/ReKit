@@ -9,6 +9,7 @@
 #include "Donya/Sound.h"
 #include "Donya/Template.h"		
 #include "Donya/Useful.h"		// Use convert string functions.
+#include "Donya/Sprite.h"
 
 #if DEBUG_MODE
 #include "Donya/Keyboard.h"
@@ -165,11 +166,12 @@ CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
 Donya::StaticMesh	Player::drawModel{};
 bool				Player::wasLoaded{ false };
 
-Player::Player() :
-	status( State::Normal ),
-	remainJumpCount( 1 ), drawAlpha( 1.0f ),
-	pos(), velocity(),
-	aboveSlipGround( false )
+Player::Player () :
+	status ( State::Normal ),
+	remainJumpCount ( 1 ), drawAlpha ( 1.0f ),
+	pos (), velocity (),
+	aboveSlipGround ( false ),
+	keyGet (), keyNothing ()
 {}
 Player::~Player() = default;
 
@@ -180,6 +182,9 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 	LoadModel();
 
 	pos = wsInitPos;
+
+	keyGet = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::KeyGet ) );
+	keyNothing = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::KeyNothing ) );
 }
 void Player::Uninit()
 {

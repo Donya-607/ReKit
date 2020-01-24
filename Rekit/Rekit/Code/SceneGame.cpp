@@ -208,7 +208,7 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(), respawnPos(),
-	mission (), complete (),
+	mission (), complete (), inset(), bomb(),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	useCushion( true )
@@ -279,6 +279,8 @@ void SceneGame::Init()
 
 	mission = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Mission ) );
 	complete = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Complete ) );
+	inset = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryInset ) );
+	bomb = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryBomb ) );
 }
 void SceneGame::Uninit()
 {
@@ -480,6 +482,14 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::Sprite::SetDrawDepth( 1.0f );
 		bg.Draw();
 		//Donya::Sprite::SetDrawDepth ( -1.0f );
+		if (currentStageNo == 1)
+		{
+			Donya::Sprite::Draw ( inset, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		}
+		if (currentStageNo == 2)
+		{
+			Donya::Sprite::Draw ( bomb, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		}
 		alert.Draw ();
 		if (DetectClearMoment ())
 		{

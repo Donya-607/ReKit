@@ -40,6 +40,8 @@ private:
 
 	size_t					mission;
 	size_t					complete;
+	size_t					inset;
+	size_t					bomb;
 
 	BG						bg;
 	Player					player;
