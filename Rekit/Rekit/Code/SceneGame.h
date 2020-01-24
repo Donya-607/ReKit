@@ -54,8 +54,10 @@ private:
 	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
-	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 	bool					nowTutorial;	// Do you doing tutorial now?
+	bool					enableAlert;
+	bool					nowCleared;
+	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
 	SceneGame();
 	~SceneGame();
