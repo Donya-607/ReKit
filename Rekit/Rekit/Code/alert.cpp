@@ -151,13 +151,6 @@ void Alert::Init ()
 
 	flashingEmergency = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Emergerncy ) );
 	flowingEmergency = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::EmergerncySoloFrame ) );
-
-	pos[0].x = Common::HalfScreenWidthF ();
-	pos[0].y = Common::HalfScreenHeightF ();
-	pos[1] = pos[0];
-	pos[1].x += Common::ScreenWidthF ();
-
-	Donya::Sound::Play ( Music::ID::Alert );
 }
 void Alert::Uninit ()
 {
@@ -202,6 +195,9 @@ void Alert::Update ( float elapsedTime )
 		if (fadeCount <= 0.0f) { fadeCount = 0.0f; }
 		if (alpha <= 0.0f) { alpha = 0.0f; }
 		break;
+
+	default:
+		break;
 	}
 
 	for (int i = 0; i < 2; i++)
@@ -213,6 +209,19 @@ void Alert::Update ( float elapsedTime )
 			pos[i].x += Common::ScreenWidthF () * 2;
 		}
 	}
+}
+
+void Alert::TurnOn()
+{
+	pos[0].x = Common::HalfScreenWidthF();
+	pos[0].y = Common::HalfScreenHeightF();
+	pos[1] = pos[0];
+	pos[1].x += Common::ScreenWidthF();
+
+	degree = 0.0f;
+	state = 0;
+
+	Donya::Sound::Play( Music::ID::Alert );
 }
 
 void Alert::Draw () const

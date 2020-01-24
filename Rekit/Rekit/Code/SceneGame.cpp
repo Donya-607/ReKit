@@ -184,7 +184,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( GameParam::Member, 1 )
+CEREAL_CLASS_VERSION( GameParam::Member, 2 )
 
 namespace GameStorage
 {
@@ -208,9 +208,13 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(), respawnPos(),
-	mission (), complete (), inset(), bomb(),
+	mission (), complete (),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
+	tutorialState( scast<TutorialState>( 0 ) ),
+	nowTutorial( true ),
+	enableAlert( false ),
+	nowCleared( false ),
 	useCushion( true )
 {}
 SceneGame::~SceneGame() = default;
@@ -239,6 +243,9 @@ void SceneGame::Init()
 		GameStorage::RegisterRespawnPos( spawnPos );
 	}
 
+	respawnPos = spawnPos;
+
+	// 0-based.
 	auto CalcStageNo = [&]( const Donya::Vector3 &wsPos )
 	{
 		const auto param = GameParam::Get().Data();
@@ -261,26 +268,34 @@ void SceneGame::Init()
 		ssPosI.x = std::max( 0, std::min( param.roomCounts.x - 1, ssPosI.x ) );
 		ssPosI.y = std::max( 0, std::min( param.roomCounts.y - 1, ssPosI.y ) );
 
-		return ssPosI.x + ( param.roomCounts.x * ssPosI.y );
+		return std::min( stageCount - 1, ssPosI.x + ( param.roomCounts.x * ssPosI.y ) );
 	};
 	currentStageNo = CalcStageNo( spawnPos );
-	respawnPos = spawnPos;
 
-	nowTutorial = true;
-	tutorialState = TutorialState::Jump;
-
+	if ( currentStageNo == 0 )
+	{
+		nowTutorial		=  true;
+		tutorialState	=  TutorialState::Jump;
+	}
 	CameraInit();
 
 	player.Init( spawnPos );
 
 	Hook::Init();
 	bg.Init();
-	alert.Init ();
+
+	// Only initialize for loading a sprites.
+	alert.Init();
+	nowCleared = false;
+
+	if ( InLastStage() )
+	{
+		enableAlert = true;
+		alert.TurnOn();
+	}
 
 	mission = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Mission ) );
 	complete = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Complete ) );
-	inset = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryInset ) );
-	bomb = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryBomb ) );
 }
 void SceneGame::Uninit()
 {
@@ -288,7 +303,7 @@ void SceneGame::Uninit()
 
 	GameParam::Get().Uninit();
 
-	bg.Uninit ();
+	bg.Uninit();
 	alert.Uninit();
 	player.Uninit();
 	Hook::Uninit();
@@ -342,7 +357,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	controller.Update();
 
 	bg.Update( elapsedTime );
-	alert.Update ( elapsedTime );
+
+	if ( enableAlert )
+	{
+		alert.Update( elapsedTime );
+	}
 
 	/*
 	Update-order memo:
@@ -358,18 +377,30 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	auto &refGimmick = gimmicks[currentStageNo];
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
-	refTerrain.Reset();
+	// refTerrain.Reset();
+	for ( auto &it : terrains )
+	{
+		it.Reset();
+	}
 
 	// 2. Update velocity of all objects.
 	{
 		bool useImGui = true; // Only once.
-		for ( auto &room : gimmicks )
-		{
-			room.Update( elapsedTime, useImGui );
-			useImGui = false;
-		}
+		//for ( auto &room : gimmicks )
+		//{
+		//	room.Update( elapsedTime, useImGui );
+		//	useImGui = false;
+		//}
+		refGimmick.Update( elapsedTime, useImGui );
+		useImGui = false;
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
+	}
+	{
+		for (const auto& i : elevatorRoomIndices)
+		{
+			gimmicks[i].UpdateElevators(elapsedTime);
+		}
 	}
 
 	// Add the elevator's hit-boxes. Use for the movement between the rooms.
@@ -424,6 +455,12 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			UpdateCurrentStage();
 
 			respawnPos = player.GetPosition();
+
+			if ( InLastStage() && !enableAlert )
+			{
+				enableAlert = true;
+				alert.TurnOn();
+			}
 		}
 
 	#if DEBUG_MODE
@@ -448,6 +485,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	if ( DetectClearMoment() )
 	{
+		nowCleared = true;
 		StartFade();
 	}
 
@@ -477,25 +515,29 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::ClearViews( BG_COLOR );
 	}
 
+	// Drawing a BG.
 	{
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
 		Donya::Sprite::SetDrawDepth( 1.0f );
 		bg.Draw();
-		//Donya::Sprite::SetDrawDepth ( -1.0f );
-		if (currentStageNo == 1)
-		{
-			Donya::Sprite::Draw ( inset, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-		}
-		if (currentStageNo == 2)
-		{
-			Donya::Sprite::Draw ( bomb, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-		}
-		alert.Draw ();
-		if (DetectClearMoment ())
-		{
-			Donya::Sprite::Draw ( mission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-			Donya::Sprite::Draw ( complete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-		}
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+
+	if ( enableAlert )
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+		alert.Draw();
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+	if ( nowCleared )
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+
+		Donya::Sprite::Draw ( mission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( complete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+
 		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
 
@@ -548,6 +590,7 @@ void SceneGame::Draw( float elapsedTime )
 		static auto cube = Donya::Geometric::CreateCube();
 
 		// Drawing area of clear-trigger.
+		if ( 0 )
 		{
 			constexpr Donya::Vector4 cubeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 			const auto box = GameParam::Get().Data().debugClearTrigger;
@@ -646,7 +689,8 @@ void SceneGame::LoadAllStages()
 		gimmicks[stageNo].Init // == gimmicks.back()
 		(
 			stageNo,
-			config
+			config,
+			roomOrigin
 		);
 
 		if ( HasContainElevator( config.pEditGimmicks ) )
@@ -881,6 +925,11 @@ void SceneGame::UpdateCurrentStage()
 	}
 }
 
+bool SceneGame::InLastStage() const
+{
+	return ( currentStageNo == GameParam::Get().Data().lastRoomIndex ) ? true : false;
+}
+
 void SceneGame::HookUpdate( float elapsedTime )
 {
 #if USE_IMGUI
@@ -970,8 +1019,10 @@ bool SceneGame::DetectClearMoment() const
 	if ( Fader::Get().IsExist() ) { return false; }
 	// else
 
-#if DEBUG_MODE
+	return GimmickStatus::Refer( SceneEditor::ClearID );
 
+#if DEBUG_MODE
+	/*
 	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
 	const auto playerBox	= player.GetHitBox();
 	BoxEx xyPlayer{};
@@ -984,6 +1035,7 @@ bool SceneGame::DetectClearMoment() const
 	}
 
 	return ( Donya::Box::IsHitBox( xyPlayer, clearBox ) ) ? true : false;
+	*/
 
 #endif // DEBUG_MODE
 }
@@ -995,6 +1047,21 @@ void SceneGame::StartFade() const
 	config.closeFrame	= Fader::GetDefaultCloseFrame();
 	config.SetColor( Donya::Color::Code::BLACK );
 	Fader::Get().StartFadeOut( config );
+}
+
+void SceneGame::PrepareGoToTitle()
+{
+	const auto param = GameParam::Get().Data();
+	GameStorage::RegisterRespawnPos( param.initPlayerPos );
+
+	nowTutorial = true;
+	enableAlert = false;
+	useCushion  = true;
+
+	if ( !Fader::Get().IsExist() )
+	{
+		StartFade();
+	}
 }
 
 void SceneGame::UpdateOfTutorial()
@@ -1141,6 +1208,30 @@ void SceneGame::DrawOfTutorial()
 
 Scene::Result SceneGame::ReturnResult()
 {
+#if DEBUG_MODE
+
+		bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
+		if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
+		{
+			Donya::Sound::Play( Music::ItemDecision );
+			Scene::Result change{};
+			change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+			change.sceneType = Scene::Type::Title;
+			return change;
+		}
+		else
+		{
+			if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+			{
+				Scene::Result change{};
+				change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+				change.sceneType = Scene::Type::Editor;
+				return change;
+			}
+		}
+
+#endif // DEBUG_MODE
+
 	if ( Fader::Get().IsClosed() )
 	{
 		Scene::Result change{};

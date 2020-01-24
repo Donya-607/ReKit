@@ -51,6 +51,17 @@ void Terrain::Init( const Donya::Vector3 &wsRoomOrigin, const std::vector<BoxEx>
 {
 	worldOffset = wsRoomOrigin;
 	source = boxes = terrain;
+
+	for (auto& it : source)
+	{
+		it.pos.x += worldOffset.x;
+		it.pos.y += worldOffset.y;
+	}
+	for (auto& it : boxes)
+	{
+		it.pos.x += worldOffset.x;
+		it.pos.y += worldOffset.y;
+	}
 }
 void Terrain::Uninit()
 {
@@ -71,7 +82,7 @@ void Terrain::Draw( const Donya::Vector4x4 &matVP, const Donya::Vector4 &lightDi
 	for ( const auto &it : refBoxes )
 	{
 		S = Donya::Vector4x4::MakeScaling( Donya::Vector3{ it.size, 1.0f } );
-		T = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } + worldOffset );
+		T = Donya::Vector4x4::MakeTranslation( Donya::Vector3{ it.pos, 0.0f } );
 		W = S * T;
 
 		model.Render
@@ -96,8 +107,8 @@ std::vector<BoxEx> Terrain::Acquire() const
 	std::vector<BoxEx> wsHitBoxes = boxes;
 	for ( auto &it : wsHitBoxes )
 	{
-		it.pos.x += worldOffset.x;
-		it.pos.y += worldOffset.y;
+		// it.pos.x += worldOffset.x;
+		// it.pos.y += worldOffset.y;
 	}
 	return wsHitBoxes;
 }

@@ -39,6 +39,10 @@ private:
 	}
 public:
 	virtual void Init( int kind, float rollDegree, const Donya::Vector3 &wsInitPos ) = 0;
+	void AddOffset(const Donya::Vector3& worldOffset)
+	{
+		pos += worldOffset;
+	}
 	virtual void Uninit() = 0;
 
 	virtual void Update( float elapsedTime ) = 0;

@@ -199,7 +199,8 @@ void Shutter::Update ( float elapsedTime )
 
 	case ShutterState::Opened:
 		velocity = 0;
-		break;
+//		GimmickStatus::Remove ( id );
+		return;
 	}
 }
 void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
