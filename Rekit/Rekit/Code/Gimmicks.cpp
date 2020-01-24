@@ -27,12 +27,12 @@ Gimmick::Gimmick() :
 {}
 Gimmick::~Gimmick() = default;
 
-void Gimmick::Init( int stageNumber, const StageConfiguration &stageConfig )
+void Gimmick::Init(int stageNumber, const StageConfiguration& stageConfig, const Donya::Vector3 &worldOffset )
 {
 	LoadParameter();
 
 	stageNo = stageNumber;
-	ApplyConfig( stageConfig );
+	ApplyConfig( stageConfig, worldOffset );
 }
 void Gimmick::Uninit()
 {
@@ -56,6 +56,17 @@ void Gimmick::Update( float elapsedTime, bool useImGui )
 		it->Update( elapsedTime );
 	}
 }
+void Gimmick::UpdateElevators(float elapsedTime)
+{
+	for (auto& it : pGimmicks)
+	{
+		if (GimmickUtility::ToKind(it->GetKind()) == GimmickKind::Elevator)
+		{
+			it->Update(elapsedTime);
+		}
+	}
+}
+
 void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
 {
 	// The "pGimmicks" will update at PhysicUpdate().
@@ -157,7 +168,7 @@ void Gimmick::LoadParameter( bool fromBinary )
 	Donya::Serializer::Load( *this, filePath.c_str(), SERIAL_ID, fromBinary );
 }
 
-void Gimmick::ApplyConfig( const StageConfiguration &stageConfig )
+void Gimmick::ApplyConfig( const StageConfiguration &stageConfig, const Donya::Vector3 &worldOffset )
 {
 	pGimmicks.clear();
 	
@@ -167,6 +178,7 @@ void Gimmick::ApplyConfig( const StageConfiguration &stageConfig )
 	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
 		pGimmicks[i] = stageConfig.pEditGimmicks[i];
+		pGimmicks[i]->AddOffset(worldOffset);
 	}
 }
 

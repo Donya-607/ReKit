@@ -30,8 +30,8 @@ bool Framework::Init()
 	pSceneMng = std::make_unique<SceneMng>();
 
 #if DEBUG_MODE
-	pSceneMng->Init( Scene::Type::Title );
-	// pSceneMng->Init( Scene::Type::Game );
+	// pSceneMng->Init( Scene::Type::Title );
+	pSceneMng->Init( Scene::Type::Game );
 #else
 	pSceneMng->Init( Scene::Type::Logo );
 #endif // DEBUG_MODE

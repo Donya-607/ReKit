@@ -298,18 +298,30 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	auto &refGimmick = gimmicks[currentStageNo];
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
-	refTerrain.Reset();
+	// refTerrain.Reset();
+	for (auto& it : terrains)
+	{
+		it.Reset();
+	}
 
 	// 2. Update velocity of all objects.
 	{
 		bool useImGui = true; // Only once.
-		for ( auto &room : gimmicks )
-		{
-			room.Update( elapsedTime, useImGui );
-			useImGui = false;
-		}
+		//for ( auto &room : gimmicks )
+		//{
+		//	room.Update( elapsedTime, useImGui );
+		//	useImGui = false;
+		//}
+		refGimmick.Update( elapsedTime, useImGui );
+		useImGui = false;
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
+	}
+	{
+		for (const auto& i : elevatorRoomIndices)
+		{
+			gimmicks[i].UpdateElevators(elapsedTime);
+		}
 	}
 
 	// Add the elevator's hit-boxes. Use for the movement between the rooms.
@@ -706,7 +718,8 @@ void SceneGame::LoadAllStages()
 		gimmicks[stageNo].Init // == gimmicks.back()
 		(
 			stageNo,
-			config
+			config,
+			roomOrigin
 		);
 
 		if ( HasContainElevator( config.pEditGimmicks ) )
@@ -1094,6 +1107,30 @@ void SceneGame::UpdateOfTutorial()
 
 Scene::Result SceneGame::ReturnResult()
 {
+#if DEBUG_MODE
+
+		bool pressCtrl =  Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL );
+		if ( pressCtrl && Donya::Keyboard::Trigger( VK_RETURN ) && !Fader::Get().IsExist() )
+		{
+			Donya::Sound::Play( Music::ItemDecision );
+			Scene::Result change{};
+			change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+			change.sceneType = Scene::Type::Title;
+			return change;
+		}
+		else
+		{
+			if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+			{
+				Scene::Result change{};
+				change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+				change.sceneType = Scene::Type::Editor;
+				return change;
+			}
+		}
+
+#endif // DEBUG_MODE
+
 	if ( Fader::Get().IsClosed() )
 	{
 		Scene::Result change{};

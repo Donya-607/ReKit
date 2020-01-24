@@ -178,7 +178,7 @@ void Shutter::Update ( float elapsedTime )
 	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
 	{
 		velocity = 0;
-		GimmickStatus::Remove ( id );
+//		GimmickStatus::Remove ( id );
 		return;
 	}
 
