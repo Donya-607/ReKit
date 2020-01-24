@@ -29,9 +29,17 @@ public:
 	static void UseParameterImGui();
 #endif // USE_IMGUI
 private:
+	enum class ShutterState
+	{
+		Wait = 0,
+		Open,
+		Opened,
+	};
+private:
 	int				id;
 	Donya::Vector3	direction;
 	float			movedWidth;
+	ShutterState	state;
 public:
 	Shutter();
 	Shutter( int id, const Donya::Vector3 &direction );

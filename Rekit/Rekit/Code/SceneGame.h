@@ -42,6 +42,9 @@ private:
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 	Donya::Vector3			respawnPos;		// Use for store.
 
+	size_t					mission;		// Sprite.
+	size_t					complete;		// Sprite.
+
 	BG						bg;
 	Player					player;
 	Alert					alert;
@@ -55,6 +58,7 @@ private:
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					nowTutorial;	// Do you doing tutorial now?
 	bool					enableAlert;	// Will be true when the player ariived at the last room.
+	bool					nowCleared;
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
 public:
 	SceneGame();

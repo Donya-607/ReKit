@@ -26,7 +26,7 @@ public:
 	static void UseParameterImGui ();
 #endif // USE_IMGUI
 private:
-	enum DoorState
+	enum class DoorState
 	{
 		Wait = 0,
 		Open,

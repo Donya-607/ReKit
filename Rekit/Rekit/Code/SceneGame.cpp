@@ -208,11 +208,13 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(), respawnPos(),
+	mission (), complete (),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
 	nowTutorial( true ),
 	enableAlert( false ),
+	nowCleared( false ),
 	useCushion( true )
 {}
 SceneGame::~SceneGame() = default;
@@ -284,12 +286,16 @@ void SceneGame::Init()
 
 	// Only initialize for loading a sprites.
 	alert.Init();
+	nowCleared = false;
 
 	if ( InLastStage() )
 	{
 		enableAlert = true;
 		alert.TurnOn();
 	}
+
+	mission = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Mission ) );
+	complete = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Complete ) );
 }
 void SceneGame::Uninit()
 {
@@ -471,6 +477,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	if ( DetectClearMoment() )
 	{
+		nowCleared = true;
 		StartFade();
 	}
 
@@ -510,7 +517,20 @@ void SceneGame::Draw( float elapsedTime )
 
 	if ( enableAlert )
 	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
 		alert.Draw();
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+	if ( nowCleared )
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+
+		Donya::Sprite::Draw ( mission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( complete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+
+		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
 
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();

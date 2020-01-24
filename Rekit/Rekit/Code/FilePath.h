@@ -16,6 +16,8 @@ enum class SpriteAttribute
 	Gear,
 	Emergerncy,
 	EmergerncySoloFrame,
+	Mission,
+	Complete,
 };
 
 std::wstring GetSpritePath( SpriteAttribute spriteAttribute );
