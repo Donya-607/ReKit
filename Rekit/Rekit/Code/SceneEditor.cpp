@@ -235,7 +235,7 @@ public:
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombGenerator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Shutter:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<Shutter>());
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Shutter>(m.doorID, m.changeableDirection));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Shutter), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Door:

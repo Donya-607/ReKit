@@ -45,10 +45,11 @@ public:
 	Gimmick();
 	~Gimmick();
 public:
-	void Init( int stageNumber, const StageConfiguration &stageConfig );
+	void Init( int stageNumber, const StageConfiguration &stageConfig, const Donya::Vector3 &worldOffset );
 	void Uninit();
 
 	void Update( float elapsedTime, bool useImGui = false );
+	void UpdateElevators( float elapsedTime );
 	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
@@ -58,7 +59,7 @@ private:
 	/// <summary>
 	/// Replace the gimmicks.
 	/// </summary>
-	void ApplyConfig( const StageConfiguration &stageConfig );
+	void ApplyConfig( const StageConfiguration &stageConfig, const Donya::Vector3 &worldOffset );
 	
 	void LoadParameter( bool fromBinary = true );
 #if USE_IMGUI
