@@ -169,7 +169,7 @@ void Door::Update ( float elapsedTime )
 	{
 	case DoorState::Wait:
 	#if DEBUG_MODE
-		if (Donya::Keyboard::Trigger ( 'Q' ))
+		if (Donya::Keyboard::Trigger ( 'K' ))
 		{
 			GimmickStatus::Register( id, true );
 		}

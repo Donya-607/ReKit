@@ -144,10 +144,10 @@ void Shutter::UseParameterImGui ()
 #endif // USE_IMGUI
 
 Shutter::Shutter () : GimmickBase (),
-	id ( -1 ), direction ( 0, 0, 0 ), movedWidth ( 0 )
+id ( -1 ), direction ( 0, 0, 0 ), movedWidth ( 0 ), state ( Shutter::ShutterState::Wait )
 {}
 Shutter::Shutter ( int id, const Donya::Vector3 & direction ) : GimmickBase (),
-	id ( id ), direction ( direction ), movedWidth ( 0 )
+	id ( id ), direction ( direction ), movedWidth ( 0 ), state ( Shutter::ShutterState::Wait )
 {}
 Shutter::~Shutter () = default;
 
@@ -165,25 +165,42 @@ void Shutter::Uninit ()
 
 void Shutter::Update ( float elapsedTime )
 {
-#if DEBUG_MODE
-	if (Donya::Keyboard::Trigger ( 'Q' ))
+	switch (state)
 	{
-		GimmickStatus::Register ( id, true );
-	}
+	case ShutterState::Wait:
+#if DEBUG_MODE
+		if (Donya::Keyboard::Trigger ( 'K' ))
+		{
+			GimmickStatus::Register ( id, true );
+		}
 #endif // DEBUG_MODE
 
-	if (!GimmickStatus::Refer ( id ))	{ return; }
+		if (GimmickStatus::Refer ( id ))
+		{
+			state = ShutterState::Open;
+			Donya::Sound::Play ( Music::DoorOpenOrClose );
+		}
 
-	// ³•ûŒ`‚È‚Ì‚Åx‚Å‚ày‚Å‚à‚Ç‚Á‚¿‚Å‚à—Ç‚¢‚Ì‚Å‚Í‚È‚¢‚©à
-	if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
-	{
+		break;
+
+	case ShutterState::Open:
+		// ³•ûŒ`‚È‚Ì‚Åx‚Å‚ày‚Å‚à‚Ç‚Á‚¿‚Å‚à—Ç‚¢‚Ì‚Å‚Í‚È‚¢‚©à
+		if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
+		{
+			velocity = 0;
+			GimmickStatus::Remove ( id );
+			state = ShutterState::Opened;
+			break;
+		}
+
+		velocity = direction * ParamShutter::Get ().Data ().openSpeed;
+		movedWidth += ParamShutter::Get ().Data ().openSpeed;
+		break;
+
+	case ShutterState::Opened:
 		velocity = 0;
-		GimmickStatus::Remove ( id );
-		return;
+		break;
 	}
-
-	velocity = direction * ParamShutter::Get ().Data ().openSpeed;
-	movedWidth += ParamShutter::Get ().Data ().openSpeed;
 }
 void Shutter::PhysicUpdate ( const BoxEx& player, const BoxEx& accompanyBox, const std::vector<BoxEx>& terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
