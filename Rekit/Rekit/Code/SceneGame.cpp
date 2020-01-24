@@ -371,7 +371,11 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	auto &refGimmick = gimmicks[currentStageNo];
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
-	refTerrain.Reset();
+	// refTerrain.Reset();
+	for ( auto &it : terrains )
+	{
+		it.Reset();
+	}
 
 	// 2. Update velocity of all objects.
 	{

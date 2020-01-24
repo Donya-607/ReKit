@@ -29,7 +29,7 @@ Gimmick::~Gimmick() = default;
 
 void Gimmick::Init( int stageNumber, const StageConfiguration &stageConfig )
 {
-	LoadParameter();
+	// LoadParameter(); // Currently didn't use serialize.
 
 	stageNo = stageNumber;
 	ApplyConfig( stageConfig );
