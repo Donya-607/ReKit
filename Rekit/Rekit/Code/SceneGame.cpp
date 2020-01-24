@@ -527,11 +527,11 @@ void SceneGame::Draw( float elapsedTime )
 
 	if (currentStageNo == 1)
 	{
-		Donya::Sprite::Draw ( inset, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::DrawExt ( inset, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f,0.5f,0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
 	}
 	if (currentStageNo == 2)
 	{
-		Donya::Sprite::Draw ( bomb, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::DrawExt ( bomb, Common::HalfScreenWidthF () - 350.0f, Common::HalfScreenHeightF () - 0.0f, 0.5f, 0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
 	}
 	if ( enableAlert )
 	{
