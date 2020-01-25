@@ -43,6 +43,7 @@ private:
 enum class SelectGimmick
 {
 	Normal = 0,
+	Fragile,
 	Hard,
 	Ice,
 	Spike,
@@ -121,6 +122,7 @@ private:
 	void SaveEditParameter();
 	void LoadEditParameter();
 	void ControlDegree();
+	void ChangeEditStage();
 
 private:
 	Result	ReturnResult();

@@ -203,6 +203,9 @@ namespace GameStorage
 	}
 }
 
+
+bool				SceneGame::nowTutorial = true;
+
 SceneGame::SceneGame() :
 	stageCount( -1 ), currentStageNo( 0 ),
 	iCamera(),
@@ -212,7 +215,6 @@ SceneGame::SceneGame() :
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
-	nowTutorial( true ),
 	enableAlert( false ),
 	nowCleared( false ),
 	useCushion( true )
@@ -274,12 +276,12 @@ void SceneGame::Init()
 
 	if ( currentStageNo == 0 )
 	{
-		nowTutorial		=  true;
+		SceneGame::nowTutorial		=  true;
 		tutorialState	=  TutorialState::Jump;
 	}
 	else
 	{
-		nowTutorial		= false;
+		SceneGame::nowTutorial		= false;
 	}
 	CameraInit();
 
@@ -482,7 +484,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	CameraUpdate();
 
-	if ( nowTutorial )
+	if ( SceneGame::nowTutorial )
 	{
 		UpdateOfTutorial();
 	}
@@ -1058,7 +1060,7 @@ void SceneGame::PrepareGoToTitle()
 	const auto param = GameParam::Get().Data();
 	GameStorage::RegisterRespawnPos( param.initPlayerPos );
 
-	nowTutorial = true;
+	SceneGame::nowTutorial = true;
 	enableAlert = false;
 	useCushion  = true;
 
@@ -1103,14 +1105,14 @@ void SceneGame::UpdateOfTutorial()
 		break;
 
 	case TutorialState::Erase:
-		nowTutorial = false;
+		SceneGame::nowTutorial = false;
 		break;
 
 	}
 }
 void SceneGame::DrawOfTutorial()
 {
-	if ( !nowTutorial )
+	if ( !SceneGame::nowTutorial )
 	{
 		return;
 	}

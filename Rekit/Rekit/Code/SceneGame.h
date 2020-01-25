@@ -34,6 +34,8 @@ private:
 	};
 
 private:
+	static bool				nowTutorial;	// Do you doing tutorial now?
+
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
@@ -56,7 +58,6 @@ private:
 	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
-	bool					nowTutorial;	// Do you doing tutorial now?
 	bool					enableAlert;	// Will be true when the player ariived at the last room.
 	bool					nowCleared;
 	bool					useCushion;		// Use for digest an elapsedTime when after initialize.
