@@ -390,23 +390,21 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	// 2. Update velocity of all objects.
 	{
-		bool useImGui = true; // Only once.
-		//for ( auto &room : gimmicks )
-		//{
-		//	room.Update( elapsedTime, useImGui );
-		//	useImGui = false;
-		//}
-		refGimmick.Update( elapsedTime, useImGui );
-		useImGui = false;
+		// This flag prevent a double updating a elevators.
+		const bool alsoUpdateElevators = ( refGimmick.HasElevators() ) ? false : true;
+		refGimmick.Update( elapsedTime, alsoUpdateElevators );
+
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
 	}
 
 	// Update a elevator's and add a elevator's hit-boxes.
-	// Use for the movement between the rooms.
+	// An elevator will used for the movement between the rooms.
 	{
 		for ( const auto &i : elevatorRoomIndices )
 		{
+			if ( i == currentStageNo ) { continue; }
+			// else
 			gimmicks[i].UpdateElevators( elapsedTime );
 		}
 
@@ -444,6 +442,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	refTerrain.Append( ExtractHitBoxes( refGimmick ) );
 	
 	// 6. The player's PhysicUpdate().
+	PlayerPhysicUpdate( refTerrain.Acquire() );
+	if ( 0 )
 	{
 		player.PhysicUpdate( refTerrain.Acquire() );
 		if ( player.IsDead() )
@@ -559,8 +559,16 @@ void SceneGame::Draw( float elapsedTime )
 
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
-	gimmicks[currentStageNo].Draw( V, P, lightDir );
-	
+	// This flag prevent a double drawing a elevators.
+	const bool alsoDrawElevators = ( gimmicks[currentStageNo].HasElevators() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawElevators );
+
+	for ( const auto &i : elevatorRoomIndices )
+	{
+		if ( i == currentStageNo ) { continue; }
+		// else
+		gimmicks[i].DrawElevators( V, P, lightDir );
+	}
 
 	DrawOfTutorial();
 
@@ -733,6 +741,9 @@ std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
 
 	for ( const auto &i : elevatorRoomIndices )
 	{
+		if ( i == currentStageNo ) { continue; }
+		// else
+
 		wsLocalBoxes = FetchElevatorBoxes( gimmicks[i] );
 		for ( const auto &it : wsLocalBoxes )
 		{
@@ -856,6 +867,48 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 
 	player.Update( elapsedTime, input );
 }
+void SceneGame::PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes )
+{
+	player.PhysicUpdate( hitBoxes );
+
+	if ( player.IsDead() )
+	{
+		if ( !Fader::Get().IsExist() )
+		{
+			StartFade();
+		}
+
+		return;
+	}
+	// else
+
+#if DEBUG_MODE
+	if ( Donya::Keyboard::Press( VK_MENU ) && Donya::Keyboard::Trigger( 'Q' ) )
+	{
+		if ( !Fader::Get().IsExist() )
+		{
+			StartFade();
+		}
+
+		return;
+	}
+	// else
+#endif // DEBUG_MODE
+
+	if ( IsPlayerOutFromRoom() )
+	{
+		UpdateCurrentStage();
+
+		GameStorage::RegisterRespawnPos( player.GetPosition() );
+
+		if ( InLastStage() && !enableAlert )
+		{
+			enableAlert = true;
+			alert.TurnOn();
+		}
+	}
+}
+
 bool SceneGame::IsPlayerOutFromRoom() const
 {
 	const auto param	= GameParam::Get().Data();

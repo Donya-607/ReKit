@@ -39,7 +39,7 @@ void Gimmick::Uninit()
 	pGimmicks.clear();
 }
 
-void Gimmick::Update( float elapsedTime, bool useImGui )
+void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoElevators )
 {
 #if USE_IMGUI
 	if ( useImGui )
@@ -51,6 +51,10 @@ void Gimmick::Update( float elapsedTime, bool useImGui )
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
+		// else
+
+		// Prevent double update by UpdateElevators().
+		if ( alsoElevators && ToKind( it->GetKind() ) == GimmickKind::Elevator ) { continue; }
 		// else
 
 		it->Update( elapsedTime );
@@ -131,11 +135,15 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 	}
 }
 
-void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir, bool alsoElevators ) const
 {
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
+		// else
+
+		// Prevent double draw by DrawElevators().
+		if ( alsoElevators && ToKind( it->GetKind() ) == GimmickKind::Elevator ) { continue; }
 		// else
 
 		it->Draw( V, P, lightDir );
@@ -153,6 +161,21 @@ void Gimmick::DrawElevators( const Donya::Vector4x4 &V, const Donya::Vector4x4 &
 			it->Draw( V, P, lightDir );
 		}
 	}
+}
+
+bool Gimmick::HasElevators() const
+{
+	for ( auto &it : pGimmicks )
+	{
+		if ( !it ) { continue; }
+		// else
+
+		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 std::vector<AABBEx> Gimmick::RequireHitBoxes() const

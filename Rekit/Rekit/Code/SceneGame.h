@@ -82,6 +82,7 @@ private:
 	void	MoveCamera();
 
 	void	PlayerUpdate( float elapsedTime );
+	void	PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes );
 
 	bool	IsPlayerOutFromRoom() const;
 	void	UpdateCurrentStage();
