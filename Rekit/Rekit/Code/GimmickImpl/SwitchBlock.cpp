@@ -182,6 +182,12 @@ void SwitchBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos
 
 	initPos		= pos;
 }
+void SwitchBlock::AddOffset( const Donya::Vector3 &worldOffset )
+{
+	GimmickBase::AddOffset( worldOffset );
+
+	initPos = pos;
+}
 void SwitchBlock::Uninit()
 {
 	// No op.
