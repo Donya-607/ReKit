@@ -14,7 +14,10 @@
 using namespace GimmickUtility;
 
 GimmickBase::GimmickBase() :
-	kind(), rollDegree(), pos(), velocity(), wasCompressed( false )
+	kind(),
+	rollDegree(),
+	pos(), velocity(),
+	wasCompressed( false )
 {}
 GimmickBase::~GimmickBase() = default;
 

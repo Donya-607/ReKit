@@ -19,6 +19,7 @@ struct ParamOneWayBlock final : public Donya::Singleton<ParamOneWayBlock>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		float	openAmount{ 1.0f };	// Constant value.
 		float	closeSpeed{ 1.0f };	// Acceleration.
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
@@ -42,6 +43,10 @@ public:
 				);
 			}
 			if ( 2 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -106,6 +111,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"描画スケール",	&m.drawScale,  0.1f			);
 				ImGui::DragFloat( u8"開く量",		&m.openAmount, 0.1f, 0.001f );
 				ImGui::DragFloat( u8"閉まる速度",	&m.closeSpeed, 1.0f, 0.001f );
 
@@ -145,7 +151,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamOneWayBlock::Member, 1 )
+CEREAL_CLASS_VERSION( ParamOneWayBlock::Member, 2 )
 
 void OneWayBlock::ParameterInit()
 {
@@ -318,9 +324,9 @@ Donya::Vector4x4 OneWayBlock::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamOneWayBlock::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;

@@ -55,6 +55,7 @@ public:
 	{
 		struct KeyMember
 		{
+			float drawScale{ 1.0f };
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -64,7 +65,7 @@ public:
 
 				if ( 1 <= version )
 				{
-					// archive( CEREAL_NVP( x ) );
+					archive( CEREAL_NVP( drawScale ) );
 				}
 				if ( 2 <= version )
 				{
@@ -79,6 +80,7 @@ public:
 			// The "hitBoxLeft", "Right" roles a side wall, the "Member::hitBoxSwitch" roles bottom wall.
 			// The "gatheringArea" represents a gathering area only, has not collision.
 
+			float drawScale{ 1.0f };
 			Donya::Vector3 gatheringPos{};
 			AABBEx gatheringArea{};
 			AABBEx hitBoxLeft{};
@@ -102,12 +104,17 @@ public:
 				}
 				if ( 2 <= version )
 				{
+					archive( CEREAL_NVP( drawScale ) );
+				}
+				if ( 3 <= version )
+				{
 					// archive( CEREAL_NVP( x ) );
 				}
 			}
 		};
 		struct PullMember
 		{
+			float drawScale;
 			float stretchMax;
 		private:
 			friend class cereal::access;
@@ -119,6 +126,10 @@ public:
 					CEREAL_NVP( stretchMax )
 				);
 				if ( 1 <= version )
+				{
+					archive( CEREAL_NVP( drawScale ) );
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -219,10 +230,12 @@ public:
 
 				if ( ImGui::TreeNode( u8"カギ" ) )
 				{
+					ImGui::DragFloat( u8"描画スケール", &m.mKey.drawScale, 0.1f );
 					ImGui::TreePop();
 				}
 				if ( ImGui::TreeNode( u8"スイッチ" ) )
 				{
+					ImGui::DragFloat( u8"描画スケール", &m.mSwitch.drawScale, 0.1f );
 					ImGui::DragFloat3( u8"引き寄せる位置（相対）",		&m.mSwitch.gatheringPos.x,			0.1f		);
 					ImGui::DragFloat2( u8"引き寄せるサイズ（半分を指定）",	&m.mSwitch.gatheringArea.size.x,	0.1f, 0.0f	);
 					{
@@ -239,6 +252,7 @@ public:
 				}
 				if ( ImGui::TreeNode( u8"引き手" ) )
 				{
+					ImGui::DragFloat( u8"描画スケール", &m.mPull.drawScale, 0.1f );
 					ImGui::DragFloat( u8"引っ張る長さ", &m.mPull.stretchMax, 1.0f, 0.0f );
 
 					ImGui::TreePop();
@@ -278,9 +292,9 @@ public:
 #endif // USE_IMGUI
 };
 CEREAL_CLASS_VERSION( ParamTrigger::Member, 1 )
-CEREAL_CLASS_VERSION( ParamTrigger::Member::KeyMember, 0 )
-CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 1 )
-CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 0 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::KeyMember, 1 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::SwitchMember, 2 )
+CEREAL_CLASS_VERSION( ParamTrigger::Member::PullMember, 1 )
 
 
 
@@ -385,6 +399,10 @@ void Trigger::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 	}
 }
 
+#if DEBUG_MODE
+#include "Donya/GeometricPrimitive.h"
+#include "Common.h"
+#endif // DEBUG_MODE
 void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	auto DrawSwitch = [&]()
@@ -425,21 +443,56 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 			{ 0.0f, 0.0f, 0.0f, 0.0f },
 		};
 
-		const int kindIndex = GetTriggerKindIndex();
-		Donya::Vector4		color{};
-		Donya::Vector4x4	W{}, WVP{};
-		Donya::Vector4x4	VP = V * P;
+		constexpr int BASE_INDEX = 0;
 
-		for ( int i = 0; i < DrawCount; ++i )
+		Donya::Vector4		color	=  colors[BASE_INDEX];
+		if ( IsEnable() ) { color	+= lightenFactors[BASE_INDEX]; }
+
+		Donya::Vector4x4	W		=  GetWorldMatrix( wsHitBoxes[BASE_INDEX], /* useDrawing = */ true, /* enableRotation = */ true );
+		W._41 = pos.x; // Discard the offset of hit-box for draw.
+		W._42 = pos.y; // Discard the offset of hit-box for draw.
+		W._43 = pos.z; // Discard the offset of hit-box for draw.
+		Donya::Vector4x4	VP		=  V * P;
+		Donya::Vector4x4	WVP		=  W * VP;
+
+		BaseDraw( WVP, W, lightDir, color );
+
+	#if DEBUG_MODE
+		if ( Common::IsShowCollision() )
 		{
-			W = GetWorldMatrix( wsHitBoxes[i], /* useDrawing = */ true, /* enableRotation = */ false );
-			WVP = W * VP;
+			static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
-			color = colors[i];
-			if ( IsEnable() ) { color += lightenFactors[i]; }
+			// Donya::Quaternion rotation{};
+			// Donya::Vector4x4  R{};
+			for ( int i = BASE_INDEX + 1; i < DrawCount; ++i )
+			{
+				W = Donya::Vector4x4::Identity();
 
-			BaseDraw( WVP, W, lightDir, color );
+				// rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
+				// R = rotation.RequireRotationMatrix();
+				W._11 = wsHitBoxes[i].size.x;
+				W._22 = wsHitBoxes[i].size.y;
+				W._33 = wsHitBoxes[i].size.z;
+				// W *= R;
+				W._41 = wsHitBoxes[i].pos.x;
+				W._42 = wsHitBoxes[i].pos.y;
+				W._43 = wsHitBoxes[i].pos.z;
+
+				WVP = W * VP;
+
+				color = colors[i];
+				if ( IsEnable() ) { color += lightenFactors[i]; }
+
+				cube.Render
+				(
+					nullptr,
+					/* useDefaultShading	= */ true,
+					/* isEnableFill			= */ true,
+					WVP, W, lightDir, color
+				);
+			}
 		}
+	#endif // DEBUG_MODE
 	};
 	auto DrawOther  = [&]()
 	{
@@ -574,9 +627,17 @@ Donya::Vector4x4 Trigger::GetWorldMatrix( const AABBEx &inputBox, bool useDrawin
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	const float drawScales[]
+	{
+		ParamTrigger::Get().Data().mKey.drawScale,		// Key
+		ParamTrigger::Get().Data().mSwitch.drawScale,	// Switch
+		ParamTrigger::Get().Data().mPull.drawScale		// Pull
+	};
+	const int kindIndex = GetTriggerKindIndex();
+
+	mat._11 =
+	mat._22 =
+	mat._33 = drawScales[kindIndex];
 
 	if ( enableRotation ) { mat *= R; }
 

@@ -20,6 +20,7 @@ struct ParamFlammableBlock final : public Donya::Singleton<ParamFlammableBlock>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
@@ -30,6 +31,10 @@ public:
 			(
 				CEREAL_NVP( hitBox )
 			);
+			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
 			if ( 1 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
@@ -95,6 +100,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"描画スケール", &m.drawScale, 0.1f );
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
@@ -126,7 +132,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamFlammableBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamFlammableBlock::Member, 1 )
 
 void FlammableBlock::ParameterInit()
 {
@@ -217,9 +223,9 @@ Donya::Vector4x4 FlammableBlock::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamFlammableBlock::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;

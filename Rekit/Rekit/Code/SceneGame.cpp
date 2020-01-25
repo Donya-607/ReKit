@@ -1108,17 +1108,22 @@ void SceneGame::UpdateOfTutorial()
 	if ( !nowTutorial ) { return; }
 	// else
 
-	const auto dir = controller.RightStick();
-
+	Donya::Vector2 dir{};
 	bool useJump{}, useHook{}, useErase{};
+
 	if ( controller.IsConnected() )
 	{
+		dir = controller.RightStick();
 		useJump  = controller.Trigger( Donya::Gamepad::LT );
 		useHook  = controller.Trigger( Donya::Gamepad::RT );
 		useErase = controller.Trigger( Donya::Gamepad::RB );
 	}
 	else
 	{
+		dir.x = Donya::Keyboard::Press( VK_RIGHT ) ? +1.0f : 0.0f;
+		dir.x = Donya::Keyboard::Press( VK_LEFT  ) ? -1.0f : 0.0f;
+		dir.y = Donya::Keyboard::Press( VK_UP    ) ? +1.0f : 0.0f;
+		dir.y = Donya::Keyboard::Press( VK_DOWN  ) ? -1.0f : 0.0f;
 		useJump  = Donya::Keyboard::Trigger( VK_SPACE	);
 		useHook  = Donya::Keyboard::Trigger( VK_RSHIFT	);
 		useErase = Donya::Keyboard::Trigger( VK_END		);

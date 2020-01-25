@@ -19,6 +19,7 @@ struct ParamFragileBlock final : public Donya::Singleton<ParamFragileBlock>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		float	gravity{};
 		float	maxFallSpeed{};
 		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
@@ -50,6 +51,10 @@ public:
 				);
 			}
 			if ( 3 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 4 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -114,6 +119,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"描画スケール",			&m.drawScale,		0.1f	);
 				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
 				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
 				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
@@ -150,7 +156,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamFragileBlock::Member, 2 )
+CEREAL_CLASS_VERSION( ParamFragileBlock::Member, 3 )
 
 void FragileBlock::ParameterInit()
 {
@@ -240,9 +246,9 @@ Donya::Vector4x4 FragileBlock::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamFragileBlock::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;

@@ -20,6 +20,7 @@ struct ParamLift final : public Donya::Singleton<ParamLift>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		float	moveSpeed{};
 		AABBEx	hitBox{};
 	private:
@@ -32,7 +33,11 @@ public:
 				CEREAL_NVP ( moveSpeed ),
 				CEREAL_NVP ( hitBox )
 			);
-			if (1 <= version)
+			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -94,7 +99,8 @@ public:
 					ImGui::Checkbox ( (prefix + u8"当たり判定は有効か").c_str (), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat ( u8"エレベーターが動く速度", &m.moveSpeed, 0.1f );
+				ImGui::DragFloat ( u8"描画スケール",				&m.drawScale, 0.1f );
+				ImGui::DragFloat ( u8"エレベーターが動く速度",	&m.moveSpeed, 0.1f );
 
 				AdjustAABB ( u8"当たり判定", &m.hitBox );
 
@@ -127,7 +133,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION ( ParamLift::Member, 0 )
+CEREAL_CLASS_VERSION ( ParamLift::Member, 1 )
 
 
 
@@ -247,9 +253,9 @@ Donya::Vector4x4 Lift::GetWorldMatrix ( bool useDrawing ) const
 	}
 
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamLift::Get().Data().drawScale;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
 	mat._43 = wsBox.pos.z;

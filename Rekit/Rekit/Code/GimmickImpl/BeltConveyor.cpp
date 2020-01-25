@@ -20,6 +20,7 @@ struct ParamBeltConveyor final : public Donya::Singleton<ParamBeltConveyor>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		float	influence{};
 		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
@@ -32,6 +33,10 @@ public:
 				CEREAL_NVP( influence ),
 				CEREAL_NVP( hitBox )
 			);
+			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
 			if ( 1 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
@@ -97,7 +102,8 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat( u8"影響させる速度", &m.influence, 0.1f );
+				ImGui::DragFloat( u8"描画スケール",		&m.drawScale, 0.1f );
+				ImGui::DragFloat( u8"影響させる速度",		&m.influence, 0.1f );
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -130,7 +136,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamBeltConveyor::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBeltConveyor::Member, 1 )
 
 namespace
 {
@@ -226,7 +232,7 @@ void BeltConveyor::Update( float elapsedTime )
 }
 void BeltConveyor::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool collideToPlayer, bool ignoreHitBoxExist, bool allowCompress )
 {
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	// No op.
 }
 
 void BeltConveyor::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -265,9 +271,9 @@ Donya::Vector4x4 BeltConveyor::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamBeltConveyor::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;

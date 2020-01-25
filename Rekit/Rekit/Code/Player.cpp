@@ -30,12 +30,13 @@ class PlayerParam final : public Donya::Singleton<PlayerParam>
 public:
 	struct Member
 	{
-		int		maxJumpCount{};	// 0 is can not jump, 1 ~ is can jump.
-		float	moveSpeed{};	// Use for a horizontal move. It will influenced by "elapsedTime".
-		float	brakeSpeed{};	// Use for represent a slipping. It will influenced by "elapsedTime".
-		float	jumpPower{};	// Use for a just moment of using a jump.
-		float	maxFallSpeed{};	// Use for a limit of falling speed.
-		float	gravity{};		// Always use to fall. It will influenced by "elapsedTime".
+		int		maxJumpCount{};		// 0 is can not jump, 1 ~ is can jump.
+		float	moveSpeed{};		// Use for a horizontal move. It will influenced by "elapsedTime".
+		float	brakeSpeed{};		// Use for represent a slipping. It will influenced by "elapsedTime".
+		float	jumpPower{};		// Use for a just moment of using a jump.
+		float	maxFallSpeed{};		// Use for a limit of falling speed.
+		float	gravity{};			// Always use to fall. It will influenced by "elapsedTime".
+		float	drawScale{ 1.0f };
 
 		AABBEx	hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
 	private:
@@ -57,6 +58,10 @@ public:
 				archive( CEREAL_NVP( brakeSpeed ) );
 			}
 			if ( 2 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) )
 			}
@@ -127,6 +132,7 @@ public:
 				ImGui::DragFloat( u8"ジャンプ初速",		&m.jumpPower,		1.0f, 0.0f	);
 				ImGui::DragFloat( u8"最大落下速度",		&m.maxFallSpeed,	1.0f, 0.0f	);
 				ImGui::DragFloat( u8"重力",				&m.gravity,			1.0f, 0.0f	);
+				ImGui::DragFloat( u8"描画スケール",		&m.drawScale,		0.1f		);
 
 				AdjustAABB( u8"当たり判定：ＶＳ地形", &m.hitBoxPhysic );
 
@@ -160,7 +166,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
+CEREAL_CLASS_VERSION( PlayerParam::Member, 2 )
 
 Donya::StaticMesh	Player::drawModel{};
 bool				Player::wasLoaded{ false };
@@ -717,11 +723,14 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 	Version_4();
 }
 
+#if DEBUG_MODE
+#include "Donya/GeometricPrimitive.h"
+#include "Common.h"
+#endif // DEBUG_MODE
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
 	Donya::Vector4x4 W = S * T;
 
 	drawModel.Render
@@ -732,6 +741,26 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 		W * matViewProjection, W,
 		lightDirection, Donya::Vector4{ 1.0f, 1.0f, 1.0f, drawAlpha }
 	);
+
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		
+		const auto wsBody = GetHitBox();
+		T = Donya::Vector4x4::MakeTranslation( wsBody.pos );
+		S = Donya::Vector4x4::MakeScaling( wsBody.size );
+		W = S *T;
+
+		cube.Render
+		(
+			nullptr,
+			true, true,
+			W * matViewProjection, W,
+			lightDirection, Donya::Vector4{ 0.6f, 1.0f, 0.6f, 0.5f }
+		);
+	}
+#endif // DEBUG_MODE
 }
 
 Donya::Vector3 Player::GetPosition() const
