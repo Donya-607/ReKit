@@ -56,11 +56,14 @@ void Gimmick::Update( float elapsedTime, bool useImGui )
 		it->Update( elapsedTime );
 	}
 }
-void Gimmick::UpdateElevators(float elapsedTime)
+void Gimmick::UpdateElevators( float elapsedTime )
 {
-	for (auto& it : pGimmicks)
+	for ( auto &it : pGimmicks )
 	{
-		if (GimmickUtility::ToKind(it->GetKind()) == GimmickKind::Elevator)
+		if ( !it ) { continue; }
+		// else
+
+		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
 		{
 			it->Update(elapsedTime);
 		}
@@ -136,6 +139,19 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 		// else
 
 		it->Draw( V, P, lightDir );
+	}
+}
+void Gimmick::DrawElevators( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+{
+	for ( auto &it : pGimmicks )
+	{
+		if ( !it ) { continue; }
+		// else
+
+		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
+		{
+			it->Draw( V, P, lightDir );
+		}
 	}
 }
 
@@ -341,7 +357,7 @@ void Gimmick::UseImGui()
 					pGimmicks.push_back( std::make_shared<JammerArea>( appearSec, intervalSec  ) );
 					pGimmicks.back()->Init( ToInt( GimmickKind::JammerArea ), rollDegree, GENERATE_POS );
 				}
-				if ( ImGui::Button( ( prefix + ToString( GimmickKind::JammerOrigin ) ).c_str() ) )
+				if ( ImGui::Button( ( prefix + ToString( GimmickKind::JammerOrigin		) ).c_str() ) )
 				{
 					pGimmicks.push_back( std::make_shared<JammerOrigin>() );
 					pGimmicks.back()->Init( ToInt( GimmickKind::JammerOrigin ), rollDegree, GENERATE_POS );

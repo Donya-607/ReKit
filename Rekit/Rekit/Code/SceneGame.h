@@ -40,8 +40,7 @@ private:
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
-	Donya::Vector3			respawnPos;		// Use for store.
-
+	
 	size_t					mission;		// Sprite.
 	size_t					complete;		// Sprite.
 
