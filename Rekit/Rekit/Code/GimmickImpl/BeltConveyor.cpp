@@ -140,7 +140,8 @@ CEREAL_CLASS_VERSION( ParamBeltConveyor::Member, 1 )
 
 namespace
 {
-	const int BELT_C_SIGN_ID = GimmickUtility::ToInt( GimmickKind::BeltConveyor );
+	const int BELT_C_SIGN_ID	= GimmickUtility::ToInt( GimmickKind::BeltConveyor );
+	const int BELT_C_MASS		= 98;	// I require heavier belt-conveyor than the hook.
 	Donya::Vector2 MakeVelocity( float degree )
 	{
 		const Donya::Vector2 unit
@@ -154,7 +155,7 @@ namespace
 	{
 		source.velocity = MakeVelocity( degree );
 		source.attr  = BELT_C_SIGN_ID;
-		source.mass  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_MASS;
 		source.exist = true;
 		return source;
 	}
@@ -162,7 +163,7 @@ namespace
 	{	
 		source.velocity = Donya::Vector3{ MakeVelocity( degree ), 0.0f };
 		source.attr  = BELT_C_SIGN_ID;
-		source.mass  = BELT_C_SIGN_ID;
+		source.mass  = BELT_C_MASS;
 		source.exist = true;
 		return source;
 	}
@@ -173,7 +174,7 @@ namespace
 		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
 
 		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
-		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_MASS    ) { return false; }
 		if ( source.exist != true ) { return false; }
 		return true;
 	}
@@ -184,7 +185,7 @@ namespace
 		if ( !ZeroEqual( source.velocity.Length() - fabsf( beltSpeed ) ) ) { return false; }
 
 		if ( source.attr  != BELT_C_SIGN_ID ) { return false; }
-		if ( source.mass  != BELT_C_SIGN_ID ) { return false; }
+		if ( source.mass  != BELT_C_MASS    ) { return false; }
 		if ( source.exist != true ) { return false; }
 		return true;
 	}
