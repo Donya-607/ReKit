@@ -414,10 +414,25 @@ void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, con
 	movedBody.pos.x += velocity.x; // Move temporally.
 	movedBody.pos.y += velocity.y; // Move temporally.
 
-	// VS Spike.
+	// VS Ignitions.
 	{
-		constexpr GimmickKind igniteKind = GimmickKind::Spike;
+		auto Ignite = [&]()
+		{
+			Explosion();
+			pos += velocity; // Move actually.
+		};
 
+		BoxEx movedPlayer =  player;
+		movedPlayer.pos.x += player.velocity.x;
+		movedPlayer.pos.y += player.velocity.y;
+		if ( Donya::Box::IsHitBox( movedPlayer, movedBody ) )
+		{
+			Ignite();
+			return;
+		}
+		// else
+
+		constexpr GimmickKind igniteKind = GimmickKind::Spike;
 		for ( const auto &it : terrains )
 		{
 			if ( !GimmickUtility::HasAttribute( igniteKind, it ) ) { continue; }
@@ -425,9 +440,7 @@ void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, con
 
 			if ( Donya::Box::IsHitBox( it, movedBody ) )
 			{
-				Explosion();
-
-				pos += velocity; // Move actually.
+				Ignite();
 				return;
 			}
 		}
