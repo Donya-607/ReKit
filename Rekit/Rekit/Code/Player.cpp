@@ -218,11 +218,6 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 	if ( IsDead() ) { return; }
 	// else
 
-	if ( Donya::Keyboard::Trigger( 'U' ) )
-	{
-		auto breakpoint = 0;
-	}
-
 	/// <summary>
 	/// Support an attribute.
 	/// </summary>
@@ -346,8 +341,9 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 					influence = HasInfluence( other );
 				}
 
-				movedXYBody.pos.y += resolver.y;
-				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+				movedXYBody.pos.y	+= resolver.y;
+				moveSign.y			=  scast<float>( Donya::SignBit( resolver.y ) );
+				lastResolver.x		=  0.0f;
 
 				if ( !influence.IsZero() )
 				{
@@ -363,8 +359,9 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			}
 			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 			{
-				movedXYBody.pos.x += resolver.x;
-				moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+				movedXYBody.pos.x	+= resolver.x;
+				moveSign.x			=  scast<float>( Donya::SignBit( resolver.x ) );
+				lastResolver.y		=  0.0f;
 			}
 		}
 
@@ -381,23 +378,36 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			aboveSlipGround = HasSlipAttribute( lastHitOther );
 		}
 
-		/*
-		当たり判定を行う順番によって，壁に乗れてしまうようになる。
+		if ( Donya::SignBit( lastResolver.x ) != 0 )
+		{
+			velocity.x = 0.0f;
+		}
+		if ( Donya::SignBit( lastResolver.y ) != 0 )
+		{
+			velocity.y = 0.0f;
+		}
 
-		壁
-		壁自
-		壁
+		// Check the foot for landing.
+		if ( !ZeroEqual( velocity.y ) )
+		{
+			constexpr float	slightOffset = 0.0001f; // This value used for the check to "was resolved in that direction?", so should be greater than zero and smaller than large.
+			const     int	sign = Donya::SignBit( velocity.y );
+			movedXYBody.pos.y += slightOffset * sign;
 
-		とあったとして，
-		自機が初めに左の壁と判定を行えば，貫通深度は横のほうが浅いので横に解決して済むが，
-		初めに下の壁と判定を行うと，貫通深度は縦のほうが浅くなってしまい，
-		後で横の壁とも判定を行うので衝突の解消はされるが，
-		着地したor頭をぶつけた判定を通ってしまう。
-		当たり判定の順序として 縦->横 と行うこと自体は問題ないので，
-		どうにかして「衝突時の速度をゼロにする」処理をいい感じにしたい。
-		*/
-		if( )
-
+			other = CalcCollidingBox( movedXYBody, previousXYBody );
+			if ( other != BoxEx::Nil() )
+			{
+				if ( sign == Down )
+				{
+					Landing();
+					aboveSlipGround = HasSlipAttribute( other );
+				}
+				else
+				{
+					velocity.y = 0.0f;
+				}
+			}
+		}
 	};
 
 	/// <summary>

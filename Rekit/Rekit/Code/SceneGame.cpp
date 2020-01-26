@@ -443,39 +443,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	
 	// 6. The player's PhysicUpdate().
 	PlayerPhysicUpdate( refTerrain.Acquire() );
-	if ( 0 )
-	{
-		player.PhysicUpdate( refTerrain.Acquire() );
-		if ( player.IsDead() )
-		{
-			if ( !Fader::Get().IsExist() )
-			{
-				StartFade();
-			}
-		}
-		else if ( IsPlayerOutFromRoom() )
-		{
-			UpdateCurrentStage();
-
-			GameStorage::RegisterRespawnPos( player.GetPosition() );
-
-			if ( InLastStage() && !enableAlert )
-			{
-				enableAlert = true;
-				alert.TurnOn();
-			}
-		}
-
-	#if DEBUG_MODE
-		if ( Donya::Keyboard::Trigger( 'Q' ) )
-		{
-			if ( !Fader::Get().IsExist() )
-			{
-				StartFade();
-			}
-		}
-	#endif // DEBUG_MODE
-	}
 
 	CameraUpdate();
 
