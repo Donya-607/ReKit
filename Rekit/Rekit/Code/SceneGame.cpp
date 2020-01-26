@@ -551,12 +551,6 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4	lightDir	= GameParam::Get().Data().lightDirection;
 	const Donya::Vector4	lightColor	= GameParam::Get().Data().lightColor;
 
-	player.Draw( V * P, lightDir, lightColor );
-	if ( pHook )
-	{
-		pHook->Draw(V * P, lightDir, lightColor );
-	}
-
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
 	// This flag prevent a double drawing a elevators.
@@ -568,6 +562,12 @@ void SceneGame::Draw( float elapsedTime )
 		if ( i == currentStageNo ) { continue; }
 		// else
 		gimmicks[i].DrawElevators( V, P, lightDir );
+	}
+
+	player.Draw( V * P, lightDir, lightColor );
+	if ( pHook )
+	{
+		pHook->Draw( V * P, lightDir, lightColor );
 	}
 
 	DrawOfTutorial();

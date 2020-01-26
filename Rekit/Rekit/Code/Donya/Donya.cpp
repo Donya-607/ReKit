@@ -794,7 +794,7 @@ namespace Donya
 		sd.BufferCount							= 1;
 		sd.BufferDesc.Width						= smg->screen.width;	// Size of back-buffer.
 		sd.BufferDesc.Height					= smg->screen.height;	// Size of back-buffer.
-		sd.BufferDesc.Format					= DXGI_FORMAT_R8G8B8A8_UNORM;
+		sd.BufferDesc.Format					= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		sd.BufferDesc.RefreshRate.Numerator		= 60;
 		sd.BufferDesc.RefreshRate.Denominator	= 1;
 		sd.BufferUsage							= DXGI_USAGE_RENDER_TARGET_OUTPUT;
