@@ -772,26 +772,36 @@ Scene::Result SceneEditor::ReturnResult()
 
 void SceneEditor::GenerateBlockIfCleck()
 {
+#if DEBUG_MODE
+
 	bool cleckLeftButton = Donya::Mouse::Trigger(Donya::Mouse::LEFT);
 	//bool pushCtrlButton = Donya::Keyboard::Press(VK_LCONTROL) | Donya::Keyboard::Press(VK_RCONTROL);
 	bool pressZButton = Donya::Keyboard::Press('Z');
 	
+#if USE_IMGUI
 	if(ImGui::IsMouseHoveringAnyWindow())return;
+#endif // USE_IMGUI
 
 	if ( !cleckLeftButton || pressZButton)return;
 
 	SceneEditor::isChanges = true;
 	EditParam::Get().GenerateBlock();
+
+#endif // DEBUG_MODE
 }
 
 void SceneEditor::EraseBlockIfRightCleck()
 {
+#if DEBUG_MODE
+
 	bool cleckRightButton = Donya::Mouse::Trigger(Donya::Mouse::RIGHT);
 
 	if (!cleckRightButton)return;
 
 	SceneEditor::isChanges = true;
 	EditParam::Get().EraseBlock();
+
+#endif // DEBUG_MODE
 }
 
 void SceneEditor::CorrectionGridCursor()
@@ -829,6 +839,8 @@ void SceneEditor::CorrectionGridCursor()
 
 void SceneEditor::SaveEditParameter()
 {
+#if DEBUG_MODE
+
 	bool pressCtrl = Donya::Keyboard::Press(VK_LCONTROL);
 	bool pressSButton = Donya::Keyboard::Press('S');
 
@@ -836,6 +848,8 @@ void SceneEditor::SaveEditParameter()
 
 	isChanges = false;
 	EditParam::Get().SaveParameter();
+
+#endif // DEBUG_MODE
 }
 
 void SceneEditor::LoadEditParameter()
