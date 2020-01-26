@@ -19,6 +19,7 @@ struct ParamSpikeBlock final : public Donya::Singleton<ParamSpikeBlock>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
 		float	rotationSpeed{};
 		AABBEx	hitBox{};		// Hit-Box of using to the collision to the stage.
 	private:
@@ -31,6 +32,10 @@ public:
 				CEREAL_NVP( rotationSpeed ),
 				CEREAL_NVP( hitBox )
 			);
+			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
 			if ( 1 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
@@ -96,7 +101,8 @@ public:
 					ImGui::Checkbox( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
-				ImGui::DragFloat( u8"回転速度", &m.rotationSpeed, ToRadian( 1.0f ) );
+				ImGui::DragFloat( u8"描画スケール",	&m.drawScale,		0.1f );
+				ImGui::DragFloat( u8"回転速度",		&m.rotationSpeed,	ToRadian( 1.0f ) );
 
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -129,7 +135,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamSpikeBlock::Member, 0 )
+CEREAL_CLASS_VERSION( ParamSpikeBlock::Member, 1 )
 
 void SpikeBlock::ParameterInit()
 {
@@ -209,7 +215,7 @@ Donya::Vector4x4 SpikeBlock::GetWorldMatrix( bool useDrawing ) const
 
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), radian + ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
-	const Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsBox.size );
+	const Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( ParamSpikeBlock::Get().Data().drawScale );
 
 	Donya::Vector4x4 mat = S * R;
 	mat._41 = wsBox.pos.x;

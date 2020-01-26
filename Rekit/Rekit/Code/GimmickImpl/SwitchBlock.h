@@ -46,11 +46,16 @@ private:
 		);
 		if ( 1 <= version )
 		{
+			archive( CEREAL_NVP( initPos ) );
+		}
+		if ( 2 <= version )
+		{
 			// archive( CEREAL_NVP( x ) );
 		}
 	}
 public:
 	void Init( int kind, float rollDegree, const Donya::Vector3 &wsPos ) override;
+	void AddOffset( const Donya::Vector3 &worldOffset ) override;
 	void Uninit() override;
 
 	void Update( float elapsedTime ) override;
@@ -87,7 +92,7 @@ public:
 	void ShowImGuiNode() override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( SwitchBlock, 0 )
+CEREAL_CLASS_VERSION( SwitchBlock, 1 )
 CEREAL_REGISTER_TYPE( SwitchBlock )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, SwitchBlock )
 

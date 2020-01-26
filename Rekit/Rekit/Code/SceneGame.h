@@ -40,12 +40,9 @@ private:
 	Donya::ICamera			iCamera;
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
-	Donya::Vector3			respawnPos;		// Use for store.
-
+	
 	size_t					mission;		// Sprite.
 	size_t					complete;		// Sprite.
-	size_t					inset;			// Sprite.
-	size_t					bomb;			// Sprite.
 
 	BG						bg;
 	Player					player;
@@ -85,6 +82,7 @@ private:
 	void	MoveCamera();
 
 	void	PlayerUpdate( float elapsedTime );
+	void	PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes );
 
 	bool	IsPlayerOutFromRoom() const;
 	void	UpdateCurrentStage();

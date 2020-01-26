@@ -9,7 +9,6 @@
 #include "Donya/Sound.h"
 #include "Donya/Template.h"		
 #include "Donya/Useful.h"		// Use convert string functions.
-#include "Donya/Sprite.h"
 
 #if DEBUG_MODE
 #include "Donya/Keyboard.h"
@@ -31,12 +30,13 @@ class PlayerParam final : public Donya::Singleton<PlayerParam>
 public:
 	struct Member
 	{
-		int		maxJumpCount{};	// 0 is can not jump, 1 ~ is can jump.
-		float	moveSpeed{};	// Use for a horizontal move. It will influenced by "elapsedTime".
-		float	brakeSpeed{};	// Use for represent a slipping. It will influenced by "elapsedTime".
-		float	jumpPower{};	// Use for a just moment of using a jump.
-		float	maxFallSpeed{};	// Use for a limit of falling speed.
-		float	gravity{};		// Always use to fall. It will influenced by "elapsedTime".
+		int		maxJumpCount{};		// 0 is can not jump, 1 ~ is can jump.
+		float	moveSpeed{};		// Use for a horizontal move. It will influenced by "elapsedTime".
+		float	brakeSpeed{};		// Use for represent a slipping. It will influenced by "elapsedTime".
+		float	jumpPower{};		// Use for a just moment of using a jump.
+		float	maxFallSpeed{};		// Use for a limit of falling speed.
+		float	gravity{};			// Always use to fall. It will influenced by "elapsedTime".
+		float	drawScale{ 1.0f };
 
 		AABBEx	hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
 	private:
@@ -58,6 +58,10 @@ public:
 				archive( CEREAL_NVP( brakeSpeed ) );
 			}
 			if ( 2 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) )
 			}
@@ -128,6 +132,7 @@ public:
 				ImGui::DragFloat( u8"ジャンプ初速",		&m.jumpPower,		1.0f, 0.0f	);
 				ImGui::DragFloat( u8"最大落下速度",		&m.maxFallSpeed,	1.0f, 0.0f	);
 				ImGui::DragFloat( u8"重力",				&m.gravity,			1.0f, 0.0f	);
+				ImGui::DragFloat( u8"描画スケール",		&m.drawScale,		0.1f		);
 
 				AdjustAABB( u8"当たり判定：ＶＳ地形", &m.hitBoxPhysic );
 
@@ -161,17 +166,16 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION( PlayerParam::Member, 1 )
+CEREAL_CLASS_VERSION( PlayerParam::Member, 2 )
 
 Donya::StaticMesh	Player::drawModel{};
 bool				Player::wasLoaded{ false };
 
-Player::Player () :
-	status ( State::Normal ),
-	remainJumpCount ( 1 ), drawAlpha ( 1.0f ),
-	pos (), velocity (),
-	aboveSlipGround ( false ),
-	keyGet (), keyNothing ()
+Player::Player() :
+	status( State::Normal ),
+	remainJumpCount( 1 ), drawAlpha( 1.0f ),
+	pos(), velocity(),
+	aboveSlipGround( false )
 {}
 Player::~Player() = default;
 
@@ -182,9 +186,6 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 	LoadModel();
 
 	pos = wsInitPos;
-
-	keyGet = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::KeyGet ) );
-	keyNothing = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::KeyNothing ) );
 }
 void Player::Uninit()
 {
@@ -261,6 +262,9 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			scast<float>( Donya::SignBit( xyVelocity.y ) )
 		};
 
+		Donya::Vector2	lastResolver{};
+		BoxEx			lastHitOther{};
+
 		BoxEx movedXYBody = previousXYBody;
 		movedXYBody.pos  += xyVelocity;
 
@@ -323,24 +327,23 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 				( penetration.y + ERROR_MARGIN ) * -moveSign.y
 			};
 
+			lastResolver = resolver;
+			lastHitOther = other;
+
 			// Repulse to the more little(but greater than zero) axis side of penetration.
 			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 			{
 				Donya::Vector2 influence{};
 				enum Dir { Up = 1, Down = -1 };
-				int  verticalSign =  Donya::SignBit( velocity.y );
+				int  verticalSign =  Donya::SignBit( moveSign.y ); // Represent a direction that was collided to other.
 				if ( verticalSign == Down )
 				{
-					Landing();
-
-					aboveSlipGround = HasSlipAttribute( other );
-					
 					influence = HasInfluence( other );
 				}
 
-				movedXYBody.pos.y += resolver.y;
-				velocity.y = 0.0f;
-				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
+				movedXYBody.pos.y	+= resolver.y;
+				moveSign.y			=  scast<float>( Donya::SignBit( resolver.y ) );
+				lastResolver.x		=  0.0f;
 
 				if ( !influence.IsZero() )
 				{
@@ -356,15 +359,55 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			}
 			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 			{
-				movedXYBody.pos.x += resolver.x;
-				velocity.x = 0.0f;
-				moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
+				movedXYBody.pos.x	+= resolver.x;
+				moveSign.x			=  scast<float>( Donya::SignBit( resolver.x ) );
+				lastResolver.y		=  0.0f;
 			}
 		}
 
 		pos.x =  movedXYBody.pos.x;
 		pos.y =  movedXYBody.pos.y;
 		pos.z += velocity.z;
+
+		enum Dir { Up = 1, Down = -1 };
+		int  verticalSign = Donya::SignBit( -lastResolver.y ); // Represent the last direction that was collided to other.
+		if ( verticalSign == Down )
+		{
+			Landing();
+
+			aboveSlipGround = HasSlipAttribute( lastHitOther );
+		}
+
+		if ( Donya::SignBit( lastResolver.x ) != 0 )
+		{
+			velocity.x = 0.0f;
+		}
+		if ( Donya::SignBit( lastResolver.y ) != 0 )
+		{
+			velocity.y = 0.0f;
+		}
+
+		// Check the foot for landing.
+		if ( !ZeroEqual( velocity.y ) )
+		{
+			constexpr float	slightOffset = 0.0001f; // This value used for the check to "was resolved in that direction?", so should be greater than zero and smaller than large.
+			const     int	sign = Donya::SignBit( velocity.y );
+			movedXYBody.pos.y += slightOffset * sign;
+
+			other = CalcCollidingBox( movedXYBody, previousXYBody );
+			if ( other != BoxEx::Nil() )
+			{
+				if ( sign == Down )
+				{
+					Landing();
+					aboveSlipGround = HasSlipAttribute( other );
+				}
+				else
+				{
+					velocity.y = 0.0f;
+				}
+			}
+		}
 	};
 
 	/// <summary>
@@ -722,11 +765,14 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 	Version_4();
 }
 
+#if DEBUG_MODE
+#include "Donya/GeometricPrimitive.h"
+#include "Common.h"
+#endif // DEBUG_MODE
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size * 2.0f/* Half size to Whole size */ );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().hitBoxPhysic.size );
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
 	Donya::Vector4x4 W = S * T;
 
 	drawModel.Render
@@ -737,6 +783,26 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 		W * matViewProjection, W,
 		lightDirection, Donya::Vector4{ 1.0f, 1.0f, 1.0f, drawAlpha }
 	);
+
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		
+		const auto wsBody = GetHitBox();
+		T = Donya::Vector4x4::MakeTranslation( wsBody.pos );
+		S = Donya::Vector4x4::MakeScaling( wsBody.size );
+		W = S *T;
+
+		cube.Render
+		(
+			nullptr,
+			true, true,
+			W * matViewProjection, W,
+			lightDirection, Donya::Vector4{ 0.6f, 1.0f, 0.6f, 0.5f }
+		);
+	}
+#endif // DEBUG_MODE
 }
 
 Donya::Vector3 Player::GetPosition() const

@@ -207,8 +207,8 @@ SceneGame::SceneGame() :
 	stageCount( -1 ), currentStageNo( 0 ),
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
-	roomOriginPos(), respawnPos(),
-	mission (), complete (), inset (), bomb (),
+	roomOriginPos(),
+	mission (), complete (),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
@@ -243,8 +243,6 @@ void SceneGame::Init()
 		GameStorage::RegisterRespawnPos( spawnPos );
 	}
 
-	// respawnPos = spawnPos;
-
 	// 0-based.
 	auto CalcStageNo = [&]( const Donya::Vector3 &wsPos )
 	{
@@ -255,7 +253,7 @@ void SceneGame::Init()
 		ssPos.x =  wsPos.x;
 		ssPos.y = -wsPos.y;
 
-		ssPos  -=  roomSize * 0.5f; // Translate the origin from center to left-top.
+		// ssPos  -=  roomSize * 0.5f; // Translate the origin from center to left-top.
 
 		ssPos.x /= roomSize.x;
 		ssPos.y /= roomSize.y;
@@ -281,9 +279,12 @@ void SceneGame::Init()
 	{
 		nowTutorial		= false;
 	}
-	CameraInit();
 
 	player.Init( spawnPos );
+
+	// Set a data and put to the position that can see a current room.
+	// So should do this after calculate the "currentStageNo".
+	CameraInit();
 
 	Hook::Init();
 	bg.Init();
@@ -298,10 +299,8 @@ void SceneGame::Init()
 		alert.TurnOn();
 	}
 
-	mission = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Mission ) );
-	complete = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::Complete ) );
-	inset = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryInset ) );
-	bomb = Donya::Sprite::Load ( GetSpritePath ( SpriteAttribute::CommentaryBomb ) );
+	mission  = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission  ) );
+	complete = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Complete ) );
 }
 void SceneGame::Uninit()
 {
@@ -391,26 +390,24 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	// 2. Update velocity of all objects.
 	{
-		bool useImGui = true; // Only once.
-		//for ( auto &room : gimmicks )
-		//{
-		//	room.Update( elapsedTime, useImGui );
-		//	useImGui = false;
-		//}
-		refGimmick.Update( elapsedTime, useImGui );
-		useImGui = false;
+		// This flag prevent a double updating a elevators.
+		const bool alsoUpdateElevators = ( refGimmick.HasElevators() ) ? false : true;
+		refGimmick.Update( elapsedTime, alsoUpdateElevators );
+
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
 	}
-	{
-		for (const auto& i : elevatorRoomIndices)
-		{
-			gimmicks[i].UpdateElevators(elapsedTime);
-		}
-	}
 
-	// Add the elevator's hit-boxes. Use for the movement between the rooms.
+	// Update a elevator's and add a elevator's hit-boxes.
+	// An elevator will used for the movement between the rooms.
 	{
+		for ( const auto &i : elevatorRoomIndices )
+		{
+			if ( i == currentStageNo ) { continue; }
+			// else
+			gimmicks[i].UpdateElevators( elapsedTime );
+		}
+
 		const auto elevatorHitBoxes = FetchElevatorHitBoxes();
 		refTerrain.Append( elevatorHitBoxes );
 	}
@@ -445,42 +442,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	refTerrain.Append( ExtractHitBoxes( refGimmick ) );
 	
 	// 6. The player's PhysicUpdate().
-	{
-		player.PhysicUpdate( refTerrain.Acquire() );
-		if ( player.IsDead() )
-		{
-			if ( !Fader::Get().IsExist() )
-			{
-				StartFade();
-
-				GameStorage::RegisterRespawnPos( respawnPos );
-			}
-		}
-		else if ( IsPlayerOutFromRoom() )
-		{
-			UpdateCurrentStage();
-
-			respawnPos = player.GetPosition();
-
-			if ( InLastStage() && !enableAlert )
-			{
-				enableAlert = true;
-				alert.TurnOn();
-			}
-		}
-
-	#if DEBUG_MODE
-		if ( Donya::Keyboard::Trigger( 'Q' ) )
-		{
-			if ( !Fader::Get().IsExist() )
-			{
-				StartFade();
-
-				GameStorage::RegisterRespawnPos( respawnPos );
-			}
-		}
-	#endif // DEBUG_MODE
-	}
+	PlayerPhysicUpdate( refTerrain.Acquire() );
 
 	CameraUpdate();
 
@@ -493,6 +455,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	{
 		nowCleared = true;
 		StartFade();
+
+		GameStorage::InitializeRespawnPos();
 	}
 
 #if DEBUG_MODE
@@ -515,6 +479,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 void SceneGame::Draw( float elapsedTime )
 {
+	// Clear the views.
 	{
 		// constexpr FLOAT BG_COLOR[4]{ 0.4f, 0.4f, 0.4f, 1.0f };
 		constexpr FLOAT BG_COLOR[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -529,14 +494,6 @@ void SceneGame::Draw( float elapsedTime )
 		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
 
-	if (currentStageNo == 1)
-	{
-		Donya::Sprite::DrawExt ( inset, Common::HalfScreenWidthF () - 0.0f, Common::HalfScreenHeightF () - 0.0f,0.5f,0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
-	}
-	if (currentStageNo == 2)
-	{
-		Donya::Sprite::DrawExt ( bomb, Common::HalfScreenWidthF () - 350.0f, Common::HalfScreenHeightF () - 0.0f, 0.5f, 0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
-	}
 	if ( enableAlert )
 	{
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
@@ -561,13 +518,26 @@ void SceneGame::Draw( float elapsedTime )
 	const Donya::Vector4	lightDir	= GameParam::Get().Data().lightDirection;
 	const Donya::Vector4	lightColor	= GameParam::Get().Data().lightColor;
 
-	gimmicks[currentStageNo].Draw( V, P, lightDir );
+	terrains[currentStageNo].Draw( V * P, lightDir );
+
+	// This flag prevent a double drawing a elevators.
+	const bool alsoDrawElevators = ( gimmicks[currentStageNo].HasElevators() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawElevators );
+
+	for ( const auto &i : elevatorRoomIndices )
+	{
+		if ( i == currentStageNo ) { continue; }
+		// else
+		gimmicks[i].DrawElevators( V, P, lightDir );
+	}
 
 	player.Draw( V * P, lightDir, lightColor );
 	if ( pHook )
 	{
-		pHook->Draw(V * P, lightDir, lightColor );
+		pHook->Draw( V * P, lightDir, lightColor );
 	}
+
+	DrawOfTutorial();
 
 #if DEBUG_MODE
 	// Drawing the line that represent the room size.
@@ -592,13 +562,7 @@ void SceneGame::Draw( float elapsedTime )
 
 		line.Flush( V * P );
 	}
-#endif // DEBUG_MODE
 
-	terrains[currentStageNo].Draw( V * P, lightDir );
-
-	DrawOfTutorial();
-
-#if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
 		static auto cube = Donya::Geometric::CreateCube();
@@ -744,6 +708,9 @@ std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
 
 	for ( const auto &i : elevatorRoomIndices )
 	{
+		if ( i == currentStageNo ) { continue; }
+		// else
+
 		wsLocalBoxes = FetchElevatorBoxes( gimmicks[i] );
 		for ( const auto &it : wsLocalBoxes )
 		{
@@ -867,14 +834,57 @@ void SceneGame::PlayerUpdate( float elapsedTime )
 
 	player.Update( elapsedTime, input );
 }
+void SceneGame::PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes )
+{
+	player.PhysicUpdate( hitBoxes );
+
+	if ( player.IsDead() )
+	{
+		if ( !Fader::Get().IsExist() )
+		{
+			StartFade();
+		}
+
+		return;
+	}
+	// else
+
+#if DEBUG_MODE
+	if ( Donya::Keyboard::Press( VK_MENU ) && Donya::Keyboard::Trigger( 'Q' ) )
+	{
+		if ( !Fader::Get().IsExist() )
+		{
+			StartFade();
+		}
+
+		return;
+	}
+	// else
+#endif // DEBUG_MODE
+
+	if ( IsPlayerOutFromRoom() )
+	{
+		UpdateCurrentStage();
+
+		GameStorage::RegisterRespawnPos( player.GetPosition() );
+
+		if ( InLastStage() && !enableAlert )
+		{
+			enableAlert = true;
+			alert.TurnOn();
+		}
+	}
+}
+
 bool SceneGame::IsPlayerOutFromRoom() const
 {
 	const auto param	= GameParam::Get().Data();
 	const Donya::Int2 roomIndex = CalcRoomIndex( currentStageNo );
 
 	Donya::Box roomBox{};
-	roomBox.pos			= roomOriginPos;
-	roomBox.size		= param.roomSize * 0.5f;
+	roomBox.pos			=  roomOriginPos;
+	roomBox.pos.y		*= -1.0f;	// Convert Y from screen space -> world space.
+	roomBox.size		=  param.roomSize * 0.5f;
 
 	Donya::Box playerBox = player.GetHitBox().Get2D();
 
@@ -1034,24 +1044,6 @@ bool SceneGame::DetectClearMoment() const
 	// else
 
 	return GimmickStatus::Refer( SceneEditor::ClearID );
-
-#if DEBUG_MODE
-	/*
-	const auto clearBox		= GameParam::Get().Data().debugClearTrigger;
-	const auto playerBox	= player.GetHitBox();
-	BoxEx xyPlayer{};
-	{
-		xyPlayer.pos.x		= playerBox.pos.x;
-		xyPlayer.pos.y		= playerBox.pos.y;
-		xyPlayer.size.x		= playerBox.size.x;
-		xyPlayer.size.y		= playerBox.size.y;
-		xyPlayer.exist		= true;
-	}
-
-	return ( Donya::Box::IsHitBox( xyPlayer, clearBox ) ) ? true : false;
-	*/
-
-#endif // DEBUG_MODE
 }
 
 void SceneGame::StartFade() const
@@ -1080,33 +1072,55 @@ void SceneGame::PrepareGoToTitle()
 
 void SceneGame::UpdateOfTutorial()
 {
-	auto dir = controller.RightStick();
+	if ( !nowTutorial ) { return; }
+	// else
+
+	Donya::Vector2 dir{};
+	bool useJump{}, useHook{}, useErase{};
+
+	if ( controller.IsConnected() )
+	{
+		dir = controller.RightStick();
+		useJump  = controller.Trigger( Donya::Gamepad::LT );
+		useHook  = controller.Trigger( Donya::Gamepad::RT );
+		useErase = controller.Trigger( Donya::Gamepad::RB );
+	}
+	else
+	{
+		dir.x += Donya::Keyboard::Press( VK_RIGHT ) ? +1.0f : 0.0f;
+		dir.x += Donya::Keyboard::Press( VK_LEFT  ) ? -1.0f : 0.0f;
+		dir.y += Donya::Keyboard::Press( VK_UP    ) ? +1.0f : 0.0f;
+		dir.y += Donya::Keyboard::Press( VK_DOWN  ) ? -1.0f : 0.0f;
+		useJump  = Donya::Keyboard::Trigger( VK_SPACE	);
+		useHook  = Donya::Keyboard::Trigger( VK_RSHIFT	);
+		useErase = Donya::Keyboard::Trigger( VK_END		);
+	}
 
 	switch (tutorialState)
 	{
 	case TutorialState::Jump:
-		if (controller.Trigger(Donya::Gamepad::LT))
+		if ( useJump )
 		{
 			tutorialState = TutorialState::Extend;
 		}
-			break;
+		break;
 
 	case TutorialState::Extend:
-		if (dir.x != 0.0f || dir.y != 0.0f)
+		if (!dir.IsZero())
 		{
 			tutorialState = TutorialState::Make;
 		}
 		break;
 
 	case TutorialState::Make:
-		if (controller.Trigger(Donya::Gamepad::RT))
+		if ( useHook )
 		{
 			tutorialState = TutorialState::Pull;
 		}
 		break;
 
 	case TutorialState::Pull:
-		if (controller.Trigger(Donya::Gamepad::RT) || controller.Trigger(Donya::Gamepad::RB))
+		if ( useHook || useErase )
 		{
 			tutorialState = TutorialState::Erase;
 		}
@@ -1282,10 +1296,8 @@ void SceneGame::UseImGui()
 {
 	if ( ImGui::BeginIfAllowed() )
 	{
-		if ( ImGui::TreeNode( u8"ゲーム・デバッグ" ) )
+		if ( ImGui::TreeNode( u8"ゲーム・デバッグ(empty)" ) )
 		{
-			ImGui::Text( u8"ポーズ画面へ : <Press P>" );
-
 			ImGui::TreePop();
 		}
 		

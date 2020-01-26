@@ -44,9 +44,6 @@ private:
 	Donya::Vector3				velocity;
 
 	bool						aboveSlipGround;
-
-	size_t						keyGet;
-	size_t						keyNothing;
 public:
 	Player();
 	~Player();

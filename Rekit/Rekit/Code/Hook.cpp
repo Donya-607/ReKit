@@ -477,15 +477,22 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const
 {
+	const Donya::Vector3 drawOffset{ 0.0f, 0.0f, -2.5f }; // For near.
+
 	const AABBEx wsHitBox = GetHitBox();
-	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos );
+	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos + drawOffset );
 	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
 	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size );
 	Donya::Vector4x4 W = S * T;
 
-	const Donya::Vector4 color	= ( placeablePoint )
-								? Donya::Vector4{ 0.4f, 1.0f, 0.6f, 1.0f }
-								: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
+	Donya::Vector4 color	= ( placeablePoint )
+							? Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f }
+							: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
+
+	if ( state == ActionState::Throw )
+	{
+		color.w = 0.5f;
+	}
 
 	drawModel.Render
 	(

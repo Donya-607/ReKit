@@ -56,6 +56,8 @@ struct ParamBomb final : public Donya::Singleton<ParamBomb>
 public:
 	struct Member
 	{
+		float	drawScale{ 1.0f };
+
 		float	gravity{};
 		float	maxFallSpeed{};
 		float	brakeSpeed{};		// Affect to inverse speed of current velocity(only X-axis).
@@ -89,6 +91,10 @@ public:
 				);
 			}
 			if ( 2 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 3 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -153,6 +159,8 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"描画スケール",			&m.drawScale,		0.1f	);
+				ImGui::Text( "" );
 				ImGui::DragFloat( u8"重力加速度",			&m.gravity,			0.1f	);
 				ImGui::DragFloat( u8"最大落下速度",			&m.maxFallSpeed,	0.1f	);
 				ImGui::DragFloat( u8"ブレーキ速度（Ｘ軸）",	&m.brakeSpeed,		0.5f	);
@@ -193,7 +201,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamBomb::Member, 1 )
+CEREAL_CLASS_VERSION( ParamBomb::Member, 2 )
 
 bool Bomb::IsExplosionBox( const BoxEx  &source )
 {
@@ -348,9 +356,9 @@ Donya::Vector4x4 Bomb::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x * scale;
-	mat._22 = wsBox.size.y * scale;
-	mat._33 = wsBox.size.z * scale;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamBomb::Get().Data().drawScale * scale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
@@ -406,10 +414,25 @@ void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, con
 	movedBody.pos.x += velocity.x; // Move temporally.
 	movedBody.pos.y += velocity.y; // Move temporally.
 
-	// VS Spike.
+	// VS Ignitions.
 	{
-		constexpr GimmickKind igniteKind = GimmickKind::Spike;
+		auto Ignite = [&]()
+		{
+			Explosion();
+			pos += velocity; // Move actually.
+		};
 
+		BoxEx movedPlayer =  player;
+		movedPlayer.pos.x += player.velocity.x;
+		movedPlayer.pos.y += player.velocity.y;
+		if ( Donya::Box::IsHitBox( movedPlayer, movedBody ) )
+		{
+			Ignite();
+			return;
+		}
+		// else
+
+		constexpr GimmickKind igniteKind = GimmickKind::Spike;
 		for ( const auto &it : terrains )
 		{
 			if ( !GimmickUtility::HasAttribute( igniteKind, it ) ) { continue; }
@@ -417,9 +440,7 @@ void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, con
 
 			if ( Donya::Box::IsHitBox( it, movedBody ) )
 			{
-				Explosion();
-
-				pos += velocity; // Move actually.
+				Ignite();
 				return;
 			}
 		}
@@ -487,7 +508,6 @@ void Bomb::ShowImGuiNode()
 #pragma endregion
 
 
-
 #pragma region Generator
 
 struct ParamBombGenerator final : public Donya::Singleton<ParamBombGenerator>
@@ -496,6 +516,7 @@ struct ParamBombGenerator final : public Donya::Singleton<ParamBombGenerator>
 public:
 	struct Member
 	{
+		float			drawScale{ 1.0f };
 		float			generateFrame{};
 		Donya::Vector3	generateOffset{};
 		AABBEx			hitBox{};			// Hit-Box of using to the collision to the stage.
@@ -511,6 +532,10 @@ public:
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -577,6 +602,7 @@ public:
 
 				ImGui::DragFloat ( u8"生成間隔（秒）",	&m.generateFrame,		0.1f, 0.0f	);
 				ImGui::DragFloat3( u8"生成位置（相対）",	&m.generateOffset.x,	0.1f		);
+				ImGui::DragFloat ( u8"描画スケール",		&m.drawScale,			0.1f		);
 				
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
@@ -609,7 +635,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamBombGenerator::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBombGenerator::Member, 1 )
 
 void BombGenerator::ParameterInit()
 {
@@ -763,9 +789,9 @@ Donya::Vector4x4 BombGenerator::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamBombGenerator::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
@@ -823,7 +849,8 @@ struct ParamBombDuct final : public Donya::Singleton<ParamBombDuct>
 public:
 	struct Member
 	{
-		AABBEx	hitBox{};	// Hit-Box of using to the collision to the stage.
+		float	drawScale{ 1.0f };
+		AABBEx	hitBox{};			// Hit-Box of using to the collision to the stage.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -834,6 +861,10 @@ public:
 				CEREAL_NVP( hitBox )
 			);
 			if ( 1 <= version )
+			{
+				archive( CEREAL_NVP( drawScale ) );
+			}
+			if ( 2 <= version )
 			{
 				// archive( CEREAL_NVP( x ) );
 			}
@@ -898,6 +929,7 @@ public:
 					ImGui::Checkbox  ( ( prefix + u8"当たり判定は有効か" ).c_str(), &pHitBox->exist );
 				};
 
+				ImGui::DragFloat( u8"描画スケール", &m.drawScale );
 				AdjustAABB( u8"当たり判定", &m.hitBox );
 
 				if ( ImGui::TreeNode( u8"ファイル" ) )
@@ -929,7 +961,7 @@ public:
 
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( ParamBombDuct::Member, 0 )
+CEREAL_CLASS_VERSION( ParamBombDuct::Member, 1 )
 
 void BombDuct::ParameterInit()
 {
@@ -1004,9 +1036,9 @@ Donya::Vector4x4 BombDuct::GetWorldMatrix( bool useDrawing ) const
 	const Donya::Quaternion rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 	const Donya::Vector4x4 R = rotation.RequireRotationMatrix();
 	Donya::Vector4x4 mat{};
-	mat._11 = wsBox.size.x;
-	mat._22 = wsBox.size.y;
-	mat._33 = wsBox.size.z;
+	mat._11 =
+	mat._22 =
+	mat._33 = ParamBombDuct::Get().Data().drawScale;
 	mat *= R;
 	mat._41 = wsBox.pos.x;
 	mat._42 = wsBox.pos.y;
