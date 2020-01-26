@@ -171,11 +171,10 @@ void Lift::Uninit ()
 
 void Lift::Update ( float elapsedTime )
 {
-	float speed = 0;
+	float speed = ParamLift::Get ().Data ().moveSpeed;
 	switch (state)
 	{
 	case 0:	// go
-		speed = ParamLift::Get ().Data ().moveSpeed;
 		moveAmount += speed;
 
 		if (moveAmount >= maxMoveAmount)
@@ -187,7 +186,7 @@ void Lift::Update ( float elapsedTime )
 		break;
 
 	case 1:	// go back
-		speed = ParamLift::Get ().Data ().moveSpeed * -1;
+		speed *= -1;
 		moveAmount += speed;
 
 		if (moveAmount <= 0)
