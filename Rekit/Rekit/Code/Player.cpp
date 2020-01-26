@@ -218,6 +218,11 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 	if ( IsDead() ) { return; }
 	// else
 
+	if ( Donya::Keyboard::Trigger( 'U' ) )
+	{
+		auto breakpoint = 0;
+	}
+
 	/// <summary>
 	/// Support an attribute.
 	/// </summary>
@@ -261,6 +266,9 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			scast<float>( Donya::SignBit( xyVelocity.x ) ),
 			scast<float>( Donya::SignBit( xyVelocity.y ) )
 		};
+
+		Donya::Vector2	lastResolver{};
+		BoxEx			lastHitOther{};
 
 		BoxEx movedXYBody = previousXYBody;
 		movedXYBody.pos  += xyVelocity;
@@ -324,23 +332,21 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 				( penetration.y + ERROR_MARGIN ) * -moveSign.y
 			};
 
+			lastResolver = resolver;
+			lastHitOther = other;
+
 			// Repulse to the more little(but greater than zero) axis side of penetration.
 			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 			{
 				Donya::Vector2 influence{};
 				enum Dir { Up = 1, Down = -1 };
-				int  verticalSign =  Donya::SignBit( velocity.y );
+				int  verticalSign =  Donya::SignBit( moveSign.y ); // Represent a direction that was collided to other.
 				if ( verticalSign == Down )
 				{
-					Landing();
-
-					aboveSlipGround = HasSlipAttribute( other );
-					
 					influence = HasInfluence( other );
 				}
 
 				movedXYBody.pos.y += resolver.y;
-				velocity.y = 0.0f;
 				moveSign.y = scast<float>( Donya::SignBit( resolver.y ) );
 
 				if ( !influence.IsZero() )
@@ -358,7 +364,6 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
 			{
 				movedXYBody.pos.x += resolver.x;
-				velocity.x = 0.0f;
 				moveSign.x = scast<float>( Donya::SignBit( resolver.x ) );
 			}
 		}
@@ -366,6 +371,33 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 		pos.x =  movedXYBody.pos.x;
 		pos.y =  movedXYBody.pos.y;
 		pos.z += velocity.z;
+
+		enum Dir { Up = 1, Down = -1 };
+		int  verticalSign = Donya::SignBit( -lastResolver.y ); // Represent the last direction that was collided to other.
+		if ( verticalSign == Down )
+		{
+			Landing();
+
+			aboveSlipGround = HasSlipAttribute( lastHitOther );
+		}
+
+		/*
+		当たり判定を行う順番によって，壁に乗れてしまうようになる。
+
+		壁
+		壁自
+		壁
+
+		とあったとして，
+		自機が初めに左の壁と判定を行えば，貫通深度は横のほうが浅いので横に解決して済むが，
+		初めに下の壁と判定を行うと，貫通深度は縦のほうが浅くなってしまい，
+		後で横の壁とも判定を行うので衝突の解消はされるが，
+		着地したor頭をぶつけた判定を通ってしまう。
+		当たり判定の順序として 縦->横 と行うこと自体は問題ないので，
+		どうにかして「衝突時の速度をゼロにする」処理をいい感じにしたい。
+		*/
+		if( )
+
 	};
 
 	/// <summary>
