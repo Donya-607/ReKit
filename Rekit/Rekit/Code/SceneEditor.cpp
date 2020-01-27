@@ -1092,6 +1092,6 @@ void SceneEditor::UseImGui()
 //
 	// エディタImGui
 	EditParam::Get().UseImGui();
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 }
 #endif // USE_IMGUI
