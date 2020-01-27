@@ -208,7 +208,8 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
-	mission (), complete (),
+	idMission( NULL ), idComplete( NULL ),
+	idTitleText( NULL ), idTitleGear( NULL ), idTutorial( NULL ),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
@@ -299,8 +300,11 @@ void SceneGame::Init()
 		alert.TurnOn();
 	}
 
-	mission  = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission  ) );
-	complete = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Complete ) );
+	idMission	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission		) );
+	idComplete	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Complete		) );
+	idTitleText	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleText	) );
+	idTitleGear	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleGear	) );
+	idTutorial	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Tutorial		) );
 }
 void SceneGame::Uninit()
 {
@@ -425,17 +429,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
 
+		std::vector<BoxEx> forGimmickCollisions = refTerrain.Acquire();
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			accompanyBox = pHook->GetHitBox().Get2D();
+			forGimmickCollisions.emplace_back( pHook->GetHitBox().Get2D() );
+			accompanyBox = pHook->GetVacuumHitBox().Get2D();
 		}
 		else
 		{
 			accompanyBox.exist = false;
 		}
 
-		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refTerrain.Acquire() );
+		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, forGimmickCollisions );
 	}
 
 	// 5. Add the gimmicks block.
@@ -503,8 +509,8 @@ void SceneGame::Draw( float elapsedTime )
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
 		Donya::Sprite::SetDrawDepth( 1.0f );
 
-		Donya::Sprite::Draw ( mission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-		Donya::Sprite::Draw ( complete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( idMission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( idComplete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
 
 		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
@@ -1177,12 +1183,6 @@ void SceneGame::DrawOfTutorial()
 		XMStoreFloat2( &ans, viewVec );
 		return ans;
 	};
-	static const std::wstring titleText = L"./Data/Images/title_text.png";
-	static const std::wstring titleGear = L"./Data/Images/title_gear.png";
-	static const std::wstring tutorial = L"./Data/Images/Tutorial.png";
-	static const size_t titleTextID = Donya::Sprite::Load( titleText );
-	static const size_t titleGearID = Donya::Sprite::Load( titleGear );
-	static const size_t tutorialID = Donya::Sprite::Load( tutorial );
 
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4	P = iCamera.GetProjectionMatrix();
@@ -1194,12 +1194,12 @@ void SceneGame::DrawOfTutorial()
 
 	if ( tutorialState == TutorialState::Pull )
 	{
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>( tutorialState + 1 ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>( tutorialState + 1 ), 1280.0f, 448.0f, 0.3f, 0.3f );
 	}
 	else
 	{
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
 	}
 
 	static int animCount = 0;
@@ -1223,11 +1223,11 @@ void SceneGame::DrawOfTutorial()
 	}
 
 	Donya::Sprite::SetDrawDepth( 0.1f );
-	Donya::Sprite::DrawPart( titleTextID, 1000.0f, 500.0f, 0.0f, 320.0f * animFrame, 1280.0f, 320.0f );
+	Donya::Sprite::DrawPart( idTitleText, 1000.0f, 500.0f, 0.0f, 320.0f * animFrame, 1280.0f, 320.0f );
 
 	Donya::Sprite::SetDrawDepth( 0.2f );
-	Donya::Sprite::DrawPart( titleGearID, 770.0f, 600.0f, 0.0f, 480.0f * animFrameGear, 480.0f, 480.0f );
-	Donya::Sprite::DrawPart( titleGearID, 1200.0f, 400.0f, 0.0f, 480.0f * ( 2 - animFrameGear ), 480.0f, 480.0f );
+	Donya::Sprite::DrawPart( idTitleGear, 770.0f, 600.0f, 0.0f, 480.0f * animFrameGear, 480.0f, 480.0f );
+	Donya::Sprite::DrawPart( idTitleGear, 1200.0f, 400.0f, 0.0f, 480.0f * ( 2 - animFrameGear ), 480.0f, 480.0f );
 	
 }
 
@@ -1240,16 +1240,16 @@ Scene::Result SceneGame::ReturnResult()
 		{
 			Donya::Sound::Play( Music::ItemDecision );
 			Scene::Result change{};
-			change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+			change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 			change.sceneType = Scene::Type::Title;
 			return change;
 		}
 		else
 		{
-			if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+			if ( pressCtrl && Donya::Keyboard::Trigger( 'E' ) && !Fader::Get().IsExist() )
 			{
 				Scene::Result change{};
-				change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+				change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 				change.sceneType = Scene::Type::Editor;
 				return change;
 			}

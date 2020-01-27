@@ -34,7 +34,6 @@ private:
 	};
 
 private:
-
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
@@ -42,8 +41,11 @@ private:
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 	
-	size_t					mission;		// Sprite.
-	size_t					complete;		// Sprite.
+	size_t					idMission;		// Sprite.
+	size_t					idComplete;		// Sprite.
+	size_t					idTitleText;	// Sprite.
+	size_t					idTitleGear;	// Sprite.
+	size_t					idTutorial;		// Sprite.
 
 	BG						bg;
 	Player					player;
