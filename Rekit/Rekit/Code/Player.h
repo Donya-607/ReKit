@@ -29,6 +29,8 @@ private:
 private:
 	State						status;
 
+	int							collideKeyCounter;	// Keep increase when colliding to a key.
+
 	int							remainJumpCount;	// 0 is can not jump, 1 ~ is can jump.
 	float						drawAlpha;			// Use for dead animation.
 
@@ -57,6 +59,11 @@ public:
 	/// Returns hit-box is world space.
 	/// </summary>
 	AABBEx GetHitBox() const;
+
+	/// <summary>
+	/// Returns true if now is the timing that I caught the key.
+	/// </summary>
+	bool IsCatchKey() const;
 
 	bool IsDead() const;
 private:

@@ -173,7 +173,8 @@ bool				Player::wasLoaded{ false };
 
 Player::Player() :
 	status( State::Normal ),
-	remainJumpCount( 1 ), drawAlpha( 1.0f ),
+	collideKeyCounter( 0 ), remainJumpCount( 1 ),
+	drawAlpha( 1.0f ),
 	pos(), velocity(),
 	aboveSlipGround( false ),
 	seeRight( true )
@@ -187,6 +188,8 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 	LoadModel();
 
 	pos = wsInitPos;
+
+	collideKeyCounter = 0;
 }
 void Player::Uninit()
 {
@@ -218,6 +221,34 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
 	if ( IsDead() ) { return; }
 	// else
+
+	// VS Key.
+	{
+		BoxEx movedBody = GetHitBox().Get2D();
+		movedBody.pos += movedBody.velocity;
+
+		bool nowHit = false;
+		for ( const auto &it : terrains )
+		{
+			if ( !GimmickUtility::HasAttribute( GimmickKind::TriggerKey, it ) ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( movedBody, it, /* ignoreExistFlag = */ true ) )
+			{
+				nowHit = true;
+				break;
+			}
+		}
+
+		if ( nowHit )
+		{
+			collideKeyCounter++;
+		}
+		else
+		{
+			collideKeyCounter = 0;
+		}
+	}
 
 	/// <summary>
 	/// Support an attribute.
@@ -831,6 +862,11 @@ AABBEx Player::GetHitBox() const
 	return wsAABB;
 }
 
+bool Player::IsCatchKey() const
+{
+	return ( collideKeyCounter == 1 ) ? true : false;
+}
+
 bool Player::IsDead() const
 {
 	return ( status == State::Dead && drawAlpha <= 0.0f ) ? true : false;
@@ -985,6 +1021,7 @@ void Player::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"プレイヤー・今のデータ" ) )
 		{
+			ImGui::Text( u8"キーに触れている時間[%d]", collideKeyCounter	);
 			ImGui::DragInt( u8"のこりジャンプ回数",	&remainJumpCount	);
 			ImGui::DragFloat3( u8"ワールド座標",		&pos.x				);
 			ImGui::DragFloat3( u8"移動速度",			&velocity.x			);
