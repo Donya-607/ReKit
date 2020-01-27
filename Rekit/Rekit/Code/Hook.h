@@ -17,8 +17,6 @@ public:
 		Donya::Vector3	playerPos{};	// World space.
 		Donya::Vector2	stickVec{};		// スティック前に倒したら上行く(Y+ == ↑)
 		bool			currPress{};	// Current button state : [TRUE:Pressed] [FALSE:Not pressed]
-		bool			extend{};		// Extend the hook : [TRUE:Extend] [FALSE:Do not extend]
-		bool			shrink{};		// Shrink hook : [TRUE:Shrink] [FALSE:Do not shrink]
 	};
 private:
 	struct Constants
@@ -41,9 +39,9 @@ private:
 
 	Donya::Vector3				pos;				// World space.
 	Donya::Vector3				velocity;
-	Donya::Vector3				direction;
 	ActionState					state;
 
+	int							interval;			// If the stick is neutral, the time before the hook begins to shrink.
 	float						easingTime;
 	float						distance;			// distance between player and hook.
 	float						momentPullDist;		// The distance between the player and the hook at the moment of the pull.

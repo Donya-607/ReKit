@@ -28,6 +28,7 @@ public:
 		float		pullSpeed{};	// 
 		float		pullTime{};		// 
 		float		hitRadius{};	// Hit-Sphere of using to the collision to player.
+		float		slerpSpeed{};	// 
 
 //		AABBEx		appearanceBox{};// Apparent size of box.
 		AABBEx		hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
@@ -43,7 +44,7 @@ public:
 				CEREAL_NVP(pullSpeed),
 				CEREAL_NVP(pullTime),
 				CEREAL_NVP(hitRadius),
-//				CEREAL_NVP(appearanceBox),
+				CEREAL_NVP( slerpSpeed ),
 				CEREAL_NVP(hitBoxPhysic)
 			);
 			if (1 <= version)
@@ -111,11 +112,12 @@ public:
 					ImGui::Checkbox((prefix + u8"ìñÇΩÇËîªíËÇÕóLå¯Ç©").c_str(), &pHitBox->exist);
 				};
 
-				ImGui::DragFloat(u8"í∑Ç≥ÇÃå¿äEíl",					&m.lengthLimit,	1.0f, 0.0f);
+				ImGui::DragFloat(u8"í∑Ç≥ÇÃå¿äEíl",						&m.lengthLimit,	1.0f, 0.0f);
 				ImGui::DragFloat(u8"ìäÇ∞ÇÁÇÍÇΩéûÇÃë¨ìx",				&m.throwSpeed,	1.0f, 0.0f);
-				ImGui::DragFloat(u8"à¯Ç©ÇÍÇΩéûÇÃèâë¨",				&m.pullSpeed,	1.0f, 0.0f);
+				ImGui::DragFloat(u8"à¯Ç©ÇÍÇΩéûÇÃèâë¨",					&m.pullSpeed,	1.0f, 0.0f);
 				ImGui::DragFloat(u8"à¯Ç©ÇÍÇΩéûÇÃEasingÇÃÉtÉåÅ[ÉÄêî",	&m.pullTime,	1.0f, 0.0f);
 				ImGui::DragFloat(u8"PlayerÇ∆ÇÃìñÇΩÇËîªíËÇÃîºåa",		&m.hitRadius,	1.0f, 0.0f);
+				ImGui::SliderFloat(u8"stickì|ÇµÇΩéûÇÃâÒì]ë¨ìx",			&m.slerpSpeed,	0.0f, 360.0f);
 
 //				static Donya::Easing::Type type = Donya::Easing::Type::In;
 //				{
@@ -183,8 +185,8 @@ Donya::StaticMesh	Hook::drawModel{};
 bool				Hook::wasLoaded{};
 
 Hook::Hook(const Donya::Vector3& playerPos) :
-	pos(playerPos), velocity(), direction(), state(ActionState::Throw),
-	easingTime(0), distance(0), momentPullDist(0),
+	pos(playerPos), velocity(), state(Hook::ActionState::Throw),
+	interval(0), easingTime(0), distance(0), momentPullDist(0),
 	prevPress(false), exist(true), isHitCheckEnable(), placeablePoint(true)
 {}
 Hook::~Hook() = default;
@@ -305,8 +307,7 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 	if ( state == ActionState::Throw )
 	{
-		pos.x = direction.x * distance + playerPos.x;
-		pos.y = direction.y * distance + playerPos.y;
+		pos += velocity;
 
 		placeablePoint = true;
 
@@ -526,25 +527,19 @@ AABBEx Hook::GetHitBox() const
 
 void Hook::ThrowUpdate(float elapsedTime, Input controller)
 {
-//	if ( controller.stickVec.IsZero() ) { return; }
-	// else
-	if (!controller.stickVec.IsZero ())
-	{
-		direction.x = controller.stickVec.x;
-		direction.y = controller.stickVec.y;
-	}
+	float speed = HookParam::Get ().Data ().throwSpeed * elapsedTime;
+	velocity.x = controller.stickVec.x * speed;
+	velocity.y = controller.stickVec.y * speed;
+	Donya::Vector3 dir ( pos + velocity - controller.playerPos );
 
-	const float moveSpeed = HookParam::Get().Data().throwSpeed * elapsedTime;
-	if (controller.extend) { distance += moveSpeed; }
-	if (controller.shrink) { distance -= moveSpeed; }
-	
-	if ( HookParam::Get().Data().lengthLimit < distance )
+	float distance = dir.Length ();
+	dir.Normalize ();
+
+	if (HookParam::Get ().Data ().lengthLimit < distance)
 	{
-		distance = HookParam::Get().Data().lengthLimit;
-	}
-	if (0 >= distance)
-	{
-		distance = 0;
+		velocity = 0;
+//		speed = speed - (distance - HookParam::Get ().Data ().lengthLimit);
+//		velocity = dir * speed;
 	}
 }
 

@@ -1032,8 +1032,6 @@ void SceneGame::HookUpdate( float elapsedTime )
 	input.playerPos = player.GetPosition();
 	input.currPress = useAction;
 	input.stickVec  = stick.Normalized();
-	input.extend	= extend;
-	input.shrink	= shrink;
 
 	pHook->Update(elapsedTime, input);
 }
