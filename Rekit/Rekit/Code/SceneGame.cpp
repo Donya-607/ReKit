@@ -212,7 +212,7 @@ SceneGame::SceneGame() :
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
-	nowTutorial( true ),
+	nowTutorial( false ),
 	enableAlert( false ),
 	nowCleared( false ),
 	useCushion( true )
@@ -277,6 +277,7 @@ void SceneGame::Init()
 	else
 	{
 		nowTutorial		= false;
+		tutorialState	=  TutorialState::Erase;
 	}
 
 	player.Init( spawnPos );
