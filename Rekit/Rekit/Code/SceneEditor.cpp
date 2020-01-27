@@ -203,7 +203,7 @@ public:
 		case SelectGimmick::TriggerKey:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
-			break;
+			break; 
 		case SelectGimmick::TriggerSwitch:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
@@ -236,12 +236,16 @@ public:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<BombGenerator>());
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombGenerator),  rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
+		case SelectGimmick::BombDuct:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<BombDuct>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombDuct), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
 		case SelectGimmick::Shutter:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Shutter>(m.doorID, m.changeableDirection));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Shutter),		 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Door:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<Door>());
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<Door>(m.doorID, dir.Normalize()));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Door),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Elevator:
@@ -420,6 +424,10 @@ public:
 						if (ImGui::Button(u8"BombGenerator"))
 						{
 							data = SelectGimmick::BombGenerator;
+						}
+						if (ImGui::Button(u8"BombDuct"))
+						{
+							data = SelectGimmick::BombDuct;
 						}
 						if (ImGui::Button(u8"Shutter"))
 						{
