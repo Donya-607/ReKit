@@ -432,10 +432,27 @@ void Bomb::BombPhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, con
 		}
 		// else
 
-		constexpr GimmickKind igniteKind = GimmickKind::Spike;
+		auto IsIgniteKind = []( const BoxEx &other )
+		{
+			constexpr GimmickKind igniteKinds[]
+			{
+				GimmickKind::Spike,
+				GimmickKind::FlammableBlock,
+			};
+
+			for ( const auto &it : igniteKinds )
+			{
+				if ( GimmickUtility::HasAttribute( it, other ) )
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
 		for ( const auto &it : terrains )
 		{
-			if ( !GimmickUtility::HasAttribute( igniteKind, it ) ) { continue; }
+			if ( !IsIgniteKind( it ) ) { continue; }
 			// else
 
 			if ( Donya::Box::IsHitBox( it, movedBody ) )
