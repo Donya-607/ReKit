@@ -10,16 +10,19 @@
 class ScenePause : public Scene
 {
 private:
-	enum Choice
+	enum class Choice
 	{
 		Nil = -1,
-		BackToTitle = 0,
-		Resume,
-		ReTry,
+		Resume = 0,
+		BackToTitle,
+		Retry,
+
+		ItemCount
 	};
 private:
 	Choice			choice;
-	SpriteSheet		sprUI;
+	SpriteSheet		sprBoard;
+	SpriteSheet		sprSentences;
 	Donya::XInput	controller;
 
 	Scene::Type		nextSceneType;

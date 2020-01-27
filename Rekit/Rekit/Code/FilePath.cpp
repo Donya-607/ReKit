@@ -34,6 +34,10 @@ std::wstring GetSpritePath( SpriteAttribute sprAttribute )
 		return L"./Data/Images/Clear/MISSION.png";								// break;
 	case SpriteAttribute::Complete:
 		return L"./Data/Images/Clear/COMPLETE.png";								// break;
+	case SpriteAttribute::PauseBoard:
+		return L"./Data/Images/Pause/Board.png";								// break;
+	case SpriteAttribute::PauseSentences:
+		return L"./Data/Images/Pause/Sentences.png";							// break;
 	default:
 		assert( !"Error : Specified unexpect sprite type." ); break;
 	}

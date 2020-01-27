@@ -21,6 +21,8 @@ enum class SpriteAttribute
 	EmergerncySoloFrame,
 	Mission,
 	Complete,
+	PauseBoard,
+	PauseSentences,
 };
 
 std::wstring GetSpritePath( SpriteAttribute spriteAttribute );
