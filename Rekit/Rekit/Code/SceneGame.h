@@ -91,6 +91,7 @@ private:
 	void	UpdateCurrentStage();
 
 	bool	InLastStage() const;
+	void	LastStageInit();
 
 	void	HookUpdate( float elapsedTime );
 

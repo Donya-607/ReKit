@@ -4,13 +4,13 @@ namespace Music
 {
 	enum ID
 	{
-		BGM_Title = 0,
-		BGM_Game,
+		BGM_Main = 0,
+		BGM_Last,
 		BGM_Clear,
-		// BGM_Over,
 
 		ItemChoose,
 		ItemDecision,
+
 		Alert,
 
 		Jump,
@@ -18,11 +18,9 @@ namespace Music
 		Appearance,
 		Pull,
 		Insert,
-
 		GetKey,
 		BombExplotion,
 		DoorOpenOrClose,
-		Aleat,
 
 		MUSIC_COUNT
 	};

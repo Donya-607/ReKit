@@ -222,8 +222,6 @@ SceneGame::~SceneGame() = default;
 
 void SceneGame::Init()
 {
-	Donya::Sound::Play( Music::BGM_Game );
-
 	BG::ParameterInit();
 
 	Terrain::LoadModel();
@@ -297,8 +295,11 @@ void SceneGame::Init()
 	Donya::Sound::Stop( Music::ID::Alert, /* isEnableForAll = */ true );
 	if ( InLastStage() )
 	{
-		enableAlert = true;
-		alert.TurnOn();
+		LastStageInit(); // Also play the BGM.
+	}
+	else
+	{
+		Donya::Sound::Play( Music::BGM_Main );
 	}
 
 	idMission	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission		) );
@@ -309,7 +310,9 @@ void SceneGame::Init()
 }
 void SceneGame::Uninit()
 {
-	Donya::Sound::Stop( Music::BGM_Game );
+	Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
 
 	GameParam::Get().Uninit();
 
@@ -387,7 +390,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	auto &refGimmick = gimmicks[currentStageNo];
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
-	// refTerrain.Reset();
 	for ( auto &it : terrains )
 	{
 		it.Reset();
@@ -467,6 +469,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	if ( DetectClearMoment() && !nowCleared )
 	{
+		Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+		Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+		Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
+		Donya::Sound::Play( Music::BGM_Clear );
 		PrepareGoToTitle();
 	}
 
@@ -881,8 +887,7 @@ void SceneGame::PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes )
 
 		if ( InLastStage() && !enableAlert )
 		{
-			enableAlert = true;
-			alert.TurnOn();
+			LastStageInit();
 		}
 	}
 }
@@ -963,6 +968,16 @@ void SceneGame::UpdateCurrentStage()
 bool SceneGame::InLastStage() const
 {
 	return ( currentStageNo == GameParam::Get().Data().lastRoomIndex ) ? true : false;
+}
+void SceneGame::LastStageInit()
+{
+	Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
+	Donya::Sound::Play( Music::BGM_Last );
+
+	enableAlert = true;
+	alert.TurnOn();
 }
 
 void SceneGame::HookUpdate( float elapsedTime )
