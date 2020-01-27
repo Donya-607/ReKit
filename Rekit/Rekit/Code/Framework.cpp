@@ -16,6 +16,8 @@
 #include "Common.h"
 #include "Music.h"
 
+#include "GimmickUtil.h"	// Use for initialize.
+
 using namespace DirectX;
 
 Framework::Framework() :
@@ -35,6 +37,8 @@ bool Framework::Init()
 #else
 	pSceneMng->Init( Scene::Type::Logo );
 #endif // DEBUG_MODE
+
+	GimmickStatus::Reset();
 
 	return true;
 }

@@ -229,7 +229,6 @@ void SceneGame::Init()
 
 	GimmickUtility::LoadModels();
 	GimmickUtility::InitParameters();
-	GimmickStatus::Reset();
 
 	GameParam::Get().Init();
 
@@ -451,12 +450,9 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		UpdateOfTutorial();
 	}
 
-	if ( DetectClearMoment() )
+	if ( DetectClearMoment() && !nowCleared )
 	{
-		nowCleared = true;
-		StartFade();
-
-		GameStorage::InitializeRespawnPos();
+		PrepareGoToTitle();
 	}
 
 #if DEBUG_MODE
@@ -1057,12 +1053,12 @@ void SceneGame::StartFade() const
 
 void SceneGame::PrepareGoToTitle()
 {
-	const auto param = GameParam::Get().Data();
-	GameStorage::RegisterRespawnPos( param.initPlayerPos );
+	GameStorage::InitializeRespawnPos();
+	GimmickStatus::Reset();
 
-	nowTutorial = true;
-	enableAlert = false;
-	useCushion  = true;
+	nowTutorial	= true;
+	enableAlert	= false;
+	nowCleared	= true;
 
 	if ( !Fader::Get().IsExist() )
 	{
