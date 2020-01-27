@@ -13,6 +13,9 @@ enum class SpriteAttribute
 {
 	FMODLogoBlack,
 	FMODLogoWhite,
+	TitleText,
+	TitleGear,
+	Tutorial,
 	Gear,
 	Emergerncy,
 	EmergerncySoloFrame,

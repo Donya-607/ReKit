@@ -331,7 +331,8 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 			lastHitOther = other;
 
 			// Repulse to the more little(but greater than zero) axis side of penetration.
-			if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
+			if ( ( penetration.y < penetration.x && !ZeroEqual( penetration.y ) ) || ZeroEqual( penetration.x ) )
+			// if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 			{
 				Donya::Vector2 influence{};
 				enum Dir { Up = 1, Down = -1 };
@@ -357,7 +358,8 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 					if ( signs.y != 0 ) { moveSign.y = scast<float>( signs.y ); }
 				}
 			}
-			else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+			// else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+			else if ( !ZeroEqual( penetration.x ) )
 			{
 				movedXYBody.pos.x	+= resolver.x;
 				moveSign.x			=  scast<float>( Donya::SignBit( resolver.x ) );
