@@ -294,6 +294,7 @@ void SceneGame::Init()
 	alert.Init();
 	nowCleared = false;
 
+	Donya::Sound::Stop( Music::ID::Alert, /* isEnableForAll = */ true );
 	if ( InLastStage() )
 	{
 		enableAlert = true;
