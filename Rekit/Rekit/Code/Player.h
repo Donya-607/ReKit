@@ -44,6 +44,7 @@ private:
 	Donya::Vector3				velocity;
 
 	bool						aboveSlipGround;
+	bool						seeRight;
 public:
 	Player();
 	~Player();

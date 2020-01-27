@@ -175,7 +175,8 @@ Player::Player() :
 	status( State::Normal ),
 	remainJumpCount( 1 ), drawAlpha( 1.0f ),
 	pos(), velocity(),
-	aboveSlipGround( false )
+	aboveSlipGround( false ),
+	seeRight(true)
 {}
 Player::~Player() = default;
 
@@ -774,7 +775,18 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
+
+	//Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
+	auto scale = PlayerParam::Get().Data().drawScale;
+	Donya::Vector4x4 S = Donya::Vector4x4::Identity();
+	if (seeRight)
+	{
+		S = Donya::Vector4x4::MakeScaling(Donya::Vector3(scale, scale, scale));
+	}
+	else
+	{
+		S = Donya::Vector4x4::MakeScaling(Donya::Vector3(scale * -1, scale, scale));
+	}
 	Donya::Vector4x4 W = S * T;
 
 	drawModel.Render
@@ -867,6 +879,14 @@ void Player::Move( float elapsedTime, Input controller )
 
 	auto AssignMoveSpeed = [&]()
 	{
+		if (controller.moveVelocity.x > 0)
+		{
+			seeRight = true;
+		}
+		else if (controller.moveVelocity.x < 0)
+		{
+			seeRight = false;
+		}
 		velocity.x = controller.moveVelocity.x * moveSpeed;
 	};
 
