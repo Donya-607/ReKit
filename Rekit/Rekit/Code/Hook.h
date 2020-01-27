@@ -62,7 +62,7 @@ public:
 	static void Uninit();
 
 	void Update(float elpasedTime, Input controller);
-	void PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos);
+	void PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos, const BoxEx &wsScreenBox );
 
 	void Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const;
 public:

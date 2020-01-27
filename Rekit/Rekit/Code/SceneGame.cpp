@@ -422,10 +422,15 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
 	{
+		BoxEx wsScreen{};
+		wsScreen.pos.x =  roomOriginPos.x;
+		wsScreen.pos.y = -roomOriginPos.y; // Convert Y from screen space -> world space.
+		wsScreen.size  = GameParam::Get().Data().roomSize * 0.5f;
+
 		std::vector<BoxEx>   terrainsForHook = refTerrain.Acquire();
 		AppendGimmicksBox(  &terrainsForHook,  refGimmick );
 
-		pHook->PhysicUpdate( terrainsForHook,  player.GetPosition() );
+		pHook->PhysicUpdate( terrainsForHook,  player.GetPosition(), wsScreen );
 	}
 
 	// 4. The gimmicks PhysicUpdate().

@@ -289,9 +289,9 @@ void Hook::Update(float elapsedTime, Input controller)
 	prevPress = controller.currPress;
 }
 
-void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos)
+void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3& playerPos, const BoxEx &wsScreenBox )
 {
-	auto IsHitToJammer = [&]()->bool
+	auto IsHitToJammer  = [&]()->bool
 	{
 		const BoxEx wsBody = GetHitBox().Get2D();
 		
@@ -308,11 +308,24 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 
 		return false;
 	};
+	auto ToInsideScreen = [&]()
+	{
+		if ( Donya::Box::IsHitBox( GetHitBox().Get2D(), wsScreenBox, /* ignoreExistFlag = */ true ) ) { return; }
+		// else
+
+		const auto &scrPos  = wsScreenBox.pos;
+		const auto &scrSize = wsScreenBox.size;	// Half size.
+
+		pos.x = std::max( scrPos.x - scrSize.x, std::min( scrPos.x + scrSize.x, pos.x ) );
+		pos.y = std::max( scrPos.y - scrSize.y, std::min( scrPos.y + scrSize.y, pos.y ) );
+	};
 
 	if ( state == ActionState::Throw )
 	{
 		pos.x = direction.x * distance + playerPos.x;
 		pos.y = direction.y * distance + playerPos.y;
+
+		ToInsideScreen();
 
 		placeablePoint = true;
 
@@ -474,6 +487,8 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	pos.x = movedXYBody.pos.x;
 	pos.y = movedXYBody.pos.y;
 	pos.z += velocity.z;
+
+	ToInsideScreen();
 
 	if ( wasCollided )
 	{
