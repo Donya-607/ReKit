@@ -48,14 +48,14 @@ public:
 	void Init( int stageNumber, const StageConfiguration &stageConfig, const Donya::Vector3 &worldOffset );
 	void Uninit();
 
-	void Update( float elapsedTime, bool alsoElevators = true, bool useImGui = false );
-	void UpdateElevators( float elapsedTime );
+	void Update( float elapsedTime, bool alsoLifts = true, bool useImGui = false );
+	void UpdateLifts( float elapsedTime );
 	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
-	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection, bool alsoElevators = true ) const;
-	void DrawElevators( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
+	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection, bool alsoLifts = true ) const;
+	void DrawLifts( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;
 public:
-	bool HasElevators() const;
+	bool HasLift() const;
 	std::vector<AABBEx> RequireHitBoxes() const;
 private:
 	/// <summary>

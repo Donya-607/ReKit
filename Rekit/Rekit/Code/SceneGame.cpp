@@ -394,26 +394,26 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	// 2. Update velocity of all objects.
 	{
-		// This flag prevent a double updating a elevators.
-		const bool alsoUpdateElevators = ( refGimmick.HasElevators() ) ? false : true;
-		refGimmick.Update( elapsedTime, alsoUpdateElevators );
+		// This flag prevent a double updating a lifts.
+		const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
+		refGimmick.Update( elapsedTime, alsoUpdateLifts );
 
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
 	}
 
-	// Update a elevator's and add a elevator's hit-boxes.
-	// An elevator will used for the movement between the rooms.
+	// Update a lift's and add a lift's hit-boxes.
+	// An lift will used for the movement between the rooms.
 	{
-		for ( const auto &i : elevatorRoomIndices )
+		for ( const auto &i : liftRoomIndices )
 		{
 			if ( i == currentStageNo ) { continue; }
 			// else
-			gimmicks[i].UpdateElevators( elapsedTime );
+			gimmicks[i].UpdateLifts( elapsedTime );
 		}
 
-		const auto elevatorHitBoxes = FetchElevatorHitBoxes();
-		refTerrain.Append( elevatorHitBoxes );
+		const auto liftHitBoxes = FetchLiftHitBoxes();
+		refTerrain.Append( liftHitBoxes );
 	}
 
 	// 3. The hook's PhysicUpdate().
@@ -523,15 +523,15 @@ void SceneGame::Draw( float elapsedTime )
 
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
-	// This flag prevent a double drawing a elevators.
-	const bool alsoDrawElevators = ( gimmicks[currentStageNo].HasElevators() ) ? false : true;
-	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawElevators );
+	// This flag prevent a double drawing a lifts.
+	const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawLifts );
 
-	for ( const auto &i : elevatorRoomIndices )
+	for ( const auto &i : liftRoomIndices )
 	{
 		if ( i == currentStageNo ) { continue; }
 		// else
-		gimmicks[i].DrawElevators( V, P, lightDir );
+		gimmicks[i].DrawLifts( V, P, lightDir );
 	}
 
 	player.Draw( V * P, lightDir, lightColor );
@@ -626,14 +626,14 @@ void SceneGame::LoadAllStages()
 		return stage;
 	};
 
-	auto HasContainElevator	= []( const std::vector<std::shared_ptr<GimmickBase>> &pGimmicks )
+	auto HasContainLift		= []( const std::vector<std::shared_ptr<GimmickBase>> &pGimmicks )
 	{
 		for ( const auto &pIt : pGimmicks )
 		{
 			if ( !pIt ) { continue; }
 			// else
 
-			if ( GimmickUtility::ToKind( pIt->GetKind() ) == GimmickKind::Elevator )
+			if ( GimmickUtility::ToKind( pIt->GetKind() ) == GimmickKind::Lift )
 			{
 				return true;
 			}
@@ -644,7 +644,7 @@ void SceneGame::LoadAllStages()
 
 	terrains.clear();
 	gimmicks.clear();
-	elevatorRoomIndices.clear();
+	liftRoomIndices.clear();
 
 	int stageNo = 0; // 0-based.
 	std::string filePath = MakeFilePath( stageNo );
@@ -674,9 +674,9 @@ void SceneGame::LoadAllStages()
 			roomOrigin
 		);
 
-		if ( HasContainElevator( config.pEditGimmicks ) )
+		if ( HasContainLift( config.pEditGimmicks ) )
 		{
-			elevatorRoomIndices.emplace_back( stageNo );
+			liftRoomIndices.emplace_back( stageNo );
 		}
 
 		stageNo++;
@@ -686,16 +686,16 @@ void SceneGame::LoadAllStages()
 	stageCount = stageNo;
 }
 
-std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
+std::vector<BoxEx> SceneGame::FetchLiftHitBoxes() const
 {
-	auto FetchElevatorBoxes = []( const Gimmick &gimmicks )
+	auto FetchLiftBoxes = []( const Gimmick &gimmicks )
 	{
 		std::vector<BoxEx> wsHitBoxes{};
 
 		const auto wsAllHitBoxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : wsAllHitBoxes )
 		{
-			if ( !GimmickUtility::HasAttribute( GimmickKind::Elevator, it ) ) { continue; }
+			if ( !GimmickUtility::HasAttribute( GimmickKind::Lift, it ) ) { continue; }
 			// else
 
 			wsHitBoxes.emplace_back( it.Get2D() );
@@ -709,12 +709,12 @@ std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
 
 	// We consider as the gimmicks count to immutabe.
 
-	for ( const auto &i : elevatorRoomIndices )
+	for ( const auto &i : liftRoomIndices )
 	{
 		if ( i == currentStageNo ) { continue; }
 		// else
 
-		wsLocalBoxes = FetchElevatorBoxes( gimmicks[i] );
+		wsLocalBoxes = FetchLiftBoxes( gimmicks[i] );
 		for ( const auto &it : wsLocalBoxes )
 		{
 			wsAllBoxes.emplace_back( it );
