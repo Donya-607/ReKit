@@ -39,6 +39,11 @@ private:
 
 	bool						aboveSlipGround;
 	bool						seeRight;
+
+	float						viewOpenCount;
+	bool						isCatchKey;
+
+	size_t						idOpenDoor;
 public:
 	Player();
 	~Player();
@@ -80,6 +85,9 @@ private:
 	void Landing();
 
 	void KillMe();
+
+	void UpdateOpenDoor(float elapsedTime);
+	void DrawOfOpenDoor(const Donya::Vector4x4& matViewProjection)const;
 
 #if USE_IMGUI
 private:

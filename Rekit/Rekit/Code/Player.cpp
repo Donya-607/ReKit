@@ -9,6 +9,7 @@
 #include "Donya/Sound.h"
 #include "Donya/Template.h"		
 #include "Donya/Useful.h"		// Use convert string functions.
+#include "Donya/Sprite.h"
 
 #if DEBUG_MODE
 #include "Donya/Keyboard.h"
@@ -18,6 +19,7 @@
 #include "GimmickUtil.h"		// Use for confirming to slip ground.
 #include "GimmickImpl/Bomb.h"	// Use for confirming to "is the attribute danger?".
 #include "Music.h"
+#include "SceneGame.h"
 
 #undef max
 #undef min
@@ -172,12 +174,15 @@ Donya::StaticMesh	Player::drawModel{};
 bool				Player::wasLoaded{ false };
 
 Player::Player() :
-	status( State::Normal ),
-	collideKeyCounter( 0 ), remainJumpCount( 1 ),
-	drawAlpha( 1.0f ),
+	status(State::Normal),
+	collideKeyCounter(0), remainJumpCount(1),
+	drawAlpha(1.0f),
 	pos(), velocity(),
-	aboveSlipGround( false ),
-	seeRight( true )
+	aboveSlipGround(false),
+	seeRight(true),
+	viewOpenCount(0),
+	isCatchKey(false),
+	idOpenDoor(0)
 {}
 Player::~Player() = default;
 
@@ -190,6 +195,8 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 	pos = wsInitPos;
 
 	collideKeyCounter = 0;
+	viewOpenCount = 0;
+	idOpenDoor = Donya::Sprite::Load(L"Data/Images/Door_Open.png");
 }
 void Player::Uninit()
 {
@@ -825,6 +832,8 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 		lightDirection, Donya::Vector4{ 1.0f, 1.0f, 1.0f, drawAlpha }
 	);
 
+	DrawOfOpenDoor(matViewProjection);
+
 #if DEBUG_MODE
 	if ( Common::IsShowCollision() )
 	{
@@ -898,6 +907,8 @@ void Player::NormalUpdate( float elapsedTime, Input controller )
 
 	Fall( elapsedTime, controller );
 	JumpIfUsed( elapsedTime, controller );
+
+	UpdateOpenDoor(elapsedTime);
 }
 void Player::DeadUpdate( float elapsedTime, Input controller )
 {
@@ -1008,6 +1019,74 @@ void Player::KillMe()
 	velocity		= 0.0f;
 	remainJumpCount	= 0;
 	drawAlpha		= 1.0f;
+}
+
+void Player::UpdateOpenDoor(float elapsedTime)
+{
+	if (IsCatchKey())
+	{
+		isCatchKey = true;
+	}
+
+	if (isCatchKey)
+	{
+		viewOpenCount += elapsedTime;
+		if (viewOpenCount >= 4.0f)
+		{
+			isCatchKey = false;
+			viewOpenCount = 0;
+		}
+	}
+}
+
+void Player::DrawOfOpenDoor(const Donya::Vector4x4& matViewProjection)const
+{
+	if (!isCatchKey)return;
+
+	auto ConvertionScreenToWorld = [&](DirectX::XMFLOAT3 worldPos, Donya::Vector4x4 _ViewProj)
+	{
+		using namespace DirectX;
+
+		XMVECTOR worldPos_v = XMLoadFloat3(&worldPos);
+
+		float w = Common::HalfScreenWidthF();
+		float h = Common::HalfScreenHeightF();
+
+		XMMATRIX ViewProjection = {
+			_ViewProj.m[0][0],_ViewProj.m[0][1],_ViewProj.m[0][2],_ViewProj.m[0][3],
+			_ViewProj.m[1][0],_ViewProj.m[1][1],_ViewProj.m[1][2],_ViewProj.m[1][3],
+			_ViewProj.m[2][0],_ViewProj.m[2][1],_ViewProj.m[2][2],_ViewProj.m[2][3],
+			_ViewProj.m[3][0],_ViewProj.m[3][1],_ViewProj.m[3][2],_ViewProj.m[3][3],
+		};
+
+		XMMATRIX Vp = {
+			w, 0, 0, 0,
+			0, -h, 0, 0,
+			0, 0, 1, 0,
+			w, h, 0, 1,
+		};
+
+		worldPos_v = XMVector3Transform(worldPos_v, ViewProjection);
+
+		XMFLOAT3 tmp;
+		XMStoreFloat3(&tmp, worldPos_v);
+
+		XMVECTOR viewVec = XMVectorSet(tmp.x / tmp.z, tmp.y / tmp.z, 1.0f, 1.0f);
+		viewVec = XMVector3Transform(viewVec, Vp);
+		XMFLOAT2 ans;
+		XMStoreFloat2(&ans, viewVec);
+		return ans;
+	};
+
+
+
+	DirectX::XMFLOAT3 playerPos{ pos };
+	auto pos = ConvertionScreenToWorld(playerPos, matViewProjection);
+
+	Donya::Sprite::SetDrawDepth(0.0f);
+
+	Donya::Sprite::DrawPartExt(idOpenDoor, pos.x + 50, pos.y - 200, 0.0f, 0.0f, 640.0f,512.0f, 0.3f, 0.3f);
+
 }
 
 #if USE_IMGUI
