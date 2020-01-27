@@ -31,6 +31,7 @@ public:
 
 //		AABBEx		appearanceBox{};// Apparent size of box.
 		AABBEx		hitBoxPhysic{};	// Hit-Box of using to the collision to the stage.
+		AABBEx		hitBoxVacuum{};	// Hit-Box of using to the vacuum a some gimmicks.
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -47,6 +48,10 @@ public:
 				CEREAL_NVP(hitBoxPhysic)
 			);
 			if (1 <= version)
+			{
+				archive( CEREAL_NVP( hitBoxVacuum ) );
+			}
+			if (2 <= version)
 			{
 				// CEREAL_NVP( x )
 			}
@@ -145,7 +150,8 @@ public:
 //				}
 
 //				AdjustAABB(u8"みてくれのサイズ",		&m.appearanceBox, 1.0f, 0.0f);
-				AdjustAABB(u8"当たり判定：ＶＳ地形",	&m.hitBoxPhysic);
+				AdjustAABB(u8"当たり判定：ＶＳ地形・",	&m.hitBoxPhysic);
+				AdjustAABB(u8"当たり判定：引き寄せる・",	&m.hitBoxVacuum);
 
 				if (ImGui::TreeNode(u8"ファイル"))
 				{
@@ -177,7 +183,7 @@ public:
 #endif // USE_IMGUI
 };
 
-CEREAL_CLASS_VERSION(HookParam::Member, 0)
+CEREAL_CLASS_VERSION(HookParam::Member, 1)
 
 Donya::StaticMesh	Hook::drawModel{};
 bool				Hook::wasLoaded{};
@@ -475,19 +481,22 @@ void Hook::PhysicUpdate(const std::vector<BoxEx>& terrains, const Donya::Vector3
 	}
 }
 
+#if DEBUG_MODE
+#include "Donya/GeometricPrimitive.h"
+#include "Common.h"
+#endif // DEBUG_MODE
 void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4& lightDirection, const Donya::Vector4& lightColor) const
 {
 	const Donya::Vector3 drawOffset{ 0.0f, 0.0f, -2.5f }; // For near.
 
 	const AABBEx wsHitBox = GetHitBox();
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( wsHitBox.pos + drawOffset );
-	// Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size * 2.0f/* Half size to Whole size */ );
 	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( wsHitBox.size );
 	Donya::Vector4x4 W = S * T;
 
 	Donya::Vector4 color	= ( placeablePoint )
-							? Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f }
-							: Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f };
+							? Donya::Vector4{ 0.8f, 0.0f, 0.6f, 1.0f }
+							: Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	if ( state == ActionState::Throw )
 	{
@@ -502,6 +511,26 @@ void Hook::Draw(const Donya::Vector4x4& matViewProjection, const Donya::Vector4&
 		W * matViewProjection, W,
 		lightDirection, color
 	);
+
+#if DEBUG_MODE
+	if ( Common::IsShowCollision() )
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+
+		const auto wsBody = GetVacuumHitBox();
+		T = Donya::Vector4x4::MakeTranslation( wsBody.pos );
+		S = Donya::Vector4x4::MakeScaling( wsBody.size * 2.0f );
+		W = S * T;
+
+		cube.Render
+		(
+			nullptr,
+			true, true,
+			W * matViewProjection, W,
+			lightDirection, Donya::Vector4{ 1.0f, 1.0f, 1.0f, 0.5f }
+		);
+	}
+#endif // DEBUG_MODE
 }
 
 Donya::Vector3 Hook::GetPosition() const
@@ -515,12 +544,22 @@ Donya::Vector3 Hook::GetVelocity() const
 
 AABBEx Hook::GetHitBox() const
 {
-	AABBEx wsBox	= HookParam::Get().Data().hitBoxPhysic;
+	AABBEx wsBox	=  HookParam::Get().Data().hitBoxPhysic;
 	wsBox.pos		+= GetPosition();
-	wsBox.velocity	= GetVelocity();
-	wsBox.exist		= ( state == ActionState::Stay || state == ActionState::Pull )
-					? true
-					: false;
+	wsBox.velocity	=  GetVelocity();
+	wsBox.exist		=  ( state == ActionState::Stay || state == ActionState::Pull )
+					?  true
+					:  false;
+	return wsBox;
+}
+AABBEx Hook::GetVacuumHitBox() const
+{
+	AABBEx wsBox	=  HookParam::Get().Data().hitBoxVacuum;
+	wsBox.pos		+= GetPosition();
+	wsBox.velocity	=  GetVelocity();
+	wsBox.exist		=  ( state == ActionState::Stay || state == ActionState::Pull )
+					?  true
+					:  false;
 	return wsBox;
 }
 

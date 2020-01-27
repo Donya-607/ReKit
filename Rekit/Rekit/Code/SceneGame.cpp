@@ -429,20 +429,17 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
 
+		std::vector<BoxEx> forGimmickCollisions = refTerrain.Acquire();
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			accompanyBox = pHook->GetHitBox().Get2D();
+			forGimmickCollisions.emplace_back( pHook->GetHitBox().Get2D() );
+			accompanyBox = pHook->GetVacuumHitBox().Get2D();
 		}
 		else
 		{
 			accompanyBox.exist = false;
 		}
-
-		constexpr float		collisionScale = 0.8f;	// The hit-box should be smaller than accompany-box.
-		std::vector<BoxEx>	forGimmickCollisions = refTerrain.Acquire();
-		forGimmickCollisions.emplace_back( accompanyBox );
-		forGimmickCollisions.back().size *= collisionScale;
 
 		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, forGimmickCollisions );
 	}
