@@ -55,6 +55,7 @@ enum class SelectGimmick
 	TriggerPull,		// Linking to the Elevator.
 	Bomb,
 	BombGenerator,
+	BombDuct,
 	Shutter,
 	Door,
 	Elevator,

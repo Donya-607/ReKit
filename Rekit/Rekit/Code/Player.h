@@ -21,14 +21,6 @@ public:
 		bool useJump{ false };
 	};
 private:
-	struct Constants
-	{
-		DirectX::XMFLOAT4X4	worldViewProjection;
-		DirectX::XMFLOAT4X4	world;
-		DirectX::XMFLOAT4	lightDirection;
-		DirectX::XMFLOAT4	lightColor;
-		DirectX::XMFLOAT4	materialColor;
-	};
 	enum class State
 	{
 		Normal,
@@ -44,6 +36,7 @@ private:
 	Donya::Vector3				velocity;
 
 	bool						aboveSlipGround;
+	bool						seeRight;
 public:
 	Player();
 	~Player();
