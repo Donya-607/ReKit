@@ -269,6 +269,7 @@ AABBEx Elevator::GetHitBox () const
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
 	wsHitBox.velocity = velocity;
+	wsHitBox.attr = kind;
 	return wsHitBox;
 }
 

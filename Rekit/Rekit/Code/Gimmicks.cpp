@@ -39,7 +39,7 @@ void Gimmick::Uninit()
 	pGimmicks.clear();
 }
 
-void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoElevators )
+void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoLift )
 {
 #if USE_IMGUI
 	if ( useImGui )
@@ -53,21 +53,21 @@ void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoElevators )
 		if ( !it ) { continue; }
 		// else
 
-		// Prevent double update by UpdateElevators().
-		if ( alsoElevators && ToKind( it->GetKind() ) == GimmickKind::Elevator ) { continue; }
+		// Prevent double update by UpdateLifts().
+		if ( alsoLift && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
 		// else
 
 		it->Update( elapsedTime );
 	}
 }
-void Gimmick::UpdateElevators( float elapsedTime )
+void Gimmick::UpdateLifts( float elapsedTime )
 {
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
-		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
+		if ( ToKind( it->GetKind() ) == GimmickKind::Lift )
 		{
 			it->Update(elapsedTime);
 		}
@@ -135,42 +135,42 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 	}
 }
 
-void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir, bool alsoElevators ) const
+void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir, bool alsoLifts ) const
 {
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
-		// Prevent double draw by DrawElevators().
-		if ( alsoElevators && ToKind( it->GetKind() ) == GimmickKind::Elevator ) { continue; }
+		// Prevent double draw by DrawLifts().
+		if ( alsoLifts && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
 		// else
 
 		it->Draw( V, P, lightDir );
 	}
 }
-void Gimmick::DrawElevators( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
+void Gimmick::DrawLifts( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
 {
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
-		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
+		if ( ToKind( it->GetKind() ) == GimmickKind::Lift )
 		{
 			it->Draw( V, P, lightDir );
 		}
 	}
 }
 
-bool Gimmick::HasElevators() const
+bool Gimmick::HasLift() const
 {
 	for ( auto &it : pGimmicks )
 	{
 		if ( !it ) { continue; }
 		// else
 
-		if ( ToKind( it->GetKind() ) == GimmickKind::Elevator )
+		if ( ToKind( it->GetKind() ) == GimmickKind::Lift )
 		{
 			return true;
 		}

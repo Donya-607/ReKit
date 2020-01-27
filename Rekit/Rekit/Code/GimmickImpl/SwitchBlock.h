@@ -86,7 +86,7 @@ private:
 	void Scale( float elapsedTime );
 	void Respawn();
 
-	void GatherToTheTarget( const std::vector<BoxEx> &terrains );
+	bool GatherToTheTarget( const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;

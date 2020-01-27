@@ -55,7 +55,7 @@ private:
 	std::vector<Terrain>	terrains;		// The terrains per room.
 	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
 
-	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
+	std::vector<int>		liftRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					nowTutorial;	// Do you doing tutorial now?
@@ -75,7 +75,7 @@ public:
 private:
 	void	LoadAllStages();
 
-	std::vector<BoxEx> FetchElevatorHitBoxes() const;
+	std::vector<BoxEx> FetchLiftHitBoxes() const;
 
 	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;
