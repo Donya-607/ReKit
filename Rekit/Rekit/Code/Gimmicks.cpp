@@ -39,7 +39,7 @@ void Gimmick::Uninit()
 	pGimmicks.clear();
 }
 
-void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoLift )
+void Gimmick::Update( float elapsedTime, bool alsoLifts, bool useImGui )
 {
 #if USE_IMGUI
 	if ( useImGui )
@@ -54,7 +54,7 @@ void Gimmick::Update( float elapsedTime, bool useImGui, bool alsoLift )
 		// else
 
 		// Prevent double update by UpdateLifts().
-		if ( alsoLift && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
+		if ( !alsoLifts && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
 		// else
 
 		it->Update( elapsedTime );
@@ -69,12 +69,12 @@ void Gimmick::UpdateLifts( float elapsedTime )
 
 		if ( ToKind( it->GetKind() ) == GimmickKind::Lift )
 		{
-			it->Update(elapsedTime);
+			it->Update( elapsedTime );
 		}
 	}
 }
 
-void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool alsoLifts )
 {
 	// The "pGimmicks" will update at PhysicUpdate().
 	// So I prepare a temporary vector of terrains and update this every time update elements.
@@ -89,6 +89,10 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 	{
 		const auto &pElement = pGimmicks[i];
 		if ( !pElement ) { continue; }
+		// else
+
+		// Prevent double update by PhysicUpdateLifts().
+		if ( !alsoLifts && ToKind( pElement->GetKind() ) == GimmickKind::Lift ) { continue; }
 		// else
 
 		boxes.emplace_back( pElement->GetHitBox().Get2D() );
@@ -117,6 +121,10 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 		if ( !pGimmicks[i] ) { continue; }
 		// else
 
+		// Prevent double update by PhysicUpdateLifts().
+		if ( !alsoLifts && ToKind( pGimmicks[i]->GetKind() ) == GimmickKind::Lift ) { continue; }
+		// else
+
 		pGimmicks[i]->PhysicUpdate( player, accompanyBox, allTerrains );
 		allTerrains[i] = pGimmicks[i]->GetHitBox().Get2D();
 	}
@@ -134,6 +142,23 @@ void Gimmick::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, cons
 		pGimmicks.erase( itr, pGimmicks.end() );
 	}
 }
+void Gimmick::PhysicUpdateLifts( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains )
+{
+	// The lift has not required some terrains, so we pass invalid arg.
+	const BoxEx nil = BoxEx::Nil();
+	const std::vector<BoxEx> empty{};
+
+	for ( auto &it : pGimmicks )
+	{
+		if ( !it ) { continue; }
+		// else
+
+		if ( ToKind( it->GetKind() ) == GimmickKind::Lift )
+		{
+			it->PhysicUpdate( nil, nil, empty );
+		}
+	}
+}
 
 void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir, bool alsoLifts ) const
 {
@@ -143,7 +168,7 @@ void Gimmick::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 		// else
 
 		// Prevent double draw by DrawLifts().
-		if ( alsoLifts && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
+		if ( !alsoLifts && ToKind( it->GetKind() ) == GimmickKind::Lift ) { continue; }
 		// else
 
 		it->Draw( V, P, lightDir );
@@ -217,7 +242,7 @@ void Gimmick::ApplyConfig( const StageConfiguration &stageConfig, const Donya::V
 	for ( size_t i = 0; i < gimmickCount; ++i )
 	{
 		pGimmicks[i] = stageConfig.pEditGimmicks[i];
-		pGimmicks[i]->AddOffset(worldOffset);
+		pGimmicks[i]->AddOffset( worldOffset );
 	}
 }
 

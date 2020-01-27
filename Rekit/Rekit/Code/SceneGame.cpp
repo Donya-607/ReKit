@@ -395,8 +395,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 2. Update velocity of all objects.
 	{
 		// This flag prevent a double updating a lifts.
-		const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
-		refGimmick.Update( elapsedTime, alsoUpdateLifts );
+		// const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
+		refGimmick.Update( elapsedTime, /* alsoLifts = */ true, /* useImGui = */ true );
 
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
@@ -427,7 +427,7 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	// 4. The gimmicks PhysicUpdate().
 	{
-		AABBEx wsPlayerAABB = player.GetHitBox();
+		const BoxEx wsPlayerBody = player.GetHitBox().Get2D();
 
 		std::vector<BoxEx> forGimmickCollisions = refTerrain.Acquire();
 		BoxEx accompanyBox{};
@@ -441,7 +441,14 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			accompanyBox.exist = false;
 		}
 
-		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, forGimmickCollisions );
+		refGimmick.PhysicUpdate( wsPlayerBody, accompanyBox, forGimmickCollisions );
+
+		for ( const auto &i : liftRoomIndices )
+		{
+			if ( i == currentStageNo ) { continue; }
+			// else
+			gimmicks[i].PhysicUpdateLifts( wsPlayerBody, accompanyBox, forGimmickCollisions );
+		}
 	}
 
 	// 5. Add the gimmicks block.
@@ -524,8 +531,8 @@ void SceneGame::Draw( float elapsedTime )
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
 	// This flag prevent a double drawing a lifts.
-	const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
-	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawLifts );
+	// const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, /* alsoLifts = */ true );
 
 	for ( const auto &i : liftRoomIndices )
 	{
