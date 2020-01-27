@@ -253,7 +253,7 @@ public:
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BeltConveyor),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::OneWayBlock:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<OneWayBlock>());
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<OneWayBlock>(dir.Normalize()));
 			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::OneWayBlock),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::ClearBlock:
