@@ -34,7 +34,6 @@ private:
 	};
 
 private:
-
 	int						stageCount;		// 1-based.
 	int						currentStageNo;	// 0-based.
 
