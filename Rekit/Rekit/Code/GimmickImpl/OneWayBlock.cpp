@@ -180,7 +180,6 @@ void OneWayBlock::Init( int gimmickKind, float roll, const Donya::Vector3 &wsPos
 	velocity	= 0.0f;
 
 	initPos		= pos;
-	velocity	= Donya::Vector3::Zero();
 }
 void OneWayBlock::Uninit()
 {

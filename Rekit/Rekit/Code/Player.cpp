@@ -173,10 +173,11 @@ bool				Player::wasLoaded{ false };
 
 Player::Player() :
 	status( State::Normal ),
-	remainJumpCount( 1 ), drawAlpha( 1.0f ),
+	collideKeyCounter( 0 ), remainJumpCount( 1 ),
+	drawAlpha( 1.0f ),
 	pos(), velocity(),
 	aboveSlipGround( false ),
-	seeRight(true)
+	seeRight( true )
 {}
 Player::~Player() = default;
 
@@ -187,6 +188,8 @@ void Player::Init( const Donya::Vector3 &wsInitPos )
 	LoadModel();
 
 	pos = wsInitPos;
+
+	collideKeyCounter = 0;
 }
 void Player::Uninit()
 {
@@ -218,6 +221,34 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 {
 	if ( IsDead() ) { return; }
 	// else
+
+	// VS Key.
+	{
+		BoxEx movedBody = GetHitBox().Get2D();
+		movedBody.pos += movedBody.velocity;
+
+		bool nowHit = false;
+		for ( const auto &it : terrains )
+		{
+			if ( !GimmickUtility::HasAttribute( GimmickKind::TriggerKey, it ) ) { continue; }
+			// else
+
+			if ( Donya::Box::IsHitBox( movedBody, it, /* ignoreExistFlag = */ true ) )
+			{
+				nowHit = true;
+				break;
+			}
+		}
+
+		if ( nowHit )
+		{
+			collideKeyCounter++;
+		}
+		else
+		{
+			collideKeyCounter = 0;
+		}
+	}
 
 	/// <summary>
 	/// Support an attribute.
@@ -774,20 +805,16 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 #endif // DEBUG_MODE
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
+	Donya::Vector4x4 R = Donya::Vector4x4::Identity();
+	if ( !seeRight )
+	{
+		Donya::Quaternion halfRot = Donya::Quaternion::Make( Donya::Vector3::Up(), ToRadian( 180.0f ) );
+		R = halfRot.RequireRotationMatrix();
+	}
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-
-	//Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
-	auto scale = PlayerParam::Get().Data().drawScale;
-	Donya::Vector4x4 S = Donya::Vector4x4::Identity();
-	if (seeRight)
-	{
-		S = Donya::Vector4x4::MakeScaling(Donya::Vector3(scale, scale, scale));
-	}
-	else
-	{
-		S = Donya::Vector4x4::MakeScaling(Donya::Vector3(scale * -1, scale, scale));
-	}
-	Donya::Vector4x4 W = S * T;
+	
+	Donya::Vector4x4 W = S * R * T;
 
 	drawModel.Render
 	(
@@ -806,7 +833,7 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 		const auto wsBody = GetHitBox();
 		T = Donya::Vector4x4::MakeTranslation( wsBody.pos );
 		S = Donya::Vector4x4::MakeScaling( wsBody.size );
-		W = S *T;
+		W = S * T;
 
 		cube.Render
 		(
@@ -830,6 +857,11 @@ AABBEx Player::GetHitBox() const
 	wsAABB.velocity	=  velocity;
 	wsAABB.exist	=  ( status == State::Dead ) ? false : true;
 	return wsAABB;
+}
+
+bool Player::IsCatchKey() const
+{
+	return ( collideKeyCounter == 1 ) ? true : false;
 }
 
 bool Player::IsDead() const
@@ -879,11 +911,12 @@ void Player::Move( float elapsedTime, Input controller )
 
 	auto AssignMoveSpeed = [&]()
 	{
-		if (controller.moveVelocity.x > 0)
+		if ( controller.moveVelocity.x > 0 )
 		{
 			seeRight = true;
 		}
-		else if (controller.moveVelocity.x < 0)
+		else
+		if ( controller.moveVelocity.x < 0 )
 		{
 			seeRight = false;
 		}
@@ -985,6 +1018,7 @@ void Player::UseImGui()
 	{
 		if ( ImGui::TreeNode( u8"プレイヤー・今のデータ" ) )
 		{
+			ImGui::Text( u8"キーに触れている時間[%d]", collideKeyCounter	);
 			ImGui::DragInt( u8"のこりジャンプ回数",	&remainJumpCount	);
 			ImGui::DragFloat3( u8"ワールド座標",		&pos.x				);
 			ImGui::DragFloat3( u8"移動速度",			&velocity.x			);

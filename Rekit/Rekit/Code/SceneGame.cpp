@@ -222,8 +222,6 @@ SceneGame::~SceneGame() = default;
 
 void SceneGame::Init()
 {
-	Donya::Sound::Play( Music::BGM_Game );
-
 	BG::ParameterInit();
 
 	Terrain::LoadModel();
@@ -294,10 +292,14 @@ void SceneGame::Init()
 	alert.Init();
 	nowCleared = false;
 
+	Donya::Sound::Stop( Music::ID::Alert, /* isEnableForAll = */ true );
 	if ( InLastStage() )
 	{
-		enableAlert = true;
-		alert.TurnOn();
+		LastStageInit(); // Also play the BGM.
+	}
+	else
+	{
+		Donya::Sound::Play( Music::BGM_Main );
 	}
 
 	idMission	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission		) );
@@ -308,7 +310,9 @@ void SceneGame::Init()
 }
 void SceneGame::Uninit()
 {
-	Donya::Sound::Stop( Music::BGM_Game );
+	Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
 
 	GameParam::Get().Uninit();
 
@@ -386,7 +390,6 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	auto &refGimmick = gimmicks[currentStageNo];
 	
 	// 1. Reset the registered hit-boxes in "debugAllTerrains".
-	// refTerrain.Reset();
 	for ( auto &it : terrains )
 	{
 		it.Reset();
@@ -395,8 +398,8 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 2. Update velocity of all objects.
 	{
 		// This flag prevent a double updating a lifts.
-		const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
-		refGimmick.Update( elapsedTime, alsoUpdateLifts );
+		// const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
+		refGimmick.Update( elapsedTime, /* alsoLifts = */ true, /* useImGui = */ true );
 
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
@@ -419,15 +422,20 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	// 3. The hook's PhysicUpdate().
 	if ( pHook )
 	{
+		BoxEx wsScreen{};
+		wsScreen.pos.x =  roomOriginPos.x;
+		wsScreen.pos.y = -roomOriginPos.y; // Convert Y from screen space -> world space.
+		wsScreen.size  = GameParam::Get().Data().roomSize * 0.5f;
+
 		std::vector<BoxEx>   terrainsForHook = refTerrain.Acquire();
 		AppendGimmicksBox(  &terrainsForHook,  refGimmick );
 
-		pHook->PhysicUpdate( terrainsForHook,  player.GetPosition() );
+		pHook->PhysicUpdate( terrainsForHook,  player.GetPosition(), wsScreen );
 	}
 
 	// 4. The gimmicks PhysicUpdate().
 	{
-		AABBEx wsPlayerAABB = player.GetHitBox();
+		const BoxEx wsPlayerBody = player.GetHitBox().Get2D();
 
 		std::vector<BoxEx> forGimmickCollisions = refTerrain.Acquire();
 		BoxEx accompanyBox{};
@@ -441,7 +449,14 @@ Scene::Result SceneGame::Update( float elapsedTime )
 			accompanyBox.exist = false;
 		}
 
-		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, forGimmickCollisions );
+		refGimmick.PhysicUpdate( wsPlayerBody, accompanyBox, forGimmickCollisions );
+
+		for ( const auto &i : liftRoomIndices )
+		{
+			if ( i == currentStageNo ) { continue; }
+			// else
+			gimmicks[i].PhysicUpdateLifts( wsPlayerBody, accompanyBox, forGimmickCollisions );
+		}
 	}
 
 	// 5. Add the gimmicks block.
@@ -459,6 +474,10 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	if ( DetectClearMoment() && !nowCleared )
 	{
+		Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+		Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+		Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
+		Donya::Sound::Play( Music::BGM_Clear );
 		PrepareGoToTitle();
 	}
 
@@ -524,8 +543,8 @@ void SceneGame::Draw( float elapsedTime )
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
 	// This flag prevent a double drawing a lifts.
-	const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
-	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawLifts );
+	// const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, /* alsoLifts = */ true );
 
 	for ( const auto &i : liftRoomIndices )
 	{
@@ -873,8 +892,7 @@ void SceneGame::PlayerPhysicUpdate( const std::vector<BoxEx> &hitBoxes )
 
 		if ( InLastStage() && !enableAlert )
 		{
-			enableAlert = true;
-			alert.TurnOn();
+			LastStageInit();
 		}
 	}
 }
@@ -955,6 +973,16 @@ void SceneGame::UpdateCurrentStage()
 bool SceneGame::InLastStage() const
 {
 	return ( currentStageNo == GameParam::Get().Data().lastRoomIndex ) ? true : false;
+}
+void SceneGame::LastStageInit()
+{
+	Donya::Sound::Stop( Music::BGM_Main,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Last,  /* isEnableForAll = */ true );
+	Donya::Sound::Stop( Music::BGM_Clear, /* isEnableForAll = */ true );
+	Donya::Sound::Play( Music::BGM_Last );
+
+	enableAlert = true;
+	alert.TurnOn();
 }
 
 void SceneGame::HookUpdate( float elapsedTime )

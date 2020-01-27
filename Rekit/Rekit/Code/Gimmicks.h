@@ -50,7 +50,8 @@ public:
 
 	void Update( float elapsedTime, bool alsoLifts = true, bool useImGui = false );
 	void UpdateLifts( float elapsedTime );
-	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
+	void PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains, bool alsoLifts = true );
+	void PhysicUpdateLifts( const BoxEx &player, const BoxEx &accompanyBox, const std::vector<BoxEx> &terrains );
 
 	void Draw( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection, bool alsoLifts = true ) const;
 	void DrawLifts( const Donya::Vector4x4 &matView, const Donya::Vector4x4 &matProjection, const Donya::Vector4 &lightDirection ) const;

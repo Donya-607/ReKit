@@ -30,11 +30,11 @@ SceneTitle::~SceneTitle() = default;
 
 void SceneTitle::Init()
 {
-	Donya::Sound::Play( Music::BGM_Title );
+	//Donya::Sound::Play( Music::BGM_Title );
 }
 void SceneTitle::Uninit()
 {
-	Donya::Sound::Stop( Music::BGM_Title );
+	//Donya::Sound::Stop( Music::BGM_Title );
 }
 
 Scene::Result SceneTitle::Update( float elapsedTime )

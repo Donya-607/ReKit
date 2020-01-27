@@ -29,8 +29,8 @@ public:
 	static void UseParameterImGui();
 #endif // USE_IMGUI
 private:
-	const Donya::Vector3 openDirection;	// Normalized.
-	Donya::Vector3 initPos;				// World space.
+	Donya::Vector3 openDirection;	// Normalized.
+	Donya::Vector3 initPos;			// World space.
 public:
 	OneWayBlock();
 	OneWayBlock( const Donya::Vector3 &openDirection );
@@ -45,6 +45,14 @@ private:
 			cereal::base_class<GimmickBase>( this )
 		);
 		if ( 1 <= version )
+		{
+			archive
+			(
+				CEREAL_NVP( openDirection ),
+				CEREAL_NVP( initPos )
+			);
+		}
+		if ( 2 <= version )
 		{
 			// archive( CEREAL_NVP( x ) );
 		}
@@ -80,7 +88,7 @@ public:
 	void ShowImGuiNode() override;
 #endif // USE_IMGUI
 };
-CEREAL_CLASS_VERSION( OneWayBlock, 0 )
+CEREAL_CLASS_VERSION( OneWayBlock, 1 )
 CEREAL_REGISTER_TYPE( OneWayBlock )
 CEREAL_REGISTER_POLYMORPHIC_RELATION( GimmickBase, OneWayBlock )
 

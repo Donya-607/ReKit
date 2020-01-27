@@ -106,25 +106,22 @@ bool Framework::LoadSounds()
 	const std::array<Bundle, ID::MUSIC_COUNT> bandles =
 	{
 		{	// ID, FilePath, isEnableLoop
-			{ ID::BGM_Title,			"./Data/Sounds/BGM/Title.wav",					true  },
-			{ ID::BGM_Game,				"./Data/Sounds/BGM/Game.wav",					true  },
-			{ ID::BGM_Clear,			"./Data/Sounds/BGM/Clear.wav",					true  },
-			// { ID::BGM_Over,				"./Data/Sounds/BGM/Over.wav",					true  },
+			{ ID::BGM_Main,				"./Data/Sounds/BGM/ARPCHAIN.wav",				true  },
+			{ ID::BGM_Last,				"./Data/Sounds/BGM/Battle-Sonic.wav",			true  },
+			{ ID::BGM_Clear,			"./Data/Sounds/BGM/Time_Warp.wav",				true  },
 			
 			{ ID::ItemChoose,			"./Data/Sounds/SE/UI/ItemChoose.wav",			false },
 			{ ID::ItemDecision,			"./Data/Sounds/SE/UI/ItemDecision.wav",			false },
-			{ ID::Alert,				"./Data/Sounds/SE/UI/Alert.wav",				true  },
 
+			{ ID::Alert,				"./Data/Sounds/SE/UI/Alert.wav",				true  },
 			{ ID::Jump,					"./Data/Sounds/SE/PL_Jump.wav",					false },
 			{ ID::Throw,				"./Data/Sounds/SE/HK_Throw.wav",				false },
 			{ ID::Appearance,			"./Data/Sounds/SE/HK_Appearance.wav",			false },
 			{ ID::Pull,					"./Data/Sounds/SE/HK_Pull.wav",					false },
 			{ ID::Insert,				"./Data/Sounds/SE/HK_Insert.wav",				false },
-
 			{ ID::GetKey,				"./Data/Sounds/SE/GetKey.wav",					false },
 			{ ID::BombExplotion,		"./Data/Sounds/SE/BombExplotion.wav",			false },
 			{ ID::DoorOpenOrClose,		"./Data/Sounds/SE/DoorOpen_orClose.wav",		false },
-			{ ID::Aleat,				"./Data/Sounds/SE/Alert.wav",					false },
 
 		},
 	};
