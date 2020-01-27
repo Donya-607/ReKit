@@ -152,7 +152,7 @@ Lift::Lift () : GimmickBase (),
 direction ( 0, 0, 0 ), moveAmount ( 0 ), maxMoveAmount ( 0 ), state ( 0 )
 {}
 Lift::Lift ( const Donya::Vector3& direction, float moveAmount ) : GimmickBase (),
-direction ( direction ), moveAmount ( 0 ), maxMoveAmount ( moveAmount ), state ( 0 )
+direction ( direction ), moveAmount ( 0 ), maxMoveAmount ( moveAmount * 4 ), state ( 0 )
 {}
 Lift::~Lift () = default;
 
@@ -171,28 +171,27 @@ void Lift::Uninit ()
 
 void Lift::Update ( float elapsedTime )
 {
-	float speed;
+	float speed = ParamLift::Get ().Data ().moveSpeed;
 	switch (state)
 	{
 	case 0:	// go
-		moveAmount += ParamLift::Get ().Data ().moveSpeed;
-		speed = ParamLift::Get ().Data ().moveSpeed;
+		moveAmount += speed;
 
 		if (moveAmount >= maxMoveAmount)
 		{
-			speed = ParamLift::Get ().Data ().moveSpeed - (moveAmount - maxMoveAmount);
+			speed = speed - (moveAmount - maxMoveAmount);
 			moveAmount = maxMoveAmount;
 			state++;
 		}
 		break;
 
 	case 1:	// go back
-		moveAmount -= ParamLift::Get ().Data ().moveSpeed;
-		speed = ParamLift::Get ().Data ().moveSpeed * -1;
+		speed *= -1;
+		moveAmount += speed;
 
 		if (moveAmount <= 0)
 		{
-			speed = ParamLift::Get ().Data ().moveSpeed - moveAmount * -1;
+			speed = speed - moveAmount;
 			moveAmount = 0;
 			state--;
 		}
