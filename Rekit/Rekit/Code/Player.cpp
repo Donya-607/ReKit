@@ -805,19 +805,16 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 #endif // DEBUG_MODE
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
+	Donya::Vector4x4 S = Donya::Vector4x4::MakeScaling( PlayerParam::Get().Data().drawScale );
+	Donya::Vector4x4 R = Donya::Vector4x4::Identity();
+	if ( !seeRight )
+	{
+		Donya::Quaternion halfRot = Donya::Quaternion::Make( Donya::Vector3::Up(), ToRadian( 180.0f ) );
+		R = halfRot.RequireRotationMatrix();
+	}
 	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( GetPosition() );
-
-	const auto scale   = PlayerParam::Get().Data().drawScale;
-	Donya::Vector4x4 S = Donya::Vector4x4::Identity();
-	if ( seeRight )
-	{
-		S = Donya::Vector4x4::MakeScaling( Donya::Vector3( scale, scale, scale ) );
-	}
-	else
-	{
-		S = Donya::Vector4x4::MakeScaling( Donya::Vector3( -scale, scale, scale ) );
-	}
-	Donya::Vector4x4 W = S * T;
+	
+	Donya::Vector4x4 W = S * R * T;
 
 	drawModel.Render
 	(
@@ -836,7 +833,7 @@ void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vecto
 		const auto wsBody = GetHitBox();
 		T = Donya::Vector4x4::MakeTranslation( wsBody.pos );
 		S = Donya::Vector4x4::MakeScaling( wsBody.size );
-		W = S *T;
+		W = S * T;
 
 		cube.Render
 		(
