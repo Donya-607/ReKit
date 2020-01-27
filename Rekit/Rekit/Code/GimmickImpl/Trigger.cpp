@@ -470,9 +470,9 @@ void Trigger::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const 
 
 				// rotation = Donya::Quaternion::Make( Donya::Vector3::Front(), ToRadian( rollDegree ) );
 				// R = rotation.RequireRotationMatrix();
-				W._11 = wsHitBoxes[i].size.x;
-				W._22 = wsHitBoxes[i].size.y;
-				W._33 = wsHitBoxes[i].size.z;
+				W._11 = wsHitBoxes[i].size.x * 2.0f;
+				W._22 = wsHitBoxes[i].size.y * 2.0f;
+				W._33 = wsHitBoxes[i].size.z * 2.0f;
 				// W *= R;
 				W._41 = wsHitBoxes[i].pos.x;
 				W._42 = wsHitBoxes[i].pos.y;
