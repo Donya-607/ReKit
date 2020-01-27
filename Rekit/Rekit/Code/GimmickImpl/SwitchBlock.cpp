@@ -169,7 +169,9 @@ void SwitchBlock::UseParameterImGui()
 #endif // USE_IMGUI
 
 SwitchBlock::SwitchBlock() : GimmickBase(),
-	wasBroken( false ), scale( 1.0f )
+	wasBroken( false ),
+	scale( 1.0f ),
+	initPos()
 {}
 SwitchBlock::~SwitchBlock() = default;
 

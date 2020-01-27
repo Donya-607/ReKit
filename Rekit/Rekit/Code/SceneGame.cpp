@@ -1243,16 +1243,16 @@ Scene::Result SceneGame::ReturnResult()
 		{
 			Donya::Sound::Play( Music::ItemDecision );
 			Scene::Result change{};
-			change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+			change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 			change.sceneType = Scene::Type::Title;
 			return change;
 		}
 		else
 		{
-			if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+			if ( pressCtrl && Donya::Keyboard::Trigger( 'E' ) && !Fader::Get().IsExist() )
 			{
 				Scene::Result change{};
-				change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+				change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 				change.sceneType = Scene::Type::Editor;
 				return change;
 			}

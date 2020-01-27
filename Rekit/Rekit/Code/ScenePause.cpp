@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 
+#include <cereal/types/vector.hpp>
+
 #include "Donya/Constant.h"
 #include "Donya/Keyboard.h"
+#include "Donya/Serializer.h"
 #include "Donya/Sprite.h"
 #include "Donya/Sound.h"
 #include "Donya/Template.h"
