@@ -64,9 +64,9 @@ public:
 		Donya::Vector2		changeableBoxSize{2.0f, 2.0f};
 		Donya::Vector3		changeableDirection{ 0.0f,0.0f,0.0f };
 		float				changeableGimmickDegree = 0.0f;
-		float				changeableGimmickRange = 1.0f;
-		float				changeableGimmickIntervalSecond = 1.0f;
-		float				changeableGimmickApperSecond = 1.0f;
+		float				changeableGimmickRange = 3.0f;
+		float				changeableGimmickIntervalSecond = 3.0f;
+		float				changeableGimmickApperSecond = 3.0f;
 		int					stageNum = 0; // 0-based.
 		int					doorID = 0;
 		SelectGimmick		nowSelect;
@@ -176,11 +176,9 @@ public:
 			return scast<int>(kind);
 		};
 
-		auto debug = EditParam::Data().nowSelect;
+		// Orgments
 		auto mousePos = EditParam::Get().Data().transformMousePos;
 		auto size = EditParam::Get().Data().changeableBoxSize;
-
-		//const float rollDegree = 0.0f;
 		auto rollDegree = EditParam::Get().Data().changeableGimmickDegree;
 		auto dir = EditParam::Get().Data().changeableDirection;
 
@@ -190,81 +188,85 @@ public:
 		case SelectGimmick::Normal:
 			EditParam::Get().DataRef().editObjects.editBlocks.emplace_back(changeable);
 			break;
-		case SelectGimmick::FlammableBlock:
+		case SelectGimmick::Fragile:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<FragileBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Fragile),		 rollDegree,		Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			break;
+		case SelectGimmick::FlammableBlock:
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<FlammableBlock>());
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::FlammableBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Hard:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<HardBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Hard),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerKey:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerKey),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerSwitch:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::TriggerPull:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(m.doorID, false));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerPull),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Ice:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<IceBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Ice),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Spike:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<SpikeBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Spike), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Spike),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::SwitchBlock:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<SwitchBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::SwitchBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::SwitchBlock),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Lift:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Lift>(dir.Normalize(), m.changeableGimmickRange));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Lift), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Lift),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Bomb:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Bomb>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Bomb), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Bomb),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::BombGenerator:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<BombGenerator>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombGenerator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BombGenerator),  rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Shutter:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Shutter>(m.doorID, m.changeableDirection));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Shutter), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Shutter),		 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Door:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Door>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Door), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Door),			 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::Elevator:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Elevator>(m.doorID, dir.Normalize(), m.changeableGimmickRange));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Elevator), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::Elevator),		 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::BeltConveyor:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<BeltConveyor>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BeltConveyor), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::BeltConveyor),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::OneWayBlock:
-			m.editObjects.pEditGimmicks.push_back(std::make_shared<OneWayBlock>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::OneWayBlock), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.push_back(std::make_shared<OneWayBlock>(dir.Normalize()));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::OneWayBlock),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::ClearBlock:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<Trigger>(SceneEditor::ClearID, false));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::TriggerSwitch),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::JammerOrigin:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<JammerOrigin>());
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerOrigin), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerOrigin),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		case SelectGimmick::JammerArea:
 			m.editObjects.pEditGimmicks.push_back(std::make_shared<JammerArea>(m.changeableGimmickApperSecond, m.changeableGimmickIntervalSecond));
-			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerArea), rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
+			m.editObjects.pEditGimmicks.back()->Init(ToInt(GimmickKind::JammerArea),	 rollDegree, Donya::Vector3(mousePos.x, mousePos.y, 0.0f));
 			break;
 		default:
 			break;
@@ -356,16 +358,13 @@ public:
 					//ImGui::TreePop();
 				//}
 				ImGui::Text(" ");
+				if (SceneEditor::isChanges)
+				{
+					ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), u8"変更されていない箇所があります");
+				}
 
 				if (ImGui::TreeNode(u8"オブジェクト"))
 				{
-					ImGui::InputInt(u8"ドアのID", &m.doorID);
-					if (m.doorID >= 10)m.doorID = 10;
-					if (m.doorID <= 0)m.doorID = 0;
-					ImGui::Text("");
-
-					ImGui::SliderFloat3(u8"方向ベクトル", &m.changeableDirection.x, -1.0f, 1.0f);
-
 					// Select Gimmicks
 					{
 						ImGui::BeginChild(u8"Select"/*ImGui::GetID((void*)0)*/, ImVec2(250, 100));
@@ -375,6 +374,10 @@ public:
 							data = SelectGimmick::Normal;
 						}
 						if (ImGui::Button(u8"Fragile"))
+						{
+							data = SelectGimmick::Fragile;
+						}
+						if (ImGui::Button(u8"FlammableBlock"))
 						{
 							data = SelectGimmick::FlammableBlock;
 						}
@@ -472,14 +475,60 @@ public:
 						ImGui::SliderFloat(u8"Apper Second", &m.changeableGimmickApperSecond, 0.0f, 100.0f);
 						ImGui::SliderFloat(u8"Interval Second", &m.changeableGimmickIntervalSecond, 0.0f, 100.0f);
 					}
+
+					ImGui::InputInt(u8"ドアのID", &m.doorID);
+					if (m.doorID >= 10)m.doorID = 10;
+					if (m.doorID <= 0)m.doorID = 0;
+					ImGui::Text("");
+					ImGui::SliderFloat3(u8"方向ベクトル", &m.changeableDirection.x, -1.0f, 1.0f);
+					if (ImGui::Button(u8"上方向ベクトル"))
+					{
+						m.changeableDirection = Donya::Vector3(0.0f, 1.0f, 0.0f);
+					}
+					ImGui::SameLine(200);
+					if (ImGui::Button(u8"下方向ベクトル"))
+					{
+						m.changeableDirection = Donya::Vector3(0.0f, -1.0f, 0.0f);
+					}
+//					ImGui::SameLine(170);
+					if (ImGui::Button(u8"左方向ベクトル"))
+					{
+						m.changeableDirection = Donya::Vector3(-1.0f, 0.0f, 0.0f);
+					}
+					ImGui::SameLine(200);
+					if (ImGui::Button(u8"右方向ベクトル"))
+					{
+						m.changeableDirection = Donya::Vector3(1.0f, 0.0f, 0.0f);
+					}
+					if (ImGui::Button(u8"ベクトルをニュートラルに戻す"))
+					{
+						m.changeableDirection = Donya::Vector3(0.0f, 0.0f, 0.0f);
+					}
+					ImGui::Text("");
+
 					ImGui::SliderFloat(u8"オブジェクトのDegree", &m.changeableGimmickDegree, -180.0f, 179.9f);
+					if (ImGui::Button(u8"90度"))
+					{
+						m.changeableGimmickDegree = 90.0f;
+					}
+					ImGui::SameLine(120);
+					if (ImGui::Button(u8"180度"))
+					{
+						m.changeableGimmickDegree = 180.0f;
+					}
+					if (ImGui::Button(u8"-90度"))
+					{
+						m.changeableGimmickDegree = -90.0f;
+					}
+					ImGui::SameLine(120);
+					if (ImGui::Button(u8"-180度"))
+					{
+						m.changeableGimmickDegree = -180.0f;
+					}
+
 					if (ImGui::Button(u8"Degreeを0度に戻す"))
 					{
 						m.changeableGimmickDegree = 0.0f;
-					}
-					if (SceneEditor::isChanges)
-					{
-						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), u8"変更されていない箇所があります");
 					}
 					ImGui::TreePop();
 				}
@@ -586,6 +635,8 @@ Scene::Result SceneEditor::Update(float elapsedTime)
 	SaveEditParameter();
 	LoadEditParameter();
 	ControlDegree();
+	ChangeEditStage();
+
 	isPressG = Donya::Keyboard::Press('G');
 
 
@@ -889,6 +940,29 @@ void SceneEditor::ControlDegree()
 			rollDegree = -180.0f;
 	}
 	EditParam::Get().DataRef().changeableGimmickDegree = rollDegree;
+}
+
+void SceneEditor::ChangeEditStage()
+{
+	bool checkRightKey = Donya::Keyboard::Trigger(VK_RIGHT);
+	bool checkLeftKey = Donya::Keyboard::Trigger(VK_LEFT);
+
+	auto stageNum = EditParam::Get().Data().stageNum;
+	if (checkRightKey)
+	{
+		if (++stageNum >= 19)
+		{
+			stageNum = 19;
+		}
+	}
+	else if (checkLeftKey)
+	{
+		if (--stageNum <= 0)
+		{
+			stageNum = 0;
+		}
+	}
+	EditParam::Get().DataRef().stageNum = stageNum;
 }
 
 

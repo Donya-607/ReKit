@@ -41,8 +41,11 @@ private:
 	Donya::XInput			controller;
 	Donya::Vector2			roomOriginPos;	// Center. Screen space.
 	
-	size_t					mission;		// Sprite.
-	size_t					complete;		// Sprite.
+	size_t					idMission;		// Sprite.
+	size_t					idComplete;		// Sprite.
+	size_t					idTitleText;	// Sprite.
+	size_t					idTitleGear;	// Sprite.
+	size_t					idTutorial;		// Sprite.
 
 	BG						bg;
 	Player					player;
@@ -52,7 +55,7 @@ private:
 	std::vector<Terrain>	terrains;		// The terrains per room.
 	std::vector<Gimmick>	gimmicks;		// The gimmicks per room.
 
-	std::vector<int>		elevatorRoomIndices; // Cache the indices of room that has the elevator.
+	std::vector<int>		liftRoomIndices; // Cache the indices of room that has the elevator.
 
 	TutorialState			tutorialState;	// This variable controll drawing texts of tutorial.
 	bool					nowTutorial;	// Do you doing tutorial now?
@@ -72,7 +75,7 @@ public:
 private:
 	void	LoadAllStages();
 
-	std::vector<BoxEx> FetchElevatorHitBoxes() const;
+	std::vector<BoxEx> FetchLiftHitBoxes() const;
 
 	// The Y axis is screen space.
 	Donya::Int2 CalcRoomIndex( int stageNo ) const;

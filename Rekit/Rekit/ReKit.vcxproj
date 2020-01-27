@@ -209,7 +209,6 @@
     <ClCompile Include="External\ImGui\imgui_impl_dx11.cpp" />
     <ClCompile Include="External\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="External\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="mock.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code\Alert.h" />

@@ -169,7 +169,9 @@ void SwitchBlock::UseParameterImGui()
 #endif // USE_IMGUI
 
 SwitchBlock::SwitchBlock() : GimmickBase(),
-	wasBroken( false ), scale( 1.0f )
+	wasBroken( false ),
+	scale( 1.0f ),
+	initPos()
 {}
 SwitchBlock::~SwitchBlock() = default;
 
@@ -231,9 +233,15 @@ void SwitchBlock::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 		}
 	}
 
-	GatherToTheTarget( terrains );
+	// Returns true if hit to gathering target.
+	if ( GatherToTheTarget( terrains ) )
+	{
+		pos += velocity;
+		return;
+	}
+	// else
 
-	GimmickBase::PhysicUpdate( player, accompanyBox, terrains );
+	GimmickBase::PhysicUpdate( player, accompanyBox, terrains, /* collideToPlayer = */ true, /* ignoreHitBoxExist = */ false, /* allowCompress = */ false );
 }
 
 void SwitchBlock::Draw( const Donya::Vector4x4 &V, const Donya::Vector4x4 &P, const Donya::Vector4 &lightDir ) const
@@ -345,7 +353,7 @@ void SwitchBlock::Respawn()
 	scale			= 0.0f;
 }
 
-void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
+bool SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 {
 	for ( const auto &it : terrains )
 	{
@@ -363,8 +371,9 @@ void SwitchBlock::GatherToTheTarget( const std::vector<BoxEx> &terrains )
 		velocity =	( vecToDest.Length() < gatherSpeed )
 					? vecToDest
 					: vecToDest.Normalized() * gatherSpeed;
-		break; // I expect don't collide at the same time to or-more-two the destination.
+		return true; // I expect don't collide at the same time to or-more-two the destination.
 	}
+	return false;
 }
 
 #if USE_IMGUI

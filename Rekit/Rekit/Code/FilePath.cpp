@@ -20,6 +20,12 @@ std::wstring GetSpritePath( SpriteAttribute sprAttribute )
 		return L"./Data/Images/Rights/FMOD Logo White - Black Background.png";	// break;
 	case SpriteAttribute::Gear:
 		return L"./Data/Images/BG/Gear.png";									// break;
+	case SpriteAttribute::TitleText:
+		return L"./Data/Images/Title/title_text.png";							// break;
+	case SpriteAttribute::TitleGear:
+		return L"./Data/Images/Title/title_gear.png";							// break;
+	case SpriteAttribute::Tutorial:
+		return L"./Data/Images/UI/Tutorial.png";								// break;
 	case SpriteAttribute::Emergerncy:
 		return L"./Data/Images/UI/emergency.png";								// break;
 	case SpriteAttribute::EmergerncySoloFrame:
@@ -28,6 +34,10 @@ std::wstring GetSpritePath( SpriteAttribute sprAttribute )
 		return L"./Data/Images/Clear/MISSION.png";								// break;
 	case SpriteAttribute::Complete:
 		return L"./Data/Images/Clear/COMPLETE.png";								// break;
+	case SpriteAttribute::PauseBoard:
+		return L"./Data/Images/Pause/Board.png";								// break;
+	case SpriteAttribute::PauseSentences:
+		return L"./Data/Images/Pause/Sentences.png";							// break;
 	default:
 		assert( !"Error : Specified unexpect sprite type." ); break;
 	}

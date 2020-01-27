@@ -208,11 +208,12 @@ SceneGame::SceneGame() :
 	iCamera(),
 	controller( Donya::Gamepad::PAD_1 ),
 	roomOriginPos(),
-	mission (), complete (),
+	idMission( NULL ), idComplete( NULL ),
+	idTitleText( NULL ), idTitleGear( NULL ), idTutorial( NULL ),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
-	nowTutorial( true ),
+	nowTutorial( false ),
 	enableAlert( false ),
 	nowCleared( false ),
 	useCushion( true )
@@ -229,7 +230,6 @@ void SceneGame::Init()
 
 	GimmickUtility::LoadModels();
 	GimmickUtility::InitParameters();
-	GimmickStatus::Reset();
 
 	GameParam::Get().Init();
 
@@ -278,6 +278,7 @@ void SceneGame::Init()
 	else
 	{
 		nowTutorial		= false;
+		tutorialState	=  TutorialState::Erase;
 	}
 
 	player.Init( spawnPos );
@@ -299,8 +300,11 @@ void SceneGame::Init()
 		alert.TurnOn();
 	}
 
-	mission  = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission  ) );
-	complete = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Complete ) );
+	idMission	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Mission		) );
+	idComplete	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Complete		) );
+	idTitleText	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleText	) );
+	idTitleGear	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleGear	) );
+	idTutorial	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Tutorial		) );
 }
 void SceneGame::Uninit()
 {
@@ -390,26 +394,26 @@ Scene::Result SceneGame::Update( float elapsedTime )
 
 	// 2. Update velocity of all objects.
 	{
-		// This flag prevent a double updating a elevators.
-		const bool alsoUpdateElevators = ( refGimmick.HasElevators() ) ? false : true;
-		refGimmick.Update( elapsedTime, alsoUpdateElevators );
+		// This flag prevent a double updating a lifts.
+		const bool alsoUpdateLifts = ( refGimmick.HasLift() ) ? false : true;
+		refGimmick.Update( elapsedTime, alsoUpdateLifts );
 
 		PlayerUpdate( elapsedTime ); // This update does not call the PhysicUpdate().
 		HookUpdate  ( elapsedTime ); // This update does not call the PhysicUpdate().
 	}
 
-	// Update a elevator's and add a elevator's hit-boxes.
-	// An elevator will used for the movement between the rooms.
+	// Update a lift's and add a lift's hit-boxes.
+	// An lift will used for the movement between the rooms.
 	{
-		for ( const auto &i : elevatorRoomIndices )
+		for ( const auto &i : liftRoomIndices )
 		{
 			if ( i == currentStageNo ) { continue; }
 			// else
-			gimmicks[i].UpdateElevators( elapsedTime );
+			gimmicks[i].UpdateLifts( elapsedTime );
 		}
 
-		const auto elevatorHitBoxes = FetchElevatorHitBoxes();
-		refTerrain.Append( elevatorHitBoxes );
+		const auto liftHitBoxes = FetchLiftHitBoxes();
+		refTerrain.Append( liftHitBoxes );
 	}
 
 	// 3. The hook's PhysicUpdate().
@@ -425,17 +429,19 @@ Scene::Result SceneGame::Update( float elapsedTime )
 	{
 		AABBEx wsPlayerAABB = player.GetHitBox();
 
+		std::vector<BoxEx> forGimmickCollisions = refTerrain.Acquire();
 		BoxEx accompanyBox{};
 		if ( pHook )
 		{
-			accompanyBox = pHook->GetHitBox().Get2D();
+			forGimmickCollisions.emplace_back( pHook->GetHitBox().Get2D() );
+			accompanyBox = pHook->GetVacuumHitBox().Get2D();
 		}
 		else
 		{
 			accompanyBox.exist = false;
 		}
 
-		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, refTerrain.Acquire() );
+		refGimmick.PhysicUpdate( wsPlayerAABB.Get2D(), accompanyBox, forGimmickCollisions );
 	}
 
 	// 5. Add the gimmicks block.
@@ -451,12 +457,9 @@ Scene::Result SceneGame::Update( float elapsedTime )
 		UpdateOfTutorial();
 	}
 
-	if ( DetectClearMoment() )
+	if ( DetectClearMoment() && !nowCleared )
 	{
-		nowCleared = true;
-		StartFade();
-
-		GameStorage::InitializeRespawnPos();
+		PrepareGoToTitle();
 	}
 
 #if DEBUG_MODE
@@ -506,8 +509,8 @@ void SceneGame::Draw( float elapsedTime )
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
 		Donya::Sprite::SetDrawDepth( 1.0f );
 
-		Donya::Sprite::Draw ( mission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-		Donya::Sprite::Draw ( complete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( idMission, Common::HalfScreenWidthF () - 250.0f, Common::HalfScreenHeightF () - 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::Draw ( idComplete, Common::HalfScreenWidthF () + 100.0f, Common::HalfScreenHeightF () + 150.0f, 0.0f, Donya::Sprite::Origin::CENTER );
 
 		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
@@ -520,15 +523,15 @@ void SceneGame::Draw( float elapsedTime )
 
 	terrains[currentStageNo].Draw( V * P, lightDir );
 
-	// This flag prevent a double drawing a elevators.
-	const bool alsoDrawElevators = ( gimmicks[currentStageNo].HasElevators() ) ? false : true;
-	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawElevators );
+	// This flag prevent a double drawing a lifts.
+	const bool alsoDrawLifts = ( gimmicks[currentStageNo].HasLift() ) ? false : true;
+	gimmicks[currentStageNo].Draw( V, P, lightDir, alsoDrawLifts );
 
-	for ( const auto &i : elevatorRoomIndices )
+	for ( const auto &i : liftRoomIndices )
 	{
 		if ( i == currentStageNo ) { continue; }
 		// else
-		gimmicks[i].DrawElevators( V, P, lightDir );
+		gimmicks[i].DrawLifts( V, P, lightDir );
 	}
 
 	player.Draw( V * P, lightDir, lightColor );
@@ -623,14 +626,14 @@ void SceneGame::LoadAllStages()
 		return stage;
 	};
 
-	auto HasContainElevator	= []( const std::vector<std::shared_ptr<GimmickBase>> &pGimmicks )
+	auto HasContainLift		= []( const std::vector<std::shared_ptr<GimmickBase>> &pGimmicks )
 	{
 		for ( const auto &pIt : pGimmicks )
 		{
 			if ( !pIt ) { continue; }
 			// else
 
-			if ( GimmickUtility::ToKind( pIt->GetKind() ) == GimmickKind::Elevator )
+			if ( GimmickUtility::ToKind( pIt->GetKind() ) == GimmickKind::Lift )
 			{
 				return true;
 			}
@@ -641,7 +644,7 @@ void SceneGame::LoadAllStages()
 
 	terrains.clear();
 	gimmicks.clear();
-	elevatorRoomIndices.clear();
+	liftRoomIndices.clear();
 
 	int stageNo = 0; // 0-based.
 	std::string filePath = MakeFilePath( stageNo );
@@ -671,9 +674,9 @@ void SceneGame::LoadAllStages()
 			roomOrigin
 		);
 
-		if ( HasContainElevator( config.pEditGimmicks ) )
+		if ( HasContainLift( config.pEditGimmicks ) )
 		{
-			elevatorRoomIndices.emplace_back( stageNo );
+			liftRoomIndices.emplace_back( stageNo );
 		}
 
 		stageNo++;
@@ -683,16 +686,16 @@ void SceneGame::LoadAllStages()
 	stageCount = stageNo;
 }
 
-std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
+std::vector<BoxEx> SceneGame::FetchLiftHitBoxes() const
 {
-	auto FetchElevatorBoxes = []( const Gimmick &gimmicks )
+	auto FetchLiftBoxes = []( const Gimmick &gimmicks )
 	{
 		std::vector<BoxEx> wsHitBoxes{};
 
 		const auto wsAllHitBoxes = gimmicks.RequireHitBoxes();
 		for ( const auto &it : wsAllHitBoxes )
 		{
-			if ( !GimmickUtility::HasAttribute( GimmickKind::Elevator, it ) ) { continue; }
+			if ( !GimmickUtility::HasAttribute( GimmickKind::Lift, it ) ) { continue; }
 			// else
 
 			wsHitBoxes.emplace_back( it.Get2D() );
@@ -706,12 +709,12 @@ std::vector<BoxEx> SceneGame::FetchElevatorHitBoxes() const
 
 	// We consider as the gimmicks count to immutabe.
 
-	for ( const auto &i : elevatorRoomIndices )
+	for ( const auto &i : liftRoomIndices )
 	{
 		if ( i == currentStageNo ) { continue; }
 		// else
 
-		wsLocalBoxes = FetchElevatorBoxes( gimmicks[i] );
+		wsLocalBoxes = FetchLiftBoxes( gimmicks[i] );
 		for ( const auto &it : wsLocalBoxes )
 		{
 			wsAllBoxes.emplace_back( it );
@@ -1055,12 +1058,12 @@ void SceneGame::StartFade() const
 
 void SceneGame::PrepareGoToTitle()
 {
-	const auto param = GameParam::Get().Data();
-	GameStorage::RegisterRespawnPos( param.initPlayerPos );
+	GameStorage::InitializeRespawnPos();
+	GimmickStatus::Reset();
 
-	nowTutorial = true;
-	enableAlert = false;
-	useCushion  = true;
+	nowTutorial	= true;
+	enableAlert	= false;
+	nowCleared	= true;
 
 	if ( !Fader::Get().IsExist() )
 	{
@@ -1178,12 +1181,6 @@ void SceneGame::DrawOfTutorial()
 		XMStoreFloat2( &ans, viewVec );
 		return ans;
 	};
-	static const std::wstring titleText = L"./Data/Images/title_text.png";
-	static const std::wstring titleGear = L"./Data/Images/title_gear.png";
-	static const std::wstring tutorial = L"./Data/Images/Tutorial.png";
-	static const size_t titleTextID = Donya::Sprite::Load( titleText );
-	static const size_t titleGearID = Donya::Sprite::Load( titleGear );
-	static const size_t tutorialID = Donya::Sprite::Load( tutorial );
 
 	const Donya::Vector4x4	V = iCamera.CalcViewMatrix();
 	const Donya::Vector4x4	P = iCamera.GetProjectionMatrix();
@@ -1195,12 +1192,12 @@ void SceneGame::DrawOfTutorial()
 
 	if ( tutorialState == TutorialState::Pull )
 	{
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>( tutorialState + 1 ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 50, pos.y - 200, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 50, pos.y - 100, 0, 448.0f * scast<int>( tutorialState + 1 ), 1280.0f, 448.0f, 0.3f, 0.3f );
 	}
 	else
 	{
-		Donya::Sprite::DrawPartExt( tutorialID, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
+		Donya::Sprite::DrawPartExt( idTutorial, pos.x + 30, pos.y - 100, 0, 448.0f * scast<int>( tutorialState ), 1280.0f, 448.0f, 0.3f, 0.3f );
 	}
 
 	static int animCount = 0;
@@ -1224,11 +1221,11 @@ void SceneGame::DrawOfTutorial()
 	}
 
 	Donya::Sprite::SetDrawDepth( 0.1f );
-	Donya::Sprite::DrawPart( titleTextID, 1000.0f, 500.0f, 0.0f, 320.0f * animFrame, 1280.0f, 320.0f );
+	Donya::Sprite::DrawPart( idTitleText, 1000.0f, 500.0f, 0.0f, 320.0f * animFrame, 1280.0f, 320.0f );
 
 	Donya::Sprite::SetDrawDepth( 0.2f );
-	Donya::Sprite::DrawPart( titleGearID, 770.0f, 600.0f, 0.0f, 480.0f * animFrameGear, 480.0f, 480.0f );
-	Donya::Sprite::DrawPart( titleGearID, 1200.0f, 400.0f, 0.0f, 480.0f * ( 2 - animFrameGear ), 480.0f, 480.0f );
+	Donya::Sprite::DrawPart( idTitleGear, 770.0f, 600.0f, 0.0f, 480.0f * animFrameGear, 480.0f, 480.0f );
+	Donya::Sprite::DrawPart( idTitleGear, 1200.0f, 400.0f, 0.0f, 480.0f * ( 2 - animFrameGear ), 480.0f, 480.0f );
 	
 }
 
@@ -1241,16 +1238,16 @@ Scene::Result SceneGame::ReturnResult()
 		{
 			Donya::Sound::Play( Music::ItemDecision );
 			Scene::Result change{};
-			change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+			change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 			change.sceneType = Scene::Type::Title;
 			return change;
 		}
 		else
 		{
-			if (pressCtrl && Donya::Keyboard::Trigger('E') && !Fader::Get().IsExist())
+			if ( pressCtrl && Donya::Keyboard::Trigger( 'E' ) && !Fader::Get().IsExist() )
 			{
 				Scene::Result change{};
-				change.AddRequest(Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL);
+				change.AddRequest( Scene::Request::ADD_SCENE, Scene::Request::REMOVE_ALL );
 				change.sceneType = Scene::Type::Editor;
 				return change;
 			}

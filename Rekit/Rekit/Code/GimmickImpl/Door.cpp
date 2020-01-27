@@ -194,7 +194,7 @@ void Door::Update ( float elapsedTime )
 		if (movedWidth >= ParamDoor::Get ().Data ().hitBox.size.x * 2)
 		{
 			velocity = 0;
-			GimmickStatus::Remove ( id );
+			// GimmickStatus::Remove ( id ); // Prevent to reset when the scene initialization.
 			state = DoorState::Opened;
 			break;
 		}
@@ -244,6 +244,7 @@ AABBEx Door::GetHitBox () const
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
 	wsHitBox.velocity = velocity;
+	wsHitBox.attr = kind;
 	return wsHitBox;
 }
 

@@ -76,6 +76,10 @@ public:
 	/// Returns hit-box is world space.
 	/// </summary>
 	AABBEx GetHitBox() const;
+	/// <summary>
+	/// Returns hit-box is world space.
+	/// </summary>
+	AABBEx GetVacuumHitBox() const;
 private:
 	void ThrowUpdate(float elapsedTime, Input controller);
 	void PullUpdate(float elapsedTime, Input controller);

@@ -204,7 +204,7 @@ void Elevator::Update ( float elapsedTime )
 			moveAmount = maxMoveAmount;
 			state = ElevatorState::Wait;
 
-			GimmickStatus::Remove( id );
+			// GimmickStatus::Remove( id ); // Prevent to reset when the scene initialization.
 		}
 		break;
 
@@ -269,6 +269,7 @@ AABBEx Elevator::GetHitBox () const
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
 	wsHitBox.velocity = velocity;
+	wsHitBox.attr = kind;
 	return wsHitBox;
 }
 

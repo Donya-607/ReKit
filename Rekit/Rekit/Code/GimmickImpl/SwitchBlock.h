@@ -30,7 +30,7 @@ public:
 #endif // USE_IMGUI
 private:
 	bool			wasBroken;
-	float			scale;		// Use for the performance of appear.
+	float			scale;			// Use for the performance of appear.
 	Donya::Vector3	initPos;
 public:
 	SwitchBlock();
@@ -86,7 +86,7 @@ private:
 	void Scale( float elapsedTime );
 	void Respawn();
 
-	void GatherToTheTarget( const std::vector<BoxEx> &terrains );
+	bool GatherToTheTarget( const std::vector<BoxEx> &terrains );
 public:
 #if USE_IMGUI
 	void ShowImGuiNode() override;

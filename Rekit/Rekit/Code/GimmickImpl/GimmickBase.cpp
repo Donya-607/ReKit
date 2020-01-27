@@ -134,37 +134,51 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 		if ( moveSign.IsZero() ) { continue; } // Each other does not move, so collide is no possible.
 		// else
 
+		auto CalcPenetration	= []( const BoxEx &myself, const Donya::Vector2 &myMoveSign, const BoxEx &other )
+		{
+			Donya::Vector2 plusPenetration
+			{
+				fabsf( ( myself.pos.x + myself.size.x ) - ( other.pos.x - other.size.x ) ),
+				fabsf( ( myself.pos.y + myself.size.y ) - ( other.pos.y - other.size.y ) )
+			};
+			Donya::Vector2 minusPenetration
+			{
+				fabsf( ( myself.pos.x - myself.size.x ) - ( other.pos.x + other.size.x ) ),
+				fabsf( ( myself.pos.y - myself.size.y ) - ( other.pos.y + other.size.y ) )
+			};
+			Donya::Vector2 penetration{}; // Store absolute value.
+			penetration.x
+				= ( myMoveSign.x < 0.0f ) ? minusPenetration.x
+				: ( myMoveSign.x > 0.0f ) ? plusPenetration.x
+				: 0.0f;
+			penetration.y
+				= ( myMoveSign.y < 0.0f ) ? minusPenetration.y
+				: ( myMoveSign.y > 0.0f ) ? plusPenetration.y
+				: 0.0f;
+			return penetration;
+		};
+		auto CalcResolver		= []( const Donya::Vector2 &penetration, const Donya::Vector2 &myMoveSign )
+		{
+			// Prevent the two edges onto same place(the collision detective allows same(equal) value).
+			constexpr float ERROR_MARGIN = 0.0001f;
+
+			Donya::Vector2 resolver
+			{
+				( penetration.x + ERROR_MARGIN ) * -myMoveSign.x,
+				( penetration.y + ERROR_MARGIN ) * -myMoveSign.y
+			};
+			return resolver;
+		};
+
 		Donya::Vector2 penetration{}; // Store absolute value.
-		Donya::Vector2 plusPenetration
-		{
-			fabsf( ( movedXYBody.pos.x + movedXYBody.size.x ) - ( other.pos.x - other.size.x ) ),
-			fabsf( ( movedXYBody.pos.y + movedXYBody.size.y ) - ( other.pos.y - other.size.y ) )
-		};
-		Donya::Vector2 minusPenetration
-		{
-			fabsf( ( movedXYBody.pos.x - movedXYBody.size.x ) - ( other.pos.x + other.size.x ) ),
-			fabsf( ( movedXYBody.pos.y - movedXYBody.size.y ) - ( other.pos.y + other.size.y ) )
-		};
-		penetration.x
-			= ( moveSign.x < 0.0f ) ? minusPenetration.x
-			: ( moveSign.x > 0.0f ) ? plusPenetration.x
-			: 0.0f;
-		penetration.y
-			= ( moveSign.y < 0.0f ) ? minusPenetration.y
-			: ( moveSign.y > 0.0f ) ? plusPenetration.y
-			: 0.0f;
-
-		constexpr float ERROR_MARGIN = 0.0001f; // Prevent the two edges onto same place(the collision detective allows same(equal) value).
-
+		Donya::Vector2 resolver{};
 		Donya::Vector2 pushDirection{};
-		Donya::Vector2 resolver
-		{
-			( penetration.x + ERROR_MARGIN ) * -moveSign.x,
-			( penetration.y + ERROR_MARGIN ) * -moveSign.y
-		};
+		penetration	= CalcPenetration( movedXYBody, moveSign, other );
+		resolver	= CalcResolver( penetration, moveSign );
 
 		// Repulse to the more little(but greater than zero) axis side of penetration.
-		if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
+		if ( ( penetration.y < penetration.x && !ZeroEqual( penetration.y ) ) || ZeroEqual( penetration.x ) )
+		// if ( penetration.y < penetration.x || ZeroEqual( penetration.x ) )
 		{
 			Donya::Vector2 influence{};
 			enum Dir { Up = 1, Down = -1 };
@@ -192,7 +206,8 @@ void GimmickBase::PhysicUpdate( const BoxEx &player, const BoxEx &accompanyBox, 
 				if ( signs.y != 0 ) { moveSign.y = scast<float>( signs.y ); }
 			}
 		}
-		else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+		// else // if ( !ZeroEqual( penetration.x ) ) is same as above this : " || ZeroEqual( penetration.x ) "
+		else if ( !ZeroEqual( penetration.x ) )
 		{
 			movedXYBody.pos.x += resolver.x;
 			velocity.x = 0.0f;

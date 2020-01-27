@@ -194,7 +194,7 @@ void Shutter::Update ( float elapsedTime )
 		if (movedWidth >= ParamShutter::Get ().Data ().hitBox.size.x * 2)
 		{
 			velocity = 0;
-			GimmickStatus::Remove ( id );
+			// GimmickStatus::Remove ( id ); // Prevent to reset when the scene initialization.
 			state = ShutterState::Opened;
 			break;
 		}
@@ -205,7 +205,6 @@ void Shutter::Update ( float elapsedTime )
 
 	case ShutterState::Opened:
 		velocity = 0;
-//		GimmickStatus::Remove ( id );
 		return;
 	}
 }
@@ -245,6 +244,7 @@ AABBEx Shutter::GetHitBox () const
 	AABBEx wsHitBox = hitBoxes;
 	wsHitBox.pos += pos;
 	wsHitBox.velocity = velocity;
+	wsHitBox.attr = kind;
 	return wsHitBox;
 }
 
