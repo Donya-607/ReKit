@@ -210,6 +210,7 @@ SceneGame::SceneGame() :
 	roomOriginPos(),
 	idMission( NULL ), idComplete( NULL ),
 	idTitleText( NULL ), idTitleGear( NULL ), idTutorial( NULL ),
+	idTeachInset( NULL ), idTeachBomb( NULL ),
 	bg(), player(), alert(), pHook( nullptr ),
 	terrains(), gimmicks(),
 	tutorialState( scast<TutorialState>( 0 ) ),
@@ -305,6 +306,8 @@ void SceneGame::Init()
 	idTitleText	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleText	) );
 	idTitleGear	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TitleGear	) );
 	idTutorial	= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::Tutorial		) );
+	idTeachInset= Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TeachInsert	) );
+	idTeachBomb = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::TeachBomb	) );
 }
 void SceneGame::Uninit()
 {
@@ -494,6 +497,21 @@ void SceneGame::Draw( float elapsedTime )
 		const float prevDepth = Donya::Sprite::GetDrawDepth();
 		Donya::Sprite::SetDrawDepth( 1.0f );
 		bg.Draw();
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+
+	if (currentStageNo == 1)
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+		Donya::Sprite::DrawExt( idTeachInset, Common::HalfScreenWidthF() + 525.0f, Common::HalfScreenHeightF() - 250.0f, 0.5f, 0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
+		Donya::Sprite::SetDrawDepth( prevDepth );
+	}
+	if (currentStageNo == 2)
+	{
+		const float prevDepth = Donya::Sprite::GetDrawDepth();
+		Donya::Sprite::SetDrawDepth( 1.0f );
+		Donya::Sprite::DrawExt( idTeachBomb, Common::HalfScreenWidthF() - 325.0f, Common::HalfScreenHeightF() - 200.0f, 0.5f, 0.5f, 0.0f, Donya::Sprite::Origin::CENTER );
 		Donya::Sprite::SetDrawDepth( prevDepth );
 	}
 

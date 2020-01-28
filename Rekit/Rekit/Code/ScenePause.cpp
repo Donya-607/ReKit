@@ -202,7 +202,9 @@ ScenePause::ScenePause() :
 	choice( Choice::Resume ),
 	sprBoard(), sprSentences(),
 	nextSceneType(),
-	controller( Donya::XInput::PadNumber::PAD_1 )
+	controller( Donya::XInput::PadNumber::PAD_1 ),
+	idBoard( NULL ), idSentences( NULL ),
+	pos()
 {}
 ScenePause::~ScenePause() = default;
 
@@ -215,6 +217,12 @@ void ScenePause::Init()
 
 	sprBoard.SetPartCount( { 1, 1 } );
 	sprSentences.SetPartCount( { 1, PauseParam::Get().Data().sentenceCount } );
+
+	idBoard = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::PauseBoard ) );
+	idSentences = Donya::Sprite::Load( GetSpritePath( SpriteAttribute::PauseSentences ) );
+
+	pos.x = Common::HalfScreenWidthF() - 475.0f;
+	pos.y = 450.0f;
 }
 
 void ScenePause::Uninit()
@@ -258,12 +266,16 @@ Scene::Result ScenePause::Update( float elapsedTime )
 	}
 #endif // DEBUG_MODE
 
+	pos.y = scast<float>( choice ) * 150.0f + 450.0f;
+
 	return ReturnResult();
 }
 
 void ScenePause::Draw( float elapsedTime )
 {
-	
+	Donya::Sprite::Draw( idBoard, 0.0f, 0.0f, 0.0f, Donya::Sprite::Origin::LEFT_TOP );
+	Donya::Sprite::DrawPart( idSentences, Common::HalfScreenWidthF()+50.0f, Common::HalfScreenHeightF()+60.0f, 0.0f, 116.0f, 864.0f, 680.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+	Donya::Sprite::DrawPart( idSentences, pos.x, pos.y, 0.0f, 0.0f, 116.0f, 116.0f, 0.0f, Donya::Sprite::Origin::CENTER );
 }
 
 void ScenePause::UpdateChooseItem()
@@ -339,7 +351,33 @@ Scene::Result ScenePause::ReturnResult()
 	if ( useDecision )
 	{
 		Donya::Sound::Play( Music::ItemDecision );
-		StartFade();
+//		StartFade();
+		Scene::Result change{};
+		switch (choice)
+		{
+		case Choice::Resume:
+			change.AddRequest( Scene::Request::REMOVE_ME );
+			break;
+		case Choice::BackToTitle:
+			if (!Fader::Get().IsExist())
+			{
+				nextSceneType = Scene::Type::Title;
+				StartFade();
+			}
+		//	change.AddRequest( Scene::Request::ADD_SCENE );
+		//	change.sceneType = Scene::Type::Title;
+			break;
+		case Choice::Retry:
+			if (!Fader::Get().IsExist())
+			{
+				nextSceneType = Scene::Type::Game;
+				StartFade();
+			}
+		//	change.AddRequest( Scene::Request::ADD_SCENE );
+		//	change.sceneType = Scene::Type::Game;
+			break;
+		}
+		return change;
 	}
 
 	if ( Fader::Get().IsClosed() )

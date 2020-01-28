@@ -26,6 +26,11 @@ private:
 	Donya::XInput	controller;
 
 	Scene::Type		nextSceneType;
+
+	size_t			idBoard;
+	size_t			idSentences;
+
+	Donya::Vector2	pos;
 public:
 	ScenePause();
 	~ScenePause();

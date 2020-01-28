@@ -23,6 +23,8 @@ enum class SpriteAttribute
 	Complete,
 	PauseBoard,
 	PauseSentences,
+	TeachInsert,
+	TeachBomb,
 };
 
 std::wstring GetSpritePath( SpriteAttribute spriteAttribute );
