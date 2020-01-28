@@ -1310,8 +1310,6 @@ Scene::Result SceneGame::ReturnResult()
 	}
 	// else
 
-#if DEBUG_MODE
-
 	bool requestPause	= controller.Trigger( Donya::Gamepad::Button::START ) || controller.Trigger( Donya::Gamepad::Button::SELECT ) || Donya::Keyboard::Trigger( 'P' );
 	bool allowPause		= !Fader::Get().IsExist();
 	if ( requestPause && allowPause )
@@ -1324,8 +1322,6 @@ Scene::Result SceneGame::ReturnResult()
 		return pause;
 	}
 	// else
-
-#endif // DEBUG_MODE
 
 	Scene::Result noop{ Scene::Request::NONE, Scene::Type::Null };
 	return noop;
