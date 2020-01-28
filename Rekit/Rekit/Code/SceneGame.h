@@ -46,6 +46,8 @@ private:
 	size_t					idTitleText;	// Sprite.
 	size_t					idTitleGear;	// Sprite.
 	size_t					idTutorial;		// Sprite.
+	size_t					idTeachInset;	// Sprite.
+	size_t					idTeachBomb;	// Sprite.
 
 	BG						bg;
 	Player					player;
