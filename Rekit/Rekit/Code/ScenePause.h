@@ -14,7 +14,6 @@ private:
 	{
 		Nil = -1,
 		Resume = 0,
-		BackToTitle,
 		Retry,
 
 		ItemCount

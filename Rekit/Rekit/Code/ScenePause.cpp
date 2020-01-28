@@ -199,7 +199,7 @@ CEREAL_CLASS_VERSION( PauseParam::Member, 0 )
 
 
 ScenePause::ScenePause() :
-	choice( Choice::Resume ),
+	choice( Choice::Nil ),
 	sprBoard(), sprSentences(),
 	nextSceneType(),
 	controller( Donya::XInput::PadNumber::PAD_1 ),
@@ -273,9 +273,33 @@ Scene::Result ScenePause::Update( float elapsedTime )
 
 void ScenePause::Draw( float elapsedTime )
 {
+	const float prevDepth = Donya::Sprite::GetDrawDepth();
+	Donya::Sprite::SetDrawDepth( 0.0f );
+
 	Donya::Sprite::Draw( idBoard, 0.0f, 0.0f, 0.0f, Donya::Sprite::Origin::LEFT_TOP );
-	Donya::Sprite::DrawPart( idSentences, Common::HalfScreenWidthF()+50.0f, Common::HalfScreenHeightF()+60.0f, 0.0f, 116.0f, 864.0f, 680.0f, 0.0f, Donya::Sprite::Origin::CENTER );
-	Donya::Sprite::DrawPart( idSentences, pos.x, pos.y, 0.0f, 0.0f, 116.0f, 116.0f, 0.0f, Donya::Sprite::Origin::CENTER );
+	Donya::Sprite::DrawPart
+	(
+		idSentences,
+		Common::HalfScreenWidthF()+50.0f,
+		Common::HalfScreenHeightF()+60.0f,
+		0.0f, 116.0f,
+		864.0f,
+		680.0f - 141.0f,
+		0.0f,
+		Donya::Sprite::Origin::CENTER
+	);
+	Donya::Sprite::DrawPart
+	(
+		idSentences,
+		pos.x, pos.y,
+		0.0f, 0.0f,
+		116.0f,
+		116.0f,
+		0.0f,
+		Donya::Sprite::Origin::CENTER
+	);
+
+	Donya::Sprite::SetDrawDepth( prevDepth );
 }
 
 void ScenePause::UpdateChooseItem()
@@ -306,7 +330,7 @@ void ScenePause::UpdateChooseItem()
 	if ( up		) { index--; }
 	if ( down	) { index++; }
 
-	index = std::max( 0, std::min( scast<int>( Choice::ItemCount ) - 1, index ) );
+	index = std::max( -1, std::min( scast<int>( Choice::ItemCount ) - 1, index ) );
 
 	if ( index != oldIndex )
 	{
@@ -327,6 +351,15 @@ void ScenePause::StartFade() const
 
 Scene::Result ScenePause::ReturnResult()
 {
+	if ( choice == Choice::Nil )
+	{
+		// ÉgÉäÉKÅ[ìÒèdåüèoñhé~
+		choice = Choice::Resume;
+		Scene::Result noop{ Scene::Request::NONE, Scene::Type::Null };
+		return noop;
+	}
+	// else
+
 	bool useResume{};
 	bool useDecision{};
 	if ( controller.IsConnected() )
@@ -358,15 +391,17 @@ Scene::Result ScenePause::ReturnResult()
 		case Choice::Resume:
 			change.AddRequest( Scene::Request::REMOVE_ME );
 			break;
+			/*
 		case Choice::BackToTitle:
 			if (!Fader::Get().IsExist())
 			{
-				nextSceneType = Scene::Type::Title;
+				nextSceneType = Scene::Type::Game;
 				StartFade();
 			}
 		//	change.AddRequest( Scene::Request::ADD_SCENE );
 		//	change.sceneType = Scene::Type::Title;
 			break;
+			*/
 		case Choice::Retry:
 			if (!Fader::Get().IsExist())
 			{

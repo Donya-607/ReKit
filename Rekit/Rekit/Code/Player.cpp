@@ -15,6 +15,7 @@
 #include "Donya/Keyboard.h"
 #endif // DEBUG_MODE
 
+#include "Common.h"
 #include "FilePath.h"
 #include "GimmickUtil.h"		// Use for confirming to slip ground.
 #include "GimmickImpl/Bomb.h"	// Use for confirming to "is the attribute danger?".
@@ -808,7 +809,6 @@ void Player::PhysicUpdate( const std::vector<BoxEx> &terrains )
 
 #if DEBUG_MODE
 #include "Donya/GeometricPrimitive.h"
-#include "Common.h"
 #endif // DEBUG_MODE
 void Player::Draw( const Donya::Vector4x4 &matViewProjection, const Donya::Vector4 &lightDirection, const Donya::Vector4 &lightColor ) const
 {
